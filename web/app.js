@@ -1,0 +1,74 @@
+const INTERVALS=[1,1,3,7,14];
+function reviewRecord(topic,score,now=new Date()){
+  if(typeof topic!=="string"||!Number.isInteger(score)||score<0||score>4)throw Error("Invalid review");
+  const date=new Date(now);
+  if(!Number.isFinite(date.getTime()))throw Error("Invalid date");
+  date.setDate(date.getDate()+INTERVALS[score]);
+  return {topic,score,due:date.toISOString(),assessed:new Date(now).toISOString()};
+}
+function reviewOrder(rows,now=new Date()){
+  return rows.slice().sort((a,b)=>Number(new Date(b.due)<=now)-Number(new Date(a.due)<=now)||a.score-b.score||Date.parse(a.due)-Date.parse(b.due));
+}
+function questionLevel(previous){
+  return previous&&previous.score>=3?1:0;
+}
+
+const BANK=[["Linux/Bash",["Процесс использует много CPU. Как определить причину без перезапуска?","Раздели загрузку CPU, ожидание I/O, состояние потоков и ограничения cgroups."],["После релиза нагрузка выросла, но CPU utilisation низкая. Как локализовать задержку?","Проверь очереди, блокировки, I/O, off-CPU, лимиты и корреляцию с релизом."]],["Сети/DNS/TLS/HTTP",["TCP-соединение не устанавливается. Какие проверки разделят проблемы клиента, сети и сервера?","Маршрут, сокеты, пакетный захват, firewall, обратный маршрут; проверяй гипотезы."],["TLS-соединения периодически обрываются только на части клиентов. Как построишь расследование?","Сегментация клиентов, цепочка сертификатов, SNI, время, промежуточные устройства, измерения."]],["Docker/OCI",["Почему контейнер работает локально, но падает при запуске на другом хосте?","Архитектура образа, конфигурация, volumes, UID, limits, logs и exit code."],["Как уменьшить поверхность атаки контейнерного приложения без поломки релизов?","Минимальный образ, non-root, capabilities, read-only FS, supply chain, rollback."]],["Ansible",["Что означает идемпотентность и как проверить её на роли?","Два запуска, changed, модули вместо shell, проверка фактического состояния."],["Как развернуть изменения на 500 хостах с ограничением blast radius?","Batch/serial, health gates, failure policy, rollback, inventory и аудит."]],["CI/CD",["Как разделить build, test, deploy и release?","Один immutable artifact, независимые проверки, среда, approvals, rollback."],["Как исключить одновременные конфликтующие деплои и подмену артефакта?","Concurrency, identity/digest, provenance, least privilege, deployment lock."]],["Terraform",["Что находится в state и почему его нельзя считать просто конфигурацией?","Связь ресурсов и реальных объектов, drift, чувствительные данные, locking."],["Как восстановиться после частичного apply и не удалить рабочие ресурсы?","Состояние, plan, реальные объекты, import/moved при необходимости, backup, review."]],["Kubernetes/Helm",["Pod Running, но сервис недоступен. Как локализовать проблему?","Events, readiness, selectors, endpoints, DNS, network policy, logs."],["Как диагностировать каскадную деградацию после rollout при жёстких resource limits?","Requests/limits, throttling, OOM, HPA, probes, rollout/rollback и SLO."]],["GitOps",["Чем отличается декларативная доставка от обычного push-деплоя?","Desired state, reconciliation, drift, источник истины, rollback."],["Как организовать экстренное исправление при GitOps без бесконтрольного drift?","Break-glass, аудит, временная политика, возврат к Git и reconciliation."]],["Observability/SRE",["Чем отличаются SLI, SLO и SLA?","Измеряемый индикатор, целевое значение, обязательство; окно и error budget."],["Как настроить алертинг по burn rate, чтобы снизить шум и не пропустить инцидент?","Окна, скорость расхода бюджета, severity, actionable alerts и runbook."]],["Security",["Как исключить утечку секретов в CI?","Минимальные права, временные credentials, masking, отсутствие секретов в логах и артефактах."],["Как проверить цепочку поставки контейнерного образа до production?","SBOM, подпись, provenance, digest, scanning, policy enforcement."]],["Platform/HA/DR",["Объясни RPO и RTO и предложи проверку восстановления.","Данные, допустимая потеря, время восстановления, restore drill и измерение."],["Как проектировать платформу self-service с контролем стоимости и безопасности?","Golden paths, guardrails, quotas, tenancy, ownership, метрики adoption и reliability."]],["Leadership",["Как распределить работу команды при критическом инциденте?","Incident commander, роли, коммуникация, mitigation, журнал решений."],["Как обосновать отказ от рискованного релиза бизнесу и согласовать альтернативу?","Риск, SLO, данные, варианты, компромисс, критерии и ответственное решение."]]];
+const $=id=>document.getElementById(id);
+const text=(id,v)=>{$(id).textContent=v??"—"};
+const elem=(tag,value,cls)=>{const n=document.createElement(tag);if(value!==undefined)n.textContent=value;if(cls)n.className=cls;return n};
+let state=null,csrf=null,deadline=null,activeQuestion=null,records=[];
+try{const parsed=JSON.parse(localStorage.getItem("academy-review-v1")||"[]");if(Array.isArray(parsed))records=parsed.filter(r=>r&&BANK.some(b=>b[0]===r.topic)&&Number.isInteger(r.score)&&r.score>=0&&r.score<=4&&Number.isFinite(Date.parse(r.due)))}catch{}
+function alertMsg(msg){text("alert",msg);$("alert").hidden=!msg}
+async function api(path,post=false){
+  const r=await fetch(path,post?{method:"POST",headers:{"X-Academy-CSRF":csrf}}:{cache:"no-store"});
+  const data=await r.json();
+  if(!r.ok)throw Error(data.error||"Request blocked");
+  return data;
+}
+function page(id){document.querySelectorAll(".page").forEach(n=>n.hidden=n.id!==id);document.querySelectorAll("nav button").forEach(n=>n.classList.toggle("active",n.dataset.page===id));if(id==="review")renderReview()}
+document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>page(b.dataset.page)));
+async function copy(value){try{await navigator.clipboard.writeText(value);alertMsg("Скопировано. Вставь в терминал или ChatGPT.")}catch{alertMsg("Копирование недоступно. Выдели вручную: "+value)}}
+document.querySelectorAll(".prompt").forEach(b=>b.addEventListener("click",()=>copy(b.dataset.prompt)));
+function renderState(d){
+  text("week",d.week+"/"+d.weeks);text("revision",d.revision);
+  text("task",d.task.id+" · "+d.task.topic);text("next",d.task.status+" — "+d.next);
+  text("lab-title",d.task.id+" · "+d.task.topic);text("lab-next",d.next);
+  text("commit","Control "+d.commit+" · "+new Date(d.checked_at).toLocaleString("ru-RU",{timeZone:"Europe/Moscow"})+" МСК");
+  $("workflow").replaceChildren(...Object.entries(d.workflow).map(([k,v])=>elem("span",k+": "+v,"chip "+(v==="completed"?"done":""))));
+  $("roadmap-list").replaceChildren(...d.roadmap.map(r=>{const x=elem("details");const n=Number(r[0]);x.open=n===d.week;x.append(elem("summary","Неделя "+r[0]+" · "+r[1]+(x.open?" (текущая)":"")),elem("p",r[2]));return x}));
+  $("skill-list").replaceChildren(...d.skills.map(r=>{const x=elem("article",undefined,"row-card");x.append(elem("strong",r[0]),elem("p","Подтверждено: "+r[2]+" · Цель: "+r[3]),elem("small",r[4]));return x}));
+}
+async function sync(){
+  $("sync").disabled=true;
+  try{const d=await api("/api/state");state=d;renderState(d);text("connection","GitHub · прочитано");$("connection").className="tag good";alertMsg("")}
+  catch(e){state=null;text("connection","BLOCKED / устарело");$("connection").className="tag bad";alertMsg("Синхронизация не выполнена. Старые данные не являются актуальным STATE. "+e.message)}
+  finally{$("sync").disabled=false}
+}
+$("sync").addEventListener("click",sync);
+const PLANS={20:"5 мин повторение · 10 мин практика · 5 мин проверка",60:"10 мин повторение · 35 мин практика · 10 мин диагностика · 5 мин проверка",120:"20 мин повторение · 60 мин практика · 25 мин отказы · 15 мин защита"};
+$("begin").addEventListener("click",()=>{if(!state){alertMsg("Сначала синхронизируй STATE.");return}if(!["assigned","in_progress","revision_required"].includes(state.task.status)){alertMsg("Следуй текущему статусу: ревью, экзамен или Orchestrator.");return}const n=Number($("duration").value);deadline=Date.now()+n*60000;text("plan",PLANS[n]);text("lab-command","python3 academy.py start --minutes "+n);alertMsg("Сессия началась локально. Открой раздел Лаборатория для команд. STATE не изменён.")});
+setInterval(()=>{if(deadline!==null){const s=Math.max(0,Math.ceil((deadline-Date.now())/1000));text("timer",Math.floor(s/60)+":"+String(s%60).padStart(2,"0"));if(!s){deadline=null;alertMsg("Сессия закончилась. Зафиксируй результат.")}}},500);
+$("copy-lab").addEventListener("click",()=>copy($("lab-command").textContent));
+$("trust").addEventListener("change",()=>{$("test").disabled=!$("trust").checked||!csrf});
+$("test").addEventListener("click",async()=>{if(!$("trust").checked||!csrf)return;$("test").disabled=true;text("test-output","Тестирование…");try{const r=await api("/api/test",true);text("test-output","Exit code: "+r.exit_code+"\n"+r.output+"\n"+r.note)}catch(e){text("test-output","BLOCKED: "+e.message)}finally{$("trust").checked=false;$("test").disabled=true}});
+BANK.forEach(r=>{const o=elem("option",r[0]);o.value=r[0];$("topic").append(o)});
+function nextQuestion(){
+  const topic=$("topic").value;const row=BANK.find(r=>r[0]===topic);
+  const prior=records.find(r=>r.topic===topic);const level=questionLevel(prior);
+  activeQuestion={topic,criteria:row[level+1][1]};
+  text("question-text",row[level+1][0]);$("answer").value="";$("criteria").hidden=true;$("ratings").hidden=true;text("review-note","");
+}
+$("question").addEventListener("click",nextQuestion);
+$("topic").addEventListener("change",nextQuestion);
+$("rubric").addEventListener("click",()=>{if(!activeQuestion||!$("answer").value.trim()){text("review-note","Сначала ответь самостоятельно.");return}text("criteria",activeQuestion.criteria);$("criteria").hidden=false;$("ratings").hidden=false});
+function persist(){try{localStorage.setItem("academy-review-v1",JSON.stringify(records));return true}catch{return false}}
+$("save-review").addEventListener("click",()=>{if(!activeQuestion||$("ratings").hidden)return;const r=reviewRecord(activeQuestion.topic,Number($("rating").value));records=records.filter(x=>x.topic!==r.topic);records.push(r);text("review-note",persist()?"Самооценка записана локально. Не изменяет SKILL_MATRIX.":"Запись только в памяти текущей страницы.");$("ratings").hidden=true});
+function renderReview(){
+  $("review-list").replaceChildren();
+  if(!records.length){$("review-list").append(elem("p","Пока нет локальных самооценок.","dim"));return}
+  for(const r of reviewOrder(records)){const x=elem("article",undefined,"row-card");x.append(elem("strong",r.topic),elem("p","Самооценка: "+r.score+" · "+(new Date(r.due)<=new Date()?"Пора повторить":"До "+new Date(r.due).toLocaleDateString("ru-RU"))));const b=elem("button","Повторить","secondary");b.addEventListener("click",()=>{$("topic").value=r.topic;nextQuestion();page("interview")});x.append(b);$("review-list").append(x)}
+}
+$("clear-review").addEventListener("click",()=>{if(confirm("Удалить локальные самооценки?")){records=[];persist();renderReview()}});
+$("load-handoffs").addEventListener("click",async()=>{const b=$("load-handoffs");b.disabled=true;text("handoff-info","Чтение GitHub…");$("handoff-list").replaceChildren();try{const d=await api("/api/handoffs");text("handoff-info","Тестовых: "+d.test_count+" · Групп live: "+d.items.length+" · "+d.note);for(const i of d.items){const x=elem("article",undefined,"row-card");x.append(elem("strong",i.id),elem("p",i.status));for(const n of i.numbers){if(!Number.isSafeInteger(n)||n<1)continue;const a=elem("a","#"+n+" ↗ ");a.href="https://github.com/dneprov808-sudo/devops-lead-lab/issues/"+n;a.target="_blank";a.rel="noopener noreferrer";x.append(a)}$("handoff-list").append(x)}}catch(e){text("handoff-info","BLOCKED: "+e.message+" · Проверь gh auth status.")}finally{b.disabled=false}});
+api("/api/session").then(r=>csrf=r.csrf).catch(e=>alertMsg(e.message));nextQuestion();sync();
