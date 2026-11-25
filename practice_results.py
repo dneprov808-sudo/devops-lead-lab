@@ -30,7 +30,7 @@ def normalize(payload, catalog):
         module = payload["module"]
         entry = next((m for m in catalog if m["id"] == module), None)
         checks, score = payload["checks"], payload["score"]
-        if (entry is None or not isinstance(checks, list) or
+        if (entry is None or not isinstance(module, str) or not re.fullmatch(r"PR-[A-Z0-9-]+", module) or not isinstance(checks, list) or
                 any(type(i) is not int or not 0 <= i < len(entry["evidence"]) for i in checks) or
                 len(set(checks)) != len(checks) or
                 not (score is None or type(score) is int and 0 <= score <= 4)):
@@ -107,7 +107,7 @@ def save(payload, catalog, root=ROOT, origins=ORIGINS):
         _, tree = git("write-tree", index=index)
         _, commit = git("commit-tree", tree.decode().strip(), "-p", parent, "-m", "practice: save " + record["module"], index=index)
     sha = commit.decode().strip()
-    rc, _ = git("push", "--porcelain", "origin", sha + ":" + DEST, permit=True)
+    rc, _ = git("push", "--porcelain", "--no-follow-tags", "--recurse-submodules=no", "origin", sha + ":" + DEST, permit=True)
     try:
         verified = tip(DEST, optional=True)
         if verified and existing(verified):
