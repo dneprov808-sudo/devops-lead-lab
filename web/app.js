@@ -47,7 +47,7 @@ async function sync(){
 }
 $("sync").addEventListener("click",sync);
 const PLANS={20:"5 мин повторение · 10 мин практика · 5 мин проверка",60:"10 мин повторение · 35 мин практика · 10 мин диагностика · 5 мин проверка",120:"20 мин повторение · 60 мин практика · 25 мин отказы · 15 мин защита"};
-$("begin").addEventListener("click",()=>{if(!state){alertMsg("Сначала синхронизируй STATE.");return}const n=Number($("duration").value);deadline=Date.now()+n*60000;text("plan",PLANS[n]);text("lab-command","python3 academy.py start --minutes "+n);page("lab");alertMsg("Сессия началась локально. STATE не изменён.")});
+$("begin").addEventListener("click",()=>{if(!state){alertMsg("Сначала синхронизируй STATE.");return}if(!["assigned","in_progress","revision_required"].includes(state.task.status)){alertMsg("Следуй текущему статусу: ревью, экзамен или Orchestrator.");return}const n=Number($("duration").value);deadline=Date.now()+n*60000;text("plan",PLANS[n]);text("lab-command","python3 academy.py start --minutes "+n);alertMsg("Сессия началась локально. Открой раздел Лаборатория для команд. STATE не изменён.")});
 setInterval(()=>{if(deadline!==null){const s=Math.max(0,Math.ceil((deadline-Date.now())/1000));text("timer",Math.floor(s/60)+":"+String(s%60).padStart(2,"0"));if(!s){deadline=null;alertMsg("Сессия закончилась. Зафиксируй результат.")}}},500);
 $("copy-lab").addEventListener("click",()=>copy($("lab-command").textContent));
 $("trust").addEventListener("change",()=>{$("test").disabled=!$("trust").checked||!csrf});
