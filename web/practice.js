@@ -117,8 +117,9 @@ function renderCatalog(){
   }));
 }
 by("practice-search").addEventListener("input",renderCatalog);
-fetch("/api/practice-catalog",{cache:"no-store"}).then(r=>{if(!r.ok)throw Error("Каталог недоступен");return r.json()}).then(data=>{
+const catalogReady=fetch("/api/practice-catalog",{cache:"no-store"}).then(r=>{if(!r.ok)throw Error("Каталог недоступен");return r.json()}).then(data=>{
   if(!Array.isArray(data))throw Error("Некорректный каталог");
   catalog=data;renderCatalog()
 }).catch(e=>{by("practice-list").append(element("p","BLOCKED: "+e.message))});
+window.academyOpenPractice=async id=>{await catalogReady;const m=catalog.find(x=>x.id===id);if(!m||busy)return false;page("practice");open(m);return true;};
 })();
