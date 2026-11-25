@@ -1,0 +1,189 @@
+[
+  {
+    "id": "INC-KAFKA-01",
+    "topic": "kafka",
+    "title": "Отставание consumer после релиза",
+    "severity": "SEV-2",
+    "symptoms": "События приняты, но обработка заявок задерживается. Lag растёт только на partition 2.",
+    "evidence": "producer 800 msg/s; consumer 620 msg/s; partition 2 lag 54000; остальные <100; consumer CPU 35%.",
+    "hint": "Сравни распределение ключей и throughput по partition, затем проверь обработку внешней зависимости.",
+    "task": "Какие доказательства отличат hot key от общей нехватки consumers?",
+    "debrief": "Синтетическое объяснение: один горячий ключ создаёт перегруженную partition. Масштабирование consumers сверх partitions не исправляет skew. Сравнить per-partition rate, задержку side effect, пересмотреть partitioning с учётом порядка; проверить lag и отсутствие потерь."
+  },
+  {
+    "id": "INC-KAFKA-02",
+    "topic": "kafka",
+    "title": "Producer не может писать при деградации ISR",
+    "severity": "SEV-1",
+    "symptoms": "На многоброкерной схеме producer получает ошибки недостаточного числа реплик.",
+    "evidence": "RF=3; min.insync.replicas=2; acks=all; ISR=1 у затронутых partitions; два узла недоступны.",
+    "hint": "Проверь состояние broker и replica lag, не ослабляй durability до согласования риска.",
+    "task": "Что восстановить первым и как проверить подтверждённые записи?",
+    "debrief": "Синтетическое объяснение: ISR меньше min.insync.replicas при acks=all; запись блокируется для защиты durability. Восстановить реплики, проверить ISR и успешную запись, оценить риск прежде чем менять политику. Не применять к текущему одноузловому стенду."
+  },
+  {
+    "id": "INC-PG-01",
+    "topic": "postgres",
+    "title": "Блокировка DDL и очередь запросов",
+    "severity": "SEV-2",
+    "symptoms": "Время ответа выросло до 12 с, CPU БД 25%, новые транзакции ждут.",
+    "evidence": "pg_stat_activity: pid 51 idle in transaction 18 min; pid 72 wait_event_type=Lock; pid 91 wait_event_type=Lock; pg_blocking_pids(72)={51}.",
+    "hint": "Построй дерево блокировок, выясни владельца и последствия rollback.",
+    "task": "Как минимизировать влияние и предотвратить повтор?",
+    "debrief": "Синтетическое объяснение: старая транзакция удерживает lock, DDL ожидает и может блокировать следующие запросы. Согласовать завершение блокирующей транзакции, проверить очередь и latency; настроить timeout и безопасные миграции."
+  },
+  {
+    "id": "INC-PG-02",
+    "topic": "postgres",
+    "title": "Диск заполняется WAL",
+    "severity": "SEV-1",
+    "symptoms": "Свободное место падает, запись в БД ещё работает.",
+    "evidence": "pg_wal 82 GB; disk free 7%; archive failed_count растёт; replication slot inactive; last archived WAL давно.",
+    "hint": "Раздели retention из-за archiving и slots; оцени скорость роста и запас времени.",
+    "task": "Какие действия опасны для восстановления?",
+    "debrief": "Синтетическое объяснение: WAL удерживается из-за неуспешного архивирования и/или слота; нужны точные LSN и подтверждение. Не удалять pg_wal вручную. Восстановить архивирование, согласовать удаление ненужного слота только после проверки зависимостей, расширить диск при необходимости."
+  },
+  {
+    "id": "INC-HA-01",
+    "topic": "patroni",
+    "title": "Лидер исчез, replica отстаёт",
+    "severity": "SEV-1",
+    "symptoms": "Запись недоступна после остановки primary.",
+    "evidence": "leader unreachable; replica lag 24 MB; maximum_lag_on_failover 1 MB; DCS reachable.",
+    "hint": "Сопоставь lag, eligibility, timeline и состояние DCS.",
+    "task": "Почему нельзя просто принудительно promote?",
+    "debrief": "Синтетическое объяснение: replica может быть не допущена к автоматическому failover по lag; риск потери записей. Проверить кандидат, исключить старого лидера, эскалировать бизнес-решение о допустимой потере. Не форсировать вслепую."
+  },
+  {
+    "id": "INC-HA-02",
+    "topic": "patroni",
+    "title": "Потеря кворума DCS",
+    "severity": "SEV-1",
+    "symptoms": "PostgreSQL процессы запущены, но запись стала недоступна.",
+    "evidence": "2 из 3 etcd members недоступны; renew leader lock fails; synchronous mode не задан; failsafe mode выключен.",
+    "hint": "Отличи доступность PostgreSQL от права владеть leader lock.",
+    "task": "Как восстановить кворум без split-brain?",
+    "debrief": "Синтетическое объяснение: при потере DCS кворума обновление leader lock невозможно; Patroni может демотировать primary. Восстановить большинство DCS, проверить роли и read/write routing; не создавать второй независимый кластер etcd."
+  },
+  {
+    "id": "INC-K8S-01",
+    "topic": "k8s",
+    "title": "Service отвечает 503 после rollout",
+    "severity": "SEV-2",
+    "symptoms": "Pods Running, однако запросы не проходят.",
+    "evidence": "Deployment desired=3; ready=0; readiness HTTP 404; EndpointSlice не содержит ready endpoints; logs: startup OK.",
+    "hint": "Проверь путь readiness, порт и selectors. Running не равно Ready.",
+    "task": "Как откатить релиз, а потом доказать восстановление?",
+    "debrief": "Синтетическое объяснение: readiness probe ошибочна, endpoints исключены из service. Сверить конфиг probe, откатить в локальном namespace, проверить ready endpoints и реальный запрос; тестировать probes в CI."
+  },
+  {
+    "id": "INC-K8S-02",
+    "topic": "k8s",
+    "title": "OOMKill после изменения limits",
+    "severity": "SEV-2",
+    "symptoms": "Новые Pods циклически перезапускаются.",
+    "evidence": "lastState terminated reason=OOMKilled; limit=128Mi; baseline working set=180Mi; CPU normal.",
+    "hint": "Сопоставь requests/limits и реальное потребление; отличи OOMKilled от eviction.",
+    "task": "Какие изменения безопасно проверить до увеличения лимита?",
+    "debrief": "Синтетическое объяснение: memory limit ниже нормальной рабочей нагрузки. Восстановить безопасные значения, проверить утечку и capacity, затем оптимизировать; не отключать ограничения без оценки."
+  },
+  {
+    "id": "INC-REDIS-01",
+    "topic": "redis",
+    "title": "Кеш перестал снижать нагрузку БД",
+    "severity": "SEV-2",
+    "symptoms": "DB QPS вырос, Redis доступен.",
+    "evidence": "hit ratio 0.32 вместо 0.94; evicted_keys растёт; used_memory near maxmemory; TTL большинства ключей 60s.",
+    "hint": "Проверь eviction и synchronized expiry, распределение ключей и backend QPS.",
+    "task": "Как остановить каскадную деградацию?",
+    "debrief": "Синтетическое объяснение: pressure и TTL могут вызвать массовые cache misses. Проверить причины, ограничить load, добавить jitter/lock при заполнении, оценить capacity и eviction policy; не очищать кеш."
+  },
+  {
+    "id": "INC-NET-01",
+    "topic": "net",
+    "title": "TCP SYN без ответа",
+    "severity": "SEV-2",
+    "symptoms": "Из одного сегмента клиент не соединяется, с соседнего всё работает.",
+    "evidence": "Клиент: SYN retransmits; на сервере capture SYN не видит; локально порт LISTEN; ICMP работает.",
+    "hint": "Проверь маршрут, ACL и промежуточные firewall; собери capture на обеих сторонах.",
+    "task": "Что можно доказать, а что пока гипотеза?",
+    "debrief": "Синтетическое объяснение: пакет не наблюдается на сервере, причина между точками наблюдения либо capture/route неверны. Не утверждать конкретный firewall без проверки. Сравнить source IP, route, VLAN и capture points."
+  },
+  {
+    "id": "INC-PROXY-01",
+    "topic": "proxy",
+    "title": "Рост 504 при нормальных 200 на backend",
+    "severity": "SEV-2",
+    "symptoms": "Прокси выдаёт 504 части запросов.",
+    "evidence": "upstream_response_time около 5s; proxy_read_timeout=5s; backend direct p99=8s; connect time 5ms.",
+    "hint": "Раздели connect timeout и read timeout, проверь upstream latency.",
+    "task": "Почему повышение timeout может усугубить инцидент?",
+    "debrief": "Синтетическое объяснение: upstream медленнее таймаута прокси. Уменьшить нагрузку или устранить bottleneck; рост timeout увеличивает число in-flight запросов, требует capacity оценки."
+  },
+  {
+    "id": "INC-OBS-01",
+    "topic": "prom",
+    "title": "Мониторинг зелёный, пользователи жалуются",
+    "severity": "SEV-2",
+    "symptoms": "Prometheus scrape успешен, внешний сервис недоступен.",
+    "evidence": "up{job=academy-http}=1; probe_success=0; probe_duration_seconds вырос; scrape target blackbox healthy.",
+    "hint": "Раздели доступность exporter и целевого сервиса.",
+    "task": "Какое правило алерта и какой SLI нужны?",
+    "debrief": "Синтетическое объяснение: up подтверждает scrape exporter, probe_success отражает проверку target. Алертить по пользовательской доступности с подходящим окном и отдельным alert на отсутствие измерений."
+  },
+  {
+    "id": "INC-CI-01",
+    "topic": "cicd",
+    "title": "Несовместимая миграция при rollback",
+    "severity": "SEV-1",
+    "symptoms": "После отката приложения ошибки записи сохраняются.",
+    "evidence": "Новый релиз удалил колонку, старый код её использует; artifact старого релиза доступен; backup есть.",
+    "hint": "Отдельно рассмотри rollback приложения и schema recovery.",
+    "task": "Как восстановить сервис без потери новых данных?",
+    "debrief": "Синтетическое объяснение: несовместимая схема нарушает rollback. Рассмотреть forward fix или совместимое восстановление колонки; не откатывать БД без оценки потери данных. Применять expand-contract и проверку совместимости."
+  },
+  {
+    "id": "INC-TF-01",
+    "topic": "terraform",
+    "title": "Plan предлагает уничтожить критический ресурс",
+    "severity": "SEV-2",
+    "symptoms": "После рефакторинга конфигурации plan содержит delete/create.",
+    "evidence": "Старый address module.db.resource.x, новый module.storage.resource.x; объект не изменился; state хранит старый address.",
+    "hint": "Не apply. Сверь адреса, реальный объект и state.",
+    "task": "Как доказать, что refactor не изменяет инфраструктуру?",
+    "debrief": "Синтетическое объяснение: смена address без декларации перемещения может выглядеть как уничтожение/создание. Использовать подходящий moved/import после проверки, повторно проверить plan; не редактировать state вручную без backup."
+  },
+  {
+    "id": "INC-SRE-01",
+    "topic": "sre",
+    "title": "Быстро расходуется error budget",
+    "severity": "SEV-2",
+    "symptoms": "В окно 30 дней SLO 99.9%; за последние 10 мин 2% ошибок.",
+    "evidence": "Объём трафика меняется, rolling 1h error=1.2%; релиз 20 минут назад.",
+    "hint": "Посчитай burn rate по доле ошибок, проверь окно и denominator.",
+    "task": "Какие условия остановки релизов и коммуникации предложишь?",
+    "debrief": "Синтетическое объяснение: 2% / 0.1% = 20x burn rate для 10-мин окна, 1h=12x. Нужна проверка объёма, impact и multi-window policy; rollback/mitigation по фактам, согласовать release freeze."
+  },
+  {
+    "id": "INC-SEC-01",
+    "topic": "security",
+    "title": "Секрет попал в CI log",
+    "severity": "SEV-1",
+    "symptoms": "В учебном pipeline обнаружен синтетический credential в выводе.",
+    "evidence": "Токен имеет write scope; job log виден группе; время утечки известно; неизвестно, кто скачал лог.",
+    "hint": "Не копируй токен. Отозви/ротируй в учебном сценарии, установи аудит.",
+    "task": "Почему удаления лога недостаточно?",
+    "debrief": "Синтетическое объяснение: credential мог быть скопирован. Ограничить доступ, revoke, rotate, проверить audit, scope и downstream use, исправить pipeline. История Git и копии логов требуют отдельной обработки."
+  },
+  {
+    "id": "INC-DR-01",
+    "topic": "dr",
+    "title": "Backup есть, восстановление не укладывается в RTO",
+    "severity": "SEV-2",
+    "symptoms": "Учебный restore занял 48 мин при цели 15 мин.",
+    "evidence": "Backup valid; download 25 min; replay 18 min; validation 5 min; RPO не измерен.",
+    "hint": "Разложи время восстановления по этапам и проверь последнюю доступную запись.",
+    "task": "Как изменить архитектуру и проверить повторно?",
+    "debrief": "Синтетическое объяснение: RTO нарушен, RPO неизвестен. Ускорить доступ к backup/restore, рассмотреть standby и parallelism, но измерять новое время и полноту данных на независимом drill."
+  }
+]

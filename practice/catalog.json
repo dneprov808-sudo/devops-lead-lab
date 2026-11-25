@@ -196,5 +196,159 @@
       "Обоснованный SLI и правило алерта без выдуманного SLO."
     ],
     "docs": "https://prometheus.io/docs/guides/multi-target-exporter/"
+  },
+  {
+    "id": "PR-KAFKA-03",
+    "topic": "Kafka",
+    "level": "Senior → Lead",
+    "minutes": 90,
+    "title": "Retention, replay и идемпотентность",
+    "profile": "kafka",
+    "command": "docker compose -f practice/compose.yaml --profile kafka up -d",
+    "enter": "docker compose -f practice/compose.yaml exec kafka bash",
+    "tasks": [
+      "Сопоставь offset, log end offset и retention на созданном учебном topic.",
+      "Прочитай события другой consumer group; сравни результаты с исходной группой.",
+      "В отдельной учебной группе отработай безопасный replay без изменения offsets первой группы.",
+      "Опиши deduplication key и границу транзакции при записи в БД."
+    ],
+    "evidence": [
+      "Две группы с независимыми offsets.",
+      "Доказательство повторного чтения и отсутствия изменения исходной группы.",
+      "ADR по идемпотентности и retention."
+    ],
+    "docs": "https://kafka.apache.org/41/documentation/"
+  },
+  {
+    "id": "PR-PG-03",
+    "topic": "PostgreSQL",
+    "level": "Senior",
+    "minutes": 90,
+    "title": "MVCC, долгие транзакции и VACUUM",
+    "profile": "postgres",
+    "command": "docker compose -f practice/compose.yaml --profile postgres up -d",
+    "enter": "docker compose -f practice/compose.yaml exec postgres psql -U student -d academy",
+    "tasks": [
+      "Создай учебную таблицу с повторными обновлениями.",
+      "В двух сессиях воспроизведи длительную транзакцию, наблюдай xmin и dead tuples.",
+      "Заверши транзакцию, сравни результаты обычного VACUUM и статистику.",
+      "Объясни отличие VACUUM от VACUUM FULL и влияние блокировок."
+    ],
+    "evidence": [
+      "Наблюдение xmin и dead tuples.",
+      "Измерения до и после VACUUM.",
+      "Обоснование безопасной политики обслуживания."
+    ],
+    "docs": "https://www.postgresql.org/docs/16/routine-vacuuming.html"
+  },
+  {
+    "id": "PR-PG-04",
+    "topic": "PostgreSQL",
+    "level": "Senior",
+    "minutes": 90,
+    "title": "Резервное копирование, restore drill и RPO",
+    "profile": "postgres",
+    "command": "docker compose -f practice/compose.yaml --profile postgres up -d",
+    "enter": "docker compose -f practice/compose.yaml exec postgres psql -U student -d academy",
+    "tasks": [
+      "Подготовь набор синтетических данных с идентификаторами и контрольной суммой.",
+      "Выполни логический backup, после него добавь новые записи.",
+      "Восстанови backup в отдельную учебную БД, сверив данные и время.",
+      "Рассчитай фактический RTO и потерю данных; объясни границы PITR."
+    ],
+    "evidence": [
+      "Проверяемый backup и отдельная восстановленная БД.",
+      "Сверка количества записей/контрольной суммы.",
+      "Измерение восстановления и вывод о RPO."
+    ],
+    "docs": "https://www.postgresql.org/docs/16/backup.html"
+  },
+  {
+    "id": "PR-PATRONI-03",
+    "topic": "Patroni / etcd",
+    "level": "Senior → Lead",
+    "minutes": 120,
+    "title": "Плановый switchover и возврат узла",
+    "profile": "patroni",
+    "command": "docker compose -f practice/compose.yaml --profile patroni up -d --build",
+    "enter": "docker compose -f practice/compose.yaml exec pg1 patronictl -c /etc/patroni.yml list",
+    "tasks": [
+      "Зафиксируй роли, lag и текущую timeline.",
+      "Определи пригодность replica для планового переключения.",
+      "Выполни управляемый switchover только в учебном кластере, проверь запись и репликацию.",
+      "Опиши критерии отказа от переключения, routing и runbook возврата."
+    ],
+    "evidence": [
+      "Роли до и после, история timeline.",
+      "Проверка синтетических записей.",
+      "Runbook с условиями остановки."
+    ],
+    "docs": "https://patroni.readthedocs.io/en/latest/patronictl.html"
+  },
+  {
+    "id": "PR-REDIS-02",
+    "topic": "Redis",
+    "level": "Senior",
+    "minutes": 60,
+    "title": "Cache-aside и предотвращение stampede",
+    "profile": "redis",
+    "command": "docker compose -f practice/compose.yaml --profile redis up -d",
+    "enter": "docker compose -f practice/compose.yaml exec redis redis-cli",
+    "tasks": [
+      "Создай небольшое синтетическое распределение TTL.",
+      "Сравни массовое истечение одинаковых TTL и распределённых TTL на малой нагрузке.",
+      "Измерь expired_keys, hits/misses и latency до/после.",
+      "Предложи cache-aside, jitter, single-flight и fallback с ограничением нагрузки."
+    ],
+    "evidence": [
+      "Два сопоставимых опыта с TTL.",
+      "Метрики INFO до/после.",
+      "План защиты backend без неконтролируемой нагрузки."
+    ],
+    "docs": "https://redis.io/docs/latest/commands/info/"
+  },
+  {
+    "id": "PR-NGINX-02",
+    "topic": "Nginx / HTTP",
+    "level": "Senior",
+    "minutes": 60,
+    "title": "Таймауты, логи и бюджет задержки",
+    "profile": "nginx",
+    "command": "docker compose -f practice/compose.yaml --profile nginx up -d",
+    "enter": "curl -i http://127.0.0.1:18081/",
+    "tasks": [
+      "Определи настройки proxy_connect_timeout и proxy_read_timeout.",
+      "Измерь длительность нормального запроса, затем запрос при остановленном backend.",
+      "В отдельной копии конфигурации предложи поля access log для upstream timings.",
+      "Согласуй timeout budget клиента, прокси и сервиса, опиши риски retry."
+    ],
+    "evidence": [
+      "Сравнение HTTP статусов и времени.",
+      "План полей логирования без персональных данных.",
+      "Обоснованный timeout/retry budget."
+    ],
+    "docs": "https://nginx.org/en/docs/http/ngx_http_proxy_module.html"
+  },
+  {
+    "id": "PR-OBS-02",
+    "topic": "Prometheus / Grafana",
+    "level": "Senior → Lead",
+    "minutes": 90,
+    "title": "SLO, burn rate и пропуски метрик",
+    "profile": "observability",
+    "command": "docker compose -f practice/compose.yaml --profile observability up -d",
+    "enter": "Prometheus: http://127.0.0.1:19090 · Grafana: http://127.0.0.1:13000",
+    "tasks": [
+      "Зафиксируй baseline probe_success и up.",
+      "Проведи краткий отказ учебного target, затем отдельный отказ exporter.",
+      "Сравни запросы доступности и пропуски измерений; не приравнивай missing к нулю без политики.",
+      "Сформулируй SLO, burn rate и правило alerting с отдельным контролем отсутствия данных."
+    ],
+    "evidence": [
+      "Снимки временных рядов обоих отказов.",
+      "SLI с определённым denominator и missing policy.",
+      "Проект alert rule и runbook."
+    ],
+    "docs": "https://prometheus.io/docs/practices/alerting/"
   }
 ]

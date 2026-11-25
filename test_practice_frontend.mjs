@@ -6,7 +6,7 @@ function checkPractice(practice,html,catalog){
  let syntax=true;try{new Function(practice)}catch{syntax=false}
  const checks=[
  ["Practice JS syntax and DOM references",syntax&&errors.length===0],
- ["9 unique exercises",catalog.length===9&&new Set(catalog.map(m=>m.id)).size===catalog.length],
+ ["16 unique exercises",catalog.length===16&&new Set(catalog.map(m=>m.id)).size===catalog.length],
  ["6 explicit profiles",new Set(catalog.map(m=>m.profile)).size===6],
  ["exercise contract",catalog.every(m=>/^PR-[A-Z0-9-]+$/.test(m.id)&&m.tasks.length>=4&&m.evidence.length>=3&&m.command.includes("--profile "+m.profile)&&m.docs.startsWith("https://"))],
  ["fixed save API",practice.includes('fetch("/api/practice-save"')&&practice.includes('"X-Academy-CSRF":session.csrf')],
