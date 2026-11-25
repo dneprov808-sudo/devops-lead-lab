@@ -14,6 +14,7 @@ import sys
 import threading
 import uuid
 import practice_results
+import practice_history
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import yaml
@@ -35,7 +36,9 @@ def catalog():
 STATIC = {"/": ("index.html", "text/html; charset=utf-8"),
           "/style.css": ("style.css", "text/css; charset=utf-8"),
           "/app.js": ("app.js", "text/javascript; charset=utf-8"),
-          "/practice.js": ("practice.js", "text/javascript; charset=utf-8")}
+          "/practice.js": ("practice.js", "text/javascript; charset=utf-8"),
+          "/learning.js": ("learning.js", "text/javascript; charset=utf-8"),
+          "/learning.css": ("learning.css", "text/css; charset=utf-8")}
 
 def command(args, cwd=ROOT, timeout=30):
     env = dict(os.environ, GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1")
@@ -209,6 +212,13 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply(handoffs())
             if self.path == "/api/practice-catalog":
                 return self.reply(catalog())
+            if self.path == "/api/knowledge":
+                return self.reply(json.loads((ROOT / "learning/knowledge.json").read_text(encoding="utf-8")))
+            if self.path == "/api/incidents":
+                return self.reply(json.loads((ROOT / "learning/incidents.json").read_text(encoding="utf-8")))
+            if self.path == "/api/practice-history":
+                return self.reply(practice_history.read_history(git, command, academy.ORIGINS,
+                    practice_results.normalize, catalog(), ROOT))
             return self.reply({"error": "Not found"}, 404)
         except (OSError, ValueError, KeyError, TypeError, AttributeError, yaml.YAMLError):
             return self.reply({"status": "blocked", "error": "Read failed; check Git/gh access and canonical data."}, 503)
