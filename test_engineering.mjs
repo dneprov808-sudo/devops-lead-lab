@@ -1,0 +1,12 @@
+import assert from "node:assert/strict";
+import {readFileSync} from "node:fs";
+const model=new Function(readFileSync(new URL("./web/engineering.js",import.meta.url),"utf8")+";return engineeringModel")();
+assert.equal(model("kafka",4,6).idle,2);
+assert.equal(model("kafka",4,2).capacity,1000);
+assert.equal(model("k8s",3,2).missing,1);
+assert.equal(model("terraform",5,2).destroy,3);
+assert.equal(model("terraform",2,5).create,3);
+assert.equal(model("patroni",3,1).majority,false);
+assert.equal(model("patroni",3,2).majority,true);
+assert.equal(model("docker",4,5).overLimit,true);
+console.log("8 model checks passed");
