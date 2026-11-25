@@ -3,7 +3,7 @@ import json
 import re
 
 REF = "refs/heads/student/practice-results"
-PATH = re.compile(r"practice-results/(LAB-001|PR-[A-Z0-9-]+)/([0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})\.json")
+PATH = re.compile(r"practice-results/(LAB-001|PR-[A-Z0-9-]+|REVIEW-[A-Z0-9-]+)/([0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})\.json")
 
 def read_history(git, command, origins, normalize, catalog, root, limit=300):
     if git("remote", "get-url", "origin").strip() not in origins:
@@ -31,7 +31,7 @@ def read_history(git, command, origins, normalize, catalog, root, limit=300):
             if data.get("module") != match[1] or data.get("attempt") != match[2]:
                 raise ValueError()
             verification = data.get("verification")
-            clean = normalize({k: v for k, v in data.items() if k != "verification"}, catalog)
+            clean = normalize({k: v for k, v in data.items() if k not in ("verification", "due")}, catalog)
             if clean != data or verification != clean["verification"]:
                 raise ValueError()
             items.append({**clean, "path": path})

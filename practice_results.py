@@ -1,5 +1,6 @@
 """Save explicit structured results to an isolated Git branch, never STATE."""
 import json
+import datetime as dt
 import os
 from pathlib import Path
 import re
@@ -9,10 +10,13 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parent
 DEST = "refs/heads/student/practice-results"
-BASE = "refs/heads/academy/practice-v2"
+BASE = "refs/heads/academy/unified-v5"
 ORIGINS = {"https://github.com/dneprov808-sudo/devops-lead-lab.git",
            "https://github.com/dneprov808-sudo/devops-lead-lab",
            "git@github.com:dneprov808-sudo/devops-lead-lab.git"}
+
+REVIEW_TOPICS = {"Linux/Bash":"LINUX", "Сети/DNS/TLS/HTTP":"NET", "Docker/OCI":"DOCKER", "Ansible":"ANSIBLE", "CI/CD":"CICD", "Terraform":"TF", "Kubernetes/Helm":"K8S", "GitOps":"GITOPS", "Observability/SRE":"SRE", "Security":"SECURITY", "Platform/HA/DR":"PLATFORM", "Leadership":"LEAD", "Kafka":"KAFKA", "PostgreSQL":"POSTGRES", "Patroni / etcd":"PATRONI", "Redis":"REDIS", "RabbitMQ":"RABBITMQ", "Nginx / HAProxy":"PROXY", "Logs / OpenTelemetry":"OTEL", "etcd / Consensus":"ETCD"}
+INTERVALS = (1, 1, 3, 7, 14)
 
 class SaveError(ValueError):
     pass
@@ -24,6 +28,21 @@ def normalize(payload, catalog):
     attempt = payload.get("attempt")
     if not isinstance(attempt, str) or not re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}", attempt):
         raise SaveError("Invalid attempt ID")
+    if kind == "review":
+        if set(payload) != {"kind", "attempt", "module", "topic", "score", "assessed"}:
+            raise SaveError("Unexpected review fields")
+        topic, score = payload["topic"], payload["score"]
+        if (not isinstance(topic, str) or topic not in REVIEW_TOPICS or payload["module"] != "REVIEW-" + REVIEW_TOPICS[topic]
+                or type(score) is not int or not 0 <= score <= 4):
+            raise SaveError("Invalid review")
+        try:
+            day = dt.date.fromisoformat(payload["assessed"])
+            if day.isoformat() != payload["assessed"] or day < dt.date(2020, 1, 1):
+                raise ValueError()
+            due = day + dt.timedelta(days=INTERVALS[score])
+        except (ValueError, TypeError, OverflowError):
+            raise SaveError("Invalid review date")
+        return {**payload, "due": due.isoformat(), "verification": "self_reported"}
     if kind == "practice":
         if set(payload) != {"kind", "attempt", "module", "checks", "score"}:
             raise SaveError("Unexpected result fields")
@@ -48,6 +67,8 @@ def normalize(payload, catalog):
 
 def save(payload, catalog, root=ROOT, origins=ORIGINS):
     record = normalize(payload, catalog)
+    if record["kind"] == "review" and record["assessed"] > (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=3)).date().isoformat():
+        raise SaveError("Future review date")
     raw = (json.dumps(record, ensure_ascii=False, sort_keys=True, indent=2) + "\n").encode()
     path = "practice-results/" + record["module"] + "/" + record["attempt"] + ".json"
     def git(*args, input=None, index=None, permit=False):

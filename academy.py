@@ -48,8 +48,11 @@ def state():
     import yaml
     if git("remote", "get-url", "origin") not in ORIGINS:
         raise ValueError("Unexpected origin; use the Academy repository.")
-    git("fetch", "--no-tags", "origin", "refs/heads/" + CONTROL)
-    commit = git("rev-parse", "FETCH_HEAD")
+    remote = git("ls-remote", "--exit-code", "origin", "refs/heads/" + CONTROL).split()
+    if len(remote) != 2 or remote[1] != "refs/heads/" + CONTROL or len(remote[0]) != 40 or any(c not in "0123456789abcdef" for c in remote[0]):
+        raise ValueError("Canonical ref unavailable")
+    commit = remote[0]
+    git("fetch", "--no-tags", "--no-write-fetch-head", "origin", commit)
     try:
         data = yaml.safe_load(git("show", commit + ":orchestration/STATE.yaml"))
     except yaml.YAMLError as e:
@@ -75,7 +78,7 @@ def start(minutes):
     verify_fixtures()
     branch = git("branch", "--show-current")
     if branch != STUDENT:
-        if branch not in ("academy/dx-v1", "academy/web-portal-v1", "academy/practice-v2", "academy/engineering-pro-v3", "academy/learning-hub-v4") or git("status", "--porcelain"):
+        if branch not in ("academy/dx-v1", "academy/web-portal-v1", "academy/practice-v2", "academy/engineering-pro-v3", "academy/learning-hub-v4", "academy/unified-v5", "academy/stable") or git("status", "--porcelain"):
             raise ValueError("Use a clean DX/portal checkout or existing student branch; no reset.")
         exists = git("branch", "--list", STUDENT)
         if not exists and git("ls-remote", "--heads", "origin", "refs/heads/" + STUDENT):

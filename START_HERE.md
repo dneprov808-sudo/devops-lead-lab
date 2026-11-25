@@ -1,15 +1,35 @@
-# Academy DX v1 — начни здесь
+# Academy Unified — начало работы
 
-1. В ChatGPT, проект «Учеба», напиши: «Академия: старт 20/60/120» (выбери одно число). Этот чат — Dashboard. Он читает канонический STATE и показывает один следующий шаг. Команды и правила: dx/CHAT.md.
-2. В WSL Ubuntu из домашней директории:
-   ```bash
-   git clone -b academy/dx-v1 https://github.com/dneprov808-sudo/devops-lead-lab.git
-   cd devops-lead-lab
-   python3 academy.py setup
-   python3 academy.py start --minutes 60
-   ```
-   Если git/Python/YAML отсутствуют: sudo apt update && sudo apt install git python3 python3-yaml curl bash. Приватный репозиторий требует уже настроенного Git-доступа (SSH или HTTPS с credential manager); токен не вставлять в URL. При существующем клоне не клонировать повторно и не перетирать изменения; сначала git status, затем согласовать переход на ветку DX. CLI поддерживает только LAB-001; новые задания требуют нового адаптера. Ветки: canonical academy/orchestration-v1, учебная спецификация training/lead-cohort-01, DX academy/dx-v1, решение student/lab-001. Не merge.
-3. Редактируй healthcheck.sh и REPORT.md в labs/01-http-probe. Для локального стенда отдельно запусти python3 academy.py serve; Ctrl-C останавливает сервер. Тесты самостоятельно поднимают свой сервер.
-4. python3 academy.py test — оригинальные тесты, exit code передаётся вызывающему процессу. Заглушка ожидаемо не пройдёт. python3 academy.py report — путь к существующему шаблону. python3 academy.py submit — тесты и команды для ручной отправки; никогда не делает commit/push.
-5. После ручного commit/push: «Академия: ревью» + точный SHA и фактический вывод тестов. После ревью: «Академия: экзамен». Orchestrator в 22:00 МСК собирает отчёт, но не меняет STATE. Переходы только после ручного утверждения.
-6. CI уже описан в .github/workflows/academy-ci.yml. По умолчанию job не запускается без repository variable ACADEMY_CI_ENABLED=true. Включать только после проверки оставшихся бесплатных минут и жёсткого ограничения расходов в Billing (если невозможно установить запрет платного перерасхода, оставить выключенным). Settings > Secrets and variables > Actions > Variables. При включении push в student/lab-001 с изменениями lab/CLI/workflow запускает проверку. Проверяй SHA и лог в Actions. Не менять тесты, workflow или CLI в студенческом решении. CI — не замена ревью. Не использовать secrets. Изменения в незнакомом коде не запускать. 
+Постоянная ветка для обучения: academy/stable. Кандидат v5: academy/unified-v5. До ручного merge PR в stable версия v5 не считается опубликованной.
+
+## WSL
+Останови старый портал Ctrl+C. Для нового checkout:
+    git clone -b academy/stable git@github.com:dneprov808-sudo/devops-lead-lab.git
+    cd devops-lead-lab
+    sudo apt install git python3 python3-yaml curl bash
+    python3 portal.py
+
+Для существующей чистой копии:
+    git fetch origin
+    git switch academy/stable
+    git pull --ff-only
+    python3 portal.py
+
+Если локальная stable ещё отсутствует, используй git switch --track origin/academy/stable. Не сбрасывай изменения студента; отдельный checkout предпочтителен для портала. Открой http://127.0.0.1:8080/. Проверка версии: curl -fsS http://127.0.0.1:8080/api/version.
+
+## Учебный цикл
+Все технологии — единый каталог. Для LAB-001 используй отдельный checkout, python3 academy.py start --minutes 60, самостоятельное решение и оригинальные тесты. python3 academy.py submit выводит команды ручного commit/push. Передай точный SHA и фактический тестовый вывод Reviewer, затем Examiner. Самооценка не является подтверждённой компетенцией.
+
+Практика и повторения: явная кнопка сохранения в GitHub, отдельная ветка student/practice-results; при неизвестной доставке повторяй тот же ID. Сырые ответы не отправляются. История и повторения загружаются из GitHub вручную. Для Handoff Monitor требуется gh auth login; Git SSH отдельно. Control ref academy/orchestration-v1, Consumer dry-run. См. release/AGENT_SYNC.md. Roadmap/Skill Matrix v5 — предложения, не канонические оценки.
+
+## Проверки
+    python3 -m unittest -v test_dx test_portal test_practice_results test_practice_history test_learning_routes test_unified
+    node test_frontend.mjs
+    node test_practice_frontend.mjs
+    node test_learning_frontend.mjs
+    node test_hub_frontend.mjs
+    node test_hub_smoke.mjs
+    node test_unified.mjs
+    node --test orchestration/bus/test_*.mjs
+
+Docker только в локальном контексте; запускай профили по очереди. CI платных ресурсов не включать. Не публикуй портал в интернет. Не изменяй STATE, оригинальные тесты или чужие решения.
