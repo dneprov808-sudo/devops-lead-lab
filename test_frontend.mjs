@@ -9,7 +9,7 @@ function checkSource(app,html){
  const run=new Function(app.split("\nconst $=id=>")[0]+`\nreturn {reviewRecord,reviewOrder,questionLevel,BANK};`)();
  const checks=[
  ["JS syntax / DOM IDs",errors.length===0],
- ["24 questions across 12 topics",run.BANK.length===12&&run.BANK.every(x=>x.length===3)],
+ ["32 questions across 16 topics",run.BANK.length===16&&run.BANK.every(x=>x.length===3)],
  ["interval 0",run.reviewRecord("x",0,new Date("2026-11-26T12:00:00Z")).due.slice(0,10)==="2026-11-27"],
  ["interval 4",run.reviewRecord("x",4,new Date("2026-11-26T12:00:00Z")).due.slice(0,10)==="2026-12-10"],
  ["adaptive level",run.questionLevel({score:3})===1&&run.questionLevel({score:2})===0],
