@@ -10,7 +10,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parent
 DEST = "refs/heads/student/practice-results"
-BASE = "refs/heads/academy/unified-v5"
+BASE = "refs/heads/academy/stable"
 ORIGINS = {"https://github.com/dneprov808-sudo/devops-lead-lab.git",
            "https://github.com/dneprov808-sudo/devops-lead-lab",
            "git@github.com:dneprov808-sudo/devops-lead-lab.git"}
@@ -77,7 +77,7 @@ def save(payload, catalog, root=ROOT, origins=ORIGINS):
             env.pop(key, None)
         if index is not None:
             env["GIT_INDEX_FILE"] = str(index)
-        proc = subprocess.Popen(["git", "-C", str(root), *args], env=env,
+        proc = subprocess.Popen(["git", "-C", str(root), "-c", "remote.origin.mirror=false", "-c", "core.hooksPath=/dev/null", *args], env=env,
                                 stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE, start_new_session=True)
         try:
@@ -93,7 +93,7 @@ def save(payload, catalog, root=ROOT, origins=ORIGINS):
         return proc.returncode, out
     def tip(ref, optional=False):
         rc, data = git("ls-remote", "--exit-code", "--refs", "origin", ref, permit=True)
-        if rc == 2 and optional:
+        if rc == 2 and optional and not data.strip():
             return None
         parts = data.decode().split()
         if rc or len(parts) != 2 or parts[1] != ref or not re.fullmatch(r"[0-9a-f]{40}", parts[0]):
