@@ -1,0 +1,112 @@
+[
+  {
+    "id": "DESIGN-01",
+    "title": "Событийная обработка заявок",
+    "scope": "Синтетическая система, не модель реальной биржи",
+    "requirements": [
+      "Вход 8000 событий/с, пик 20000/с на 5 минут",
+      "Порядок событий по account_id",
+      "Отказ одного broker не должен останавливать приём",
+      "Цель p99 до подтверждения 150 мс, конечная обработка до 2 с"
+    ],
+    "deliverables": [
+      "Схема Kafka → consumer → PostgreSQL и границы транзакции",
+      "Модель дедупликации, replay, DLQ и retention",
+      "Capacity estimate, failure matrix, SLI/SLO и план проверки"
+    ],
+    "rubric": [
+      "Обоснованы partitions и порядок",
+      "Разделены durability, availability и идемпотентность",
+      "Оценена перегрузка и восстановление",
+      "Определены метрики и проверяемые критерии"
+    ]
+  },
+  {
+    "id": "DESIGN-02",
+    "title": "HA PostgreSQL и восстановление",
+    "scope": "Проектирование кластера на трёх независимых узлах",
+    "requirements": [
+      "RTO 60 секунд, RPO 5 секунд — цели, не подтверждённые значения",
+      "Отказ primary и потеря одной зоны",
+      "Резервное копирование с проверяемым restore",
+      "Контролируемый failover и возвращение бывшего primary"
+    ],
+    "deliverables": [
+      "Топология PostgreSQL, Patroni, DCS, routing",
+      "ADR по синхронной/асинхронной репликации и fencing",
+      "Failure matrix, backup/PITR стратегия, drill"
+    ],
+    "rubric": [
+      "Нет двух владельцев write route",
+      "Учитываются quorum, lag, failure domains",
+      "Измерения RTO/RPO не выдуманы",
+      "Backup проверяется восстановлением"
+    ]
+  },
+  {
+    "id": "DESIGN-03",
+    "title": "Безопасная доставка в Kubernetes",
+    "scope": "Синтетическое приложение с БД и очередью",
+    "requirements": [
+      "20 сервисов, 3 команды, релизы без ручных SSH",
+      "Один artifact digest на всех средах",
+      "Постепенный rollout с остановкой по error budget",
+      "Миграции БД без нарушения rollback"
+    ],
+    "deliverables": [
+      "Pipeline, GitOps flow, RBAC и secrets policy",
+      "Canary/rollback gates, expand-contract миграция",
+      "ADR и политика break-glass с возвратом к Git"
+    ],
+    "rubric": [
+      "Разделены build, deploy, release",
+      "Проверены права и идентичность артефакта",
+      "Определены наблюдаемые gates",
+      "Учитываются данные при откате"
+    ]
+  },
+  {
+    "id": "DESIGN-04",
+    "title": "Observability для распределённой системы",
+    "scope": "API, Kafka, worker и PostgreSQL",
+    "requirements": [
+      "SLO API 99.9% на 30 дней",
+      "Отдельная цель задержки асинхронной обработки",
+      "Ограничение cardinality и персональных данных",
+      "Дежурный должен локализовать проблему за 10 минут — целевой показатель"
+    ],
+    "deliverables": [
+      "Карта сигналов metrics/logs/traces и correlation",
+      "SLI с denominator, alert rules, dashboards",
+      "Runbook, план симуляции отказа и оценки результата"
+    ],
+    "rubric": [
+      "Пользовательские симптомы отделены от причин",
+      "Различаются up, probe_success и missing data",
+      "Учтены lag и end-to-end latency",
+      "У каждого алерта есть действие"
+    ]
+  },
+  {
+    "id": "DESIGN-05",
+    "title": "Platform Engineering: golden path",
+    "scope": "Внутренняя платформа для 40 разработчиков",
+    "requirements": [
+      "Уменьшить ручные операции без отдельного платного облака",
+      "Команды владеют сервисами и SLO",
+      "Обязательны безопасность, аудит и контроль расходов",
+      "Миграция поэтапная без big-bang"
+    ],
+    "deliverables": [
+      "Self-service interface, стандарты шаблонов, ownership",
+      "Backlog с приоритетами и TCO/рисками",
+      "Метрики adoption, lead time, failure/recovery и план пилота"
+    ],
+    "rubric": [
+      "Понятна проблема пользователя и ценность",
+      "Роли и границы ответственности определены",
+      "Есть план отката и поддержки",
+      "Метрики измеримы, нет фиктивных обещаний"
+    ]
+  }
+]
