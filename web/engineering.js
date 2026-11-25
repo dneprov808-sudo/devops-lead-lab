@@ -84,3 +84,19 @@ if(typeof document!=="undefined"){
  refresh.addEventListener("click",render);only.addEventListener("change",render);root.append(el("p","Рекомендации основаны на локальных самооценках, а не на подтверждённых компетенциях. Сначала просроченные темы, затем слабые и неизученные."),refresh,label,notice,list);render();
  }
 }
+
+const INTERVIEW_MODES=[["Блиц",10,"Кратко объясни основные понятия."],["Senior DevOps",45,"Объясняй диагностику, проверку гипотез и компромиссы."],["Lead DevOps",60,"Защищай архитектуру, риски, SLO и решения команды."]];
+if(typeof document!=="undefined"){
+ const root=document.getElementById("engineering-interview");
+ if(root&&typeof BANK!=="undefined"){
+ const el=(tag,t)=>{const n=document.createElement(tag);if(t!==undefined)n.textContent=t;return n};
+ const mode=el("select"),topic=el("select");mode.setAttribute("aria-label","Режим интервью");topic.setAttribute("aria-label","Тема");
+ for(const [i,m] of INTERVIEW_MODES.entries()){const o=el("option",m[0]+" · "+m[1]+" мин");o.value=String(i);mode.append(o)}
+ for(const b of BANK){const o=el("option",b[0]);o.value=b[0];topic.append(o)}
+ const note=el("p"),start=el("button","Открыть тренажёр"),prompt=el("button","Копировать запрос независимого интервью");start.type=prompt.type="button";
+ function render(){note.textContent=INTERVIEW_MODES[Number(mode.value)][2]+" Встроенный банк используется для самопроверки; время рекомендательное."}
+ mode.addEventListener("change",render);start.addEventListener("click",()=>{document.getElementById("topic").value=topic.value;nextQuestion();page("interview")});
+ prompt.addEventListener("click",()=>{const m=INTERVIEW_MODES[Number(mode.value)];copy("Академия: проведи независимое интервью "+m[0]+" по теме "+topic.value+", ориентир "+m[1]+" минут. "+m[2]+" Задавай по одному вопросу, оценивай только фактические ответы, не меняй STATE.")});
+ root.append(mode,topic,note,start,prompt);render();
+ }
+}
