@@ -1,0 +1,50 @@
+schema_version: 1
+revision: 1
+program:
+  name: "Multi-Agent DevOps Academy"
+  target: "DevOps Lead 600K RUB/month"
+  duration_weeks: 10
+  current_week: 1
+  timezone: "Europe/Moscow"
+control:
+  repository: "dneprov808-sudo/devops-lead-lab"
+  ref: "academy/orchestration-v1"
+  mode: "pilot_pending_review"
+  writer: "orchestrator"
+  last_transition: "bootstrap"
+current_task:
+  id: "LAB-001"
+  topic: "HTTP reliability probe"
+  ref: "training/lead-cohort-01"
+  baseline_commit: "4a4cae2c95580f01fa66946dafd2b21eb9754d98"
+  path: "labs/01-http-probe"
+  status: "assigned"
+  owner: "student"
+  evidence:
+    specification: "labs/01-http-probe/README.md"
+    tests: "labs/01-http-probe/test_healthcheck.py"
+    report: "labs/01-http-probe/REPORT.md"
+    implementation_commit: null
+    test_result: null
+    review: null
+    examination: null
+workflow:
+  lab_creation: "completed"
+  implementation: "pending"
+  testing: "pending"
+  code_review: "pending"
+  examination: "pending"
+next_action:
+  agent: "student"
+  task: "Implement healthcheck.sh independently and run the supplied tests; complete REPORT.md."
+  acceptance: "Original test suite passes; commit SHA and test output available; report filled."
+  after: "code_reviewer"
+handoffs:
+  accepted_ids: []
+  pending_review: []
+constraints:
+  codex: false
+  paid_api: false
+  paid_cloud: false
+  auto_merge: false
+  production_access: false
