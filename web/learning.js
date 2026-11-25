@@ -76,7 +76,7 @@ function renderHistory(){
   if(!rows.length)by("history-list").append(el("p","Нет записей по фильтру.","dim"));
   for(const r of rows){
     const a=el("article",undefined,"row-card");
-    a.append(el("strong",r.module+" · "+r.kind),el("p",r.kind==="practice"?"Критерии: "+r.checks.length+" · Самооценка: "+(r.score??"не оценено"):"Exit code: "+r.exit_code+" · HEAD: "+r.head+" · "+(r.dirty?"dirty":"clean")),el("small",r.verification+" · "+r.attempt));
+    a.append(el("strong",r.module+" · "+r.kind),el("p",r.kind==="review"?"Повторение: "+r.topic+" · Самооценка: "+r.score+" · Следующее: "+r.due:r.kind==="practice"?"Критерии: "+r.checks.length+" · Самооценка: "+(r.score??"не оценено"):"Exit code: "+r.exit_code+" · HEAD: "+r.head+" · "+(r.dirty?"dirty":"clean")),el("small",r.verification+" · "+r.attempt));
     if(/^[0-9a-f]{40}$/.test(history.commit||"")&&/^practice-results\/[A-Z0-9-]+\/[a-f0-9-]+\.json$/.test(r.path))a.append(el("p"),link("Файл на прочитанном SHA ↗","https://github.com/dneprov808-sudo/devops-lead-lab/blob/"+history.commit+"/"+r.path));
     by("history-list").append(a);
   }
