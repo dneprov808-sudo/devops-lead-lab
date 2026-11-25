@@ -12,6 +12,8 @@ import signal
 import subprocess
 import sys
 import threading
+import uuid
+import practice_results
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import yaml
@@ -25,9 +27,15 @@ PORT = 8080
 HOST = "127.0.0.1"
 KEY = secrets.token_urlsafe(32)
 LOCK = threading.Lock()
+SAVE_LOCK = threading.Lock()
+LAST_TESTS = {}
+
+def catalog():
+    return json.loads((ROOT / "practice/catalog.json").read_text(encoding="utf-8"))
 STATIC = {"/": ("index.html", "text/html; charset=utf-8"),
           "/style.css": ("style.css", "text/css; charset=utf-8"),
-          "/app.js": ("app.js", "text/javascript; charset=utf-8")}
+          "/app.js": ("app.js", "text/javascript; charset=utf-8"),
+          "/practice.js": ("practice.js", "text/javascript; charset=utf-8")}
 
 def command(args, cwd=ROOT, timeout=30):
     env = dict(os.environ, GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1")
@@ -149,8 +157,19 @@ def run_tests():
     try:
         academy.verify_fixtures()
         rc, output = command([sys.executable, "academy.py", "test"], timeout=45)
-        return {"status": "finished", "exit_code": rc, "output": output[-24000:],
-                "note": "Local working tree result; not a verified committed submission."}
+        result = {"status": "finished", "exit_code": rc, "output": output[-24000:],
+                  "note": "Local working tree result; not a verified committed submission."}
+        match = re.match(r"^HEAD: ([0-9a-f]{40})\r?\nWorking tree: ([^\n]*)", output)
+        if match:
+            attempt = str(uuid.uuid4())
+            record = {"kind": "lab_test", "attempt": attempt, "module": "LAB-001",
+                      "head": match.group(1), "dirty": match.group(2).strip() != "clean",
+                      "exit_code": rc, "output_sha256": hashlib.sha256(output.encode()).hexdigest()}
+            LAST_TESTS[attempt] = record
+            while len(LAST_TESTS) > 32:
+                LAST_TESTS.pop(next(iter(LAST_TESTS)))
+            result["save_attempt"] = attempt
+        return result
     finally:
         LOCK.release()
 
@@ -188,12 +207,36 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply(snapshot())
             if self.path == "/api/handoffs":
                 return self.reply(handoffs())
+            if self.path == "/api/practice-catalog":
+                return self.reply(catalog())
             return self.reply({"error": "Not found"}, 404)
         except (OSError, ValueError, KeyError, TypeError, AttributeError, yaml.YAMLError):
             return self.reply({"status": "blocked", "error": "Read failed; check Git/gh access and canonical data."}, 503)
     def do_POST(self):
         if not allowed(self.headers, mutate=True):
             return self.reply({"error": "Forbidden"}, 403)
+        if self.path == "/api/practice-save":
+            if not SAVE_LOCK.acquire(blocking=False):
+                return self.reply({"error": "Save already in progress; keep the same attempt"}, 409)
+            try:
+                if self.headers.get_content_type() != "application/json":
+                    raise ValueError("Expected JSON")
+                length = int(self.headers.get("Content-Length", "0"))
+                if not 1 <= length <= 4096 or self.headers.get("Transfer-Encoding"):
+                    raise ValueError("Invalid body size")
+                self.connection.settimeout(10)
+                payload = json.loads(self.rfile.read(length))
+                if isinstance(payload, dict) and payload.get("kind") == "lab_test":
+                    if set(payload) != {"kind", "attempt"} or payload["attempt"] not in LAST_TESTS:
+                        raise ValueError("Run tests again or reconcile previous save")
+                    payload = LAST_TESTS[payload["attempt"]]
+                return self.reply(practice_results.save(payload, catalog()))
+            except practice_results.SaveError as e:
+                return self.reply({"status": "blocked", "error": str(e)}, 409)
+            except (OSError, ValueError, TypeError, KeyError):
+                return self.reply({"status": "blocked", "error": "Save request invalid or unavailable"}, 400)
+            finally:
+                SAVE_LOCK.release()
         if self.path != "/api/test" or self.headers.get("Content-Length", "0") != "0":
             return self.reply({"error": "Unsupported request"}, 400)
         try:
