@@ -61,8 +61,11 @@ def table(text, width):
 def snapshot():
     if git("remote", "get-url", "origin").strip() not in academy.ORIGINS:
         raise ValueError("Unexpected Git origin")
-    git("fetch", "--no-tags", "origin", "refs/heads/" + REF)
-    commit = git("rev-parse", "FETCH_HEAD").strip()
+    remote = git("ls-remote", "--exit-code", "origin", "refs/heads/" + REF).split()
+    if len(remote) != 2 or remote[1] != "refs/heads/" + REF or not re.fullmatch(r"[0-9a-f]{40}", remote[0]):
+        raise ValueError("Canonical ref unavailable")
+    commit = remote[0]
+    git("fetch", "--no-tags", "origin", commit)
     def read(path):
         return git("show", commit + ":" + path)
     d = yaml.safe_load(read("orchestration/STATE.yaml"))
@@ -115,6 +118,8 @@ def classify_issues(rows, state):
             status = "collision"
         elif ident in state["accepted"]:
             status = "accepted ID"
+        elif ident in state["pending"]:
+            status = "pending ID"
         elif any(r.get("state") == "closed" for r, _, _ in group):
             status = "closed / reconcile"
         elif h.get("observed_state_revision") != state["revision"] or h.get("control_ref") != REF:
