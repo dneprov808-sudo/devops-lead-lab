@@ -50,7 +50,10 @@ def state():
         raise ValueError("Unexpected origin; use the Academy repository.")
     git("fetch", "--no-tags", "origin", "refs/heads/" + CONTROL)
     commit = git("rev-parse", "FETCH_HEAD")
-    data = yaml.safe_load(git("show", commit + ":orchestration/STATE.yaml"))
+    try:
+        data = yaml.safe_load(git("show", commit + ":orchestration/STATE.yaml"))
+    except yaml.YAMLError as e:
+        raise ValueError("Invalid YAML in canonical STATE") from e
     if (not isinstance(data, dict) or data.get("schema_version") != 1
             or data.get("control", {}).get("ref") != CONTROL
             or data.get("control", {}).get("repository") != "dneprov808-sudo/devops-lead-lab"
@@ -75,6 +78,8 @@ def start(minutes):
         if branch != "academy/dx-v1" or git("status", "--porcelain"):
             raise ValueError("Use clean academy/dx-v1 checkout or existing student branch; no reset.")
         exists = git("branch", "--list", STUDENT)
+        if not exists and git("ls-remote", "--heads", "origin", "refs/heads/" + STUDENT):
+            raise ValueError("Remote student branch exists. Fetch and switch to it explicitly; no duplicate branch.")
         git("switch", STUDENT) if exists else git("switch", "-c", STUDENT)
         verify_fixtures()
     print("LAB-001 |", MODES[minutes])
