@@ -1,5 +1,7 @@
 # Academy Web Portal v1 — ACADEMY-008
 
+> **Practice v2:** в этой ветке действует дополнительный практикум и явная кнопка сохранения результатов в student/practice-results. Актуальный быстрый старт и новая модель записи: [practice/README.md](../practice/README.md). Нижеследующая документация описывает базовый Web Portal v1; его запрет записи распространяется на STATE, Issues и автоматизации, но не на новый строго ограниченный save-эндпоинт.
+
 Local private portal, not a publicly deployed website. No OpenAI API, Codex, cloud hosting, npm packages, database or additional automation. Reuses Academy DX v1; only LAB-001 has a local executable adapter. No lab solutions included.
 
 ## Quick start (WSL Ubuntu)
