@@ -216,7 +216,9 @@
     "title": "Prometheus / Grafana",
     "group": "Наблюдаемость и SRE",
     "mark": "OBS",
-    "questions": [],
+    "questions": [
+      "Observability/SRE"
+    ],
     "profiles": [
       "observability"
     ],
