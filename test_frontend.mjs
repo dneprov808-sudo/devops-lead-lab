@@ -6,13 +6,14 @@ function checkSource(app,html){
  const references=[...app.matchAll(/(?:\$\(|text\()"([^"]+)"/g)].map(x=>x[1]);
  if(new Set(ids).size!==ids.length)errors.push("duplicate ids");
  for(const id of new Set(references))if(!ids.includes(id))errors.push("missing id "+id);
- const run=new Function(app.split("\nconst $=id=>")[0]+`\nreturn {reviewRecord,reviewOrder,questionLevel,BANK};`)();
+ const run=new Function(app.split("\nconst $=id=>")[0]+`\nreturn {reviewRecord,reviewOrder,questionLevel,BANK,pickQuestion};`)();
  const checks=[
  ["JS syntax / DOM IDs",errors.length===0],
- ["32 questions across 16 topics",run.BANK.length===16&&run.BANK.every(x=>x.length===3)],
+ ["80 questions across 20 topics",run.BANK.length===20&&run.BANK.every(x=>x.length===5)],
  ["interval 0",run.reviewRecord("x",0,new Date("2026-11-26T12:00:00Z")).due.slice(0,10)==="2026-11-27"],
  ["interval 4",run.reviewRecord("x",4,new Date("2026-11-26T12:00:00Z")).due.slice(0,10)==="2026-12-10"],
  ["adaptive level",run.questionLevel({score:3})===1&&run.questionLevel({score:2})===0],
+ ["question rotation",run.pickQuestion(run.BANK[0],{score:3},0)[0]!==run.pickQuestion(run.BANK[0],{score:3},1)[0]],
  ["due priority",run.reviewOrder([{score:0,due:"2030-01-01"},{score:4,due:"2020-01-01"}],new Date("2026-11-26"))[0].score===4],
  ["invalid rating rejected",(()=>{try{run.reviewRecord("x",5);return false}catch{return true}})()]
  ];
