@@ -1,0 +1,26 @@
+name: Academy LAB-001
+on:
+  push:
+    branches:
+      - student/lab-001
+    paths:
+      - 'labs/01-http-probe/**'
+      - '.github/workflows/academy-ci.yml'
+      - 'academy.py'
+permissions:
+  contents: read
+concurrency:
+  group: academy-lab-001-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  lab:
+    if: vars.ACADEMY_CI_ENABLED == 'true' && github.repository == 'dneprov808-sudo/devops-lead-lab'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Check original fixtures and run tests
+        run: |
+          python3 academy.py test
