@@ -32,3 +32,25 @@ if(typeof document!=="undefined"){
  }
  }
 }
+
+const CONFIG_LESSONS=[
+["Kubernetes","https://kubernetes.io/docs/concepts/workloads/controllers/deployment/",[["spec.replicas: 3","Желаемое число Pod. Контроллер создаёт недостающие экземпляры."],["strategy.rollingUpdate.maxSurge: 1","При обновлении разрешён один дополнительный Pod."],["strategy.rollingUpdate.maxUnavailable: 0","Плановое обновление не должно уменьшать число доступных реплик. Нужны свободные ресурсы."]]],
+["Terraform","https://developer.hashicorp.com/terraform/language/meta-arguments/lifecycle",[["lifecycle { prevent_destroy = true }","Блокирует план удаления ресурса, пока правило присутствует в конфигурации. Не заменяет резервную копию."],["create_before_destroy = true","При замене сначала создаётся новый ресурс, если провайдер и ограничения позволяют."]]],
+["Docker Compose","https://docs.docker.com/reference/compose-file/services/",[["mem_limit: 512m","Ограничивает память контейнера; превышение может привести к OOM."],["restart: unless-stopped","Политика перезапуска после завершения процесса; не лечит зависание."],["healthcheck.test","Проверяет здоровье приложения; сам по себе unhealthy не перезапускает контейнер."]]],
+["Ansible","https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_handlers.html",[["notify: Restart service","Уведомляет обработчик, если задача сообщила changed."],["handlers:","Обработчики обычно выполняются в конце соответствующей части play. Повторные уведомления объединяются."]]],
+["Kafka","https://kafka.apache.org/documentation/",[["min.insync.replicas=2","При acks=all запись требует минимум двух синхронных реплик; иначе запись отклоняется."],["acks=all","Лидер ожидает подтверждения всех текущих ISR. Это не гарантия отсутствия потерь при любых отказах."]]],
+["Patroni","https://patroni.readthedocs.io/en/latest/dynamic_configuration.html",[["ttl: 30","Срок действия лидерской блокировки DCS в секундах."],["loop_wait: 10","Пауза между циклами управления."],["retry_timeout: 10","Бюджет повторных попыток. Должно выполняться loop_wait + 2 * retry_timeout <= ttl."]]]
+];
+function configExplanation(topic,index){return CONFIG_LESSONS.find(x=>x[0]===topic)?.[2]?.[index]?.[1]??null}
+if(typeof document!=="undefined"){
+ const root=document.getElementById("engineering-models");
+ if(root){const el=(tag,t)=>{const n=document.createElement(tag);n.textContent=t;return n};
+ root.append(el("h3","Разбор параметров конфигурации"));
+ for(const [topic,url,params] of CONFIG_LESSONS){
+ const d=el("details","");d.className="hub-fold";d.append(el("summary",topic),el("p","Нажми на параметр. Это отдельные фрагменты, не готовый файл."));
+ const out=el("p","Выбери параметр.");out.setAttribute("role","status");
+ for(const [i,[key]] of params.entries()){const b=el("button",key);b.type="button";b.className="secondary";b.addEventListener("click",()=>{out.textContent=configExplanation(topic,i)});d.append(b);}
+ const a=el("a","Официальная документация");a.href=url;a.target="_blank";a.rel="noopener noreferrer";d.append(out,a);root.append(d);
+ }
+ }
+}
