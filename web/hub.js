@@ -59,8 +59,10 @@ function openTopic(row){
  const target=by("hub-detail-body");target.replaceChildren();
  const section=(id,title,children)=>{const d=block(title,children);d.id="hub-section-"+id;target.append(d)};
  const k=row.guide;
+ const lesson=k?.lesson;
+ const intro=lesson?details("Проверить себя — один вопрос",(()=>{const q=lesson.quiz;const feedback=el("p","Выбери вариант ответа.","dim");feedback.setAttribute("role","status");return [el("p",q.question),...q.options.map((option,i)=>btn(option,()=>{feedback.textContent=(i===q.correct?"Верно. ":"Не совсем. ")+q.explanation;})),feedback,el("p","Это самопроверка, результат не влияет на оценку компетенции.","dim")];})()):null;
  section("theory","01 · Теория и команды",k?[
-   el("p",k.level,"dim"),el("h3",k.title),el("p",k.concept),el("h4","Диагностические команды"),el("pre",k.commands),btn("Копировать команды",()=>copy(k.commands)),el("h4","Порядок диагностики"),el("p",k.diagnosis),el("h4","Типичные ошибки"),el("p",k.pitfalls),el("h4","Вопрос уровня Lead"),el("p",k.question),link("Официальная документация ↗",k.source)
+   el("p",k.level,"dim"),el("h3",k.title),...(lesson?[el("h4","Как это работает"),el("p",lesson.intro),el("h4","Пример из работы"),el("p",lesson.example),intro]:[]),details("Подробнее: техническая теория",[el("p",k.concept)]),el("h4","Диагностические команды"),el("pre",k.commands),btn("Копировать команды",()=>copy(k.commands)),el("h4","Порядок диагностики"),el("p",k.diagnosis),el("h4","Типичные ошибки"),el("p",k.pitfalls),el("h4","Вопрос уровня Lead"),el("p",k.question),link("Официальная документация ↗",k.source)
  ]:[el("p","Справочник не загружен.")]);
  section("practice","02 · Практические задания ("+row.labs.length+")",row.labs.length?row.labs.map(m=>details(m.id+" · "+m.title,[
    el("p",m.level+" · "+m.minutes+" мин","dim"),el("h4","Локальный запуск (проверь Docker context)"),el("pre",m.command),btn("Копировать запуск",()=>copy(m.command)),el("pre",m.enter),el("h4","Задание"),list(m.tasks,"ol"),el("h4","Критерии результата"),list(m.evidence),link("Документация ↗",m.docs),
@@ -76,16 +78,16 @@ function openTopic(row){
    })
  ]):[el("p","Нет отдельного банка вопросов. Используй Lead-вопрос справочника.","dim")]);
  section("incidents","04 · Диагностика инцидентов ("+row.cases.length+")",row.cases.length?row.cases.map(i=>{
-   const a=el("textarea");a.rows=4;a.placeholder="Гипотеза, диагностика, mitigation, проверка восстановления";a.setAttribute("aria-label","Ответ на "+i.id);
+   const a=el("textarea");a.rows=4;a.placeholder="Что могло сломаться? Как проверишь, устранишь проблему и убедишься в восстановлении?";a.setAttribute("aria-label","Ответ на "+i.id);
    const ev=el("pre",i.evidence);ev.hidden=true;
    const hint=el("p",i.hint);hint.hidden=true;
    const result=el("div",i.debrief,"pro-debrief");result.hidden=true;
    const note=el("p",undefined,"dim");note.setAttribute("role","status");
    return details(i.id+" · "+i.title,[el("p",i.severity+" · синтетический кейс","dim"),el("p",i.symptoms),btn("Показать диагностические данные",()=>{ev.hidden=!ev.hidden}),ev,el("p",i.task),a,btn("Подсказка",()=>{hint.hidden=!hint.hidden}),hint,btn("Сравнить с разбором",()=>{if(!a.value.trim()){note.textContent="Сначала сформулируй гипотезу.";return}result.hidden=false;note.textContent="Синтетический разбор. Не независимая оценка."}),note,result,btn("Открыть отдельный Incident Lab",async()=>{if(!window.academyOpenIncident||!await window.academyOpenIncident(i.id))alertMsg("Сценарий ещё не загружен.")})]);
  }):[el("p","Отдельного инцидента пока нет. Изучи порядок диагностики из справочника.","dim")]);
- section("design","05 · System Design ("+row.designs.length+")",row.designs.length?row.designs.map(d=>details(d.id+" · "+d.title,[
+ section("design","05 · Проектирование систем ("+row.designs.length+")",row.designs.length?row.designs.map(d=>details(d.id+" · "+d.title,[
    el("p",d.scope,"dim"),el("h4","Требования"),list(d.requirements),el("h4","Артефакты"),list(d.deliverables),el("h4","Критерии защиты"),list(d.rubric),
-   btn("Копировать запрос архитектурной защиты",()=>copy("Академия: проведи архитектурную защиту "+d.id+" по learning/design.json ветки academy/learning-hub-v4. Не раскрывай готовый ответ, задавай по одному вопросу, не меняй STATE."))
+   btn("Копировать запрос архитектурной защиты",()=>copy("Академия: проведи архитектурную защиту "+d.id+" по learning/design.json ветки academy/stable. Не раскрывай готовый ответ, задавай по одному вопросу, не меняй STATE."))
  ])):[el("p","Архитектурных упражнений пока нет.","dim")]);
  by("hub-detail").scrollIntoView({behavior:"smooth",block:"start"});
 }
