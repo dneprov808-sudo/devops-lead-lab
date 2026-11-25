@@ -40,7 +40,8 @@ STATIC = {"/": ("index.html", "text/html; charset=utf-8"),
           "/learning.js": ("learning.js", "text/javascript; charset=utf-8"),
           "/learning.css": ("learning.css", "text/css; charset=utf-8"),
           "/hub.js": ("hub.js", "text/javascript; charset=utf-8"),
-          "/hub.css": ("hub.css", "text/css; charset=utf-8")}
+          "/hub.css": ("hub.css", "text/css; charset=utf-8"),
+          "/unified.js": ("unified.js", "text/javascript; charset=utf-8")}
 
 def command(args, cwd=ROOT, timeout=30):
     env = dict(os.environ, GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1")
