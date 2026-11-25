@@ -216,6 +216,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply(json.loads((ROOT / "learning/knowledge.json").read_text(encoding="utf-8")))
             if self.path == "/api/incidents":
                 return self.reply(json.loads((ROOT / "learning/incidents.json").read_text(encoding="utf-8")))
+            if self.path == "/api/design":
+                return self.reply(json.loads((ROOT / "learning/design.json").read_text(encoding="utf-8")))
             if self.path == "/api/practice-history":
                 return self.reply(practice_history.read_history(git, command, academy.ORIGINS,
                     practice_results.normalize, catalog(), ROOT))
