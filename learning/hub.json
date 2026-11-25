@@ -1,0 +1,301 @@
+[
+  {
+    "id": "kafka",
+    "title": "Kafka",
+    "group": "Данные и очереди",
+    "mark": "KAF",
+    "questions": [
+      "Kafka"
+    ],
+    "profiles": [
+      "kafka"
+    ],
+    "designs": [
+      "DESIGN-01",
+      "DESIGN-04"
+    ],
+    "aliases": "partitions offsets consumer lag ISR KRaft replay"
+  },
+  {
+    "id": "postgres",
+    "title": "PostgreSQL",
+    "group": "Данные и очереди",
+    "mark": "PG",
+    "questions": [
+      "PostgreSQL"
+    ],
+    "profiles": [
+      "postgres"
+    ],
+    "designs": [
+      "DESIGN-01",
+      "DESIGN-02"
+    ],
+    "aliases": "SQL WAL MVCC VACUUM индексы backup"
+  },
+  {
+    "id": "patroni",
+    "title": "Patroni / etcd",
+    "group": "Данные и очереди",
+    "mark": "HA",
+    "questions": [
+      "Patroni / etcd",
+      "etcd / Consensus"
+    ],
+    "profiles": [
+      "patroni"
+    ],
+    "designs": [
+      "DESIGN-02"
+    ],
+    "aliases": "DCS quorum failover switchover репликация"
+  },
+  {
+    "id": "redis",
+    "title": "Redis",
+    "group": "Данные и очереди",
+    "mark": "RED",
+    "questions": [
+      "Redis"
+    ],
+    "profiles": [
+      "redis"
+    ],
+    "designs": [
+      "DESIGN-01"
+    ],
+    "aliases": "кеш TTL eviction persistence"
+  },
+  {
+    "id": "rabbitmq",
+    "title": "RabbitMQ",
+    "group": "Данные и очереди",
+    "mark": "MQ",
+    "questions": [
+      "RabbitMQ"
+    ],
+    "profiles": [],
+    "designs": [
+      "DESIGN-01"
+    ],
+    "aliases": "очередь exchange DLQ ack"
+  },
+  {
+    "id": "k8s",
+    "title": "Kubernetes / Helm",
+    "group": "Платформа и доставка",
+    "mark": "K8S",
+    "questions": [
+      "Kubernetes/Helm"
+    ],
+    "profiles": [],
+    "designs": [
+      "DESIGN-03"
+    ],
+    "aliases": "pods deployments service probes"
+  },
+  {
+    "id": "docker",
+    "title": "Docker / OCI",
+    "group": "Платформа и доставка",
+    "mark": "OCI",
+    "questions": [
+      "Docker/OCI"
+    ],
+    "profiles": [],
+    "designs": [
+      "DESIGN-03"
+    ],
+    "aliases": "container compose images"
+  },
+  {
+    "id": "terraform",
+    "title": "Terraform",
+    "group": "Платформа и доставка",
+    "mark": "TF",
+    "questions": [
+      "Terraform"
+    ],
+    "profiles": [],
+    "designs": [
+      "DESIGN-05"
+    ],
+    "aliases": "IaC state plan apply drift"
+  },
+  {
+    "id": "ansible",
+    "title": "Ansible",
+    "group": "Платформа и доставка",
+    "mark": "ANS",
+    "questions": [
+      "Ansible"
+    ],
+    "profiles": [],
+    "designs": [
+      "DESIGN-03",
+      "DESIGN-05"
+    ],
+    "aliases": "inventory playbook роли идемпотентность"
+  },
+  {
+    "id": "cicd",
+    "title": "CI/CD",
+    "group": "Платформа и доставка",
+    "mark": "CI",
+    "questions": [
+      "CI/CD"
+    ],
+    "profiles": [],
+    "designs": [
+      "DESIGN-03"
+    ],
+    "aliases": "Jenkins GitLab Actions pipeline rollback"
+  },
+  {
+    "id": "git",
+    "title": "Git / GitOps",
+    "group": "Платформа и доставка",
+    "mark": "GIT",
+    "questions": [
+      "GitOps"
+    ],
+    "profiles": [],
+    "designs": [
+      "DESIGN-03",
+      "DESIGN-05"
+    ],
+    "aliases": "branch commit reconciliation Argo CD"
+  },
+  {
+    "id": "linux",
+    "title": "Linux / Bash",
+    "group": "Системы и сети",
+    "mark": "LIN",
+    "questions": [
+      "Linux/Bash"
+    ],
+    "profiles": [],
+    "designs": [
+      "DESIGN-05"
+    ],
+    "aliases": "systemd CPU memory процессы диски shell"
+  },
+  {
+    "id": "net",
+    "title": "Networking / DNS / TLS",
+    "group": "Системы и сети",
+    "mark": "NET",
+    "questions": [
+      "Сети/DNS/TLS/HTTP"
+    ],
+    "profiles": [],
+    "designs": [
+      "DESIGN-02",
+      "DESIGN-04"
+    ],
+    "aliases": "TCP IP UDP firewall сети маршрутизация"
+  },
+  {
+    "id": "proxy",
+    "title": "Nginx / HAProxy",
+    "group": "Системы и сети",
+    "mark": "HTTP",
+    "questions": [
+      "Nginx / HAProxy"
+    ],
+    "profiles": [
+      "nginx"
+    ],
+    "designs": [
+      "DESIGN-02"
+    ],
+    "aliases": "reverse proxy upstream балансировка"
+  },
+  {
+    "id": "prom",
+    "title": "Prometheus / Grafana",
+    "group": "Наблюдаемость и SRE",
+    "mark": "OBS",
+    "questions": [
+      "Observability/SRE"
+    ],
+    "profiles": [
+      "observability"
+    ],
+    "designs": [
+      "DESIGN-04"
+    ],
+    "aliases": "PromQL метрики alert monitoring"
+  },
+  {
+    "id": "logs",
+    "title": "Logs / OpenTelemetry",
+    "group": "Наблюдаемость и SRE",
+    "mark": "OTEL",
+    "questions": [
+      "Logs / OpenTelemetry"
+    ],
+    "profiles": [],
+    "designs": [
+      "DESIGN-04"
+    ],
+    "aliases": "trace logs tracing ELK"
+  },
+  {
+    "id": "sre",
+    "title": "SRE / SLO",
+    "group": "Наблюдаемость и SRE",
+    "mark": "SRE",
+    "questions": [
+      "Observability/SRE"
+    ],
+    "profiles": [],
+    "designs": [
+      "DESIGN-04"
+    ],
+    "aliases": "error budget SLA SLI incident"
+  },
+  {
+    "id": "dr",
+    "title": "HA / DR / Capacity",
+    "group": "Наблюдаемость и SRE",
+    "mark": "DR",
+    "questions": [
+      "Platform/HA/DR"
+    ],
+    "profiles": [],
+    "designs": [
+      "DESIGN-02"
+    ],
+    "aliases": "RTO RPO backup capacity"
+  },
+  {
+    "id": "security",
+    "title": "Security / Vault",
+    "group": "Архитектура и управление",
+    "mark": "SEC",
+    "questions": [
+      "Security"
+    ],
+    "profiles": [],
+    "designs": [
+      "DESIGN-03",
+      "DESIGN-05"
+    ],
+    "aliases": "secrets RBAC supply chain"
+  },
+  {
+    "id": "lead",
+    "title": "Platform / Leadership",
+    "group": "Архитектура и управление",
+    "mark": "LEAD",
+    "questions": [
+      "Leadership"
+    ],
+    "profiles": [],
+    "designs": [
+      "DESIGN-05"
+    ],
+    "aliases": "ADR management ownership golden path"
+  }
+]

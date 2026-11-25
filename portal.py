@@ -38,7 +38,9 @@ STATIC = {"/": ("index.html", "text/html; charset=utf-8"),
           "/app.js": ("app.js", "text/javascript; charset=utf-8"),
           "/practice.js": ("practice.js", "text/javascript; charset=utf-8"),
           "/learning.js": ("learning.js", "text/javascript; charset=utf-8"),
-          "/learning.css": ("learning.css", "text/css; charset=utf-8")}
+          "/learning.css": ("learning.css", "text/css; charset=utf-8"),
+          "/hub.js": ("hub.js", "text/javascript; charset=utf-8"),
+          "/hub.css": ("hub.css", "text/css; charset=utf-8")}
 
 def command(args, cwd=ROOT, timeout=30):
     env = dict(os.environ, GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1")
@@ -204,6 +206,10 @@ class Handler(BaseHTTPRequestHandler):
             if self.path in STATIC:
                 name, kind = STATIC[self.path]
                 return self.send_data(200, kind, (WEB / name).read_bytes())
+            if self.path == "/api/hub":
+                return self.reply(json.loads((ROOT / "learning/hub.json").read_text(encoding="utf-8")))
+            if self.path == "/api/version":
+                return self.reply({"release": "Learning Hub v4", "branch": "academy/learning-hub-v4"})
             if self.path == "/api/session":
                 return self.reply({"csrf": KEY})
             if self.path == "/api/state":
