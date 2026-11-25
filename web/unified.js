@@ -1,10 +1,11 @@
 // Explicit synchronization; never uploads answers or modifies canonical grades.
+function moscowDay(value){if(typeof value!=="string")return null;if(/^\d{4}-\d{2}-\d{2}$/.test(value))return value;const d=new Date(value);return Number.isFinite(d.getTime())?new Intl.DateTimeFormat("sv-SE",{timeZone:"Europe/Moscow",year:"numeric",month:"2-digit",day:"2-digit"}).format(d):null;}
 function mergeReviews(local,remote){
  const map=new Map();
  for(const r of [...local,...remote]){
    if(typeof r.topic!=="string"||!Number.isInteger(r.score)||r.score<0||r.score>4)continue;
-   const day=String(r.assessed).slice(0,10),old=map.get(r.topic);
-   if(!old||day>String(old.assessed).slice(0,10)||(day===String(old.assessed).slice(0,10)&&r.score<old.score))map.set(r.topic,r);
+   const day=moscowDay(r.assessed),old=map.get(r.topic);if(!day)continue;
+   if(!old||day>moscowDay(old.assessed)||(day===moscowDay(old.assessed)&&r.score<old.score))map.set(r.topic,r);
  }
  return [...map.values()];
 }
@@ -32,8 +33,8 @@ async function upload(){
   const r=await fetch("/api/practice-save",{method:"POST",headers:{"Content-Type":"application/json","X-Academy-CSRF":session.csrf},body:JSON.stringify(pending)});
   const result=await r.json();
   if(!r.ok||!["saved","already_saved"].includes(result.status)||!/^[0-9a-f]{40}$/.test(result.commit))throw Error(result.error||"Доставка не подтверждена");
-  const record=reviewRecord(pending.topic,pending.score,new Date(pending.assessed+"T00:00:00+03:00"));
-  records=mergeReviews(records,[{...record,assessed:pending.assessed}]);persist();
+  const due=new Date(pending.assessed+"T00:00:00Z");due.setUTCDate(due.getUTCDate()+[1,1,3,7,14][pending.score]);
+  records=mergeReviews(records,[{topic:pending.topic,score:pending.score,assessed:pending.assessed,due:due.toISOString().slice(0,10)+"T00:00:00+03:00"}]);persist();
   localStorage.removeItem(key);pending=null;document.getElementById("ratings").hidden=true;renderReview();status("Сохранено в GitHub · "+result.commit.slice(0,12));
  }catch(e){status("BLOCKED / DELIVERY_UNKNOWN: "+e.message+" · Повтори ту же попытку.")}
  finally{busy=false}
