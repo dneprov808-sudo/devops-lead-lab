@@ -54,3 +54,33 @@ if(typeof document!=="undefined"){
  }
  }
 }
+
+function learningRoute(topics,history,now=Date.now()){
+ return topics.map(topic=>{
+ const r=history.find(x=>x.topic===topic&&Number.isInteger(x.score)&&x.score>=0&&x.score<=4&&Number.isFinite(Date.parse(x.due)));
+ return {topic,score:r?.score??null,due:r?Date.parse(r.due)<=now:false,priority:!r?2:Date.parse(r.due)<=now?0:r.score<=2?1:3};
+ }).sort((a,b)=>a.priority-b.priority||(a.score??5)-(b.score??5)||a.topic.localeCompare(b.topic,"ru"));
+}
+function readBookmarks(raw,topics){try{const a=JSON.parse(raw||"[]");return Array.isArray(a)?[...new Set(a.filter(x=>topics.includes(x)))]:[]}catch{return []}}
+if(typeof document!=="undefined"){
+ const root=document.getElementById("engineering-route");
+ if(root&&typeof BANK!=="undefined"){
+ const topics=BANK.map(x=>x[0]),key="academy-bookmarks-v7";
+ const el=(tag,t)=>{const n=document.createElement(tag);if(t!==undefined)n.textContent=t;return n};
+ let marks=[];try{marks=readBookmarks(localStorage.getItem(key),topics)}catch{}
+ const list=el("div"),notice=el("p");notice.setAttribute("role","status");
+ const refresh=el("button","Обновить рекомендации");refresh.type="button";
+ const only=el("input");only.type="checkbox";const label=el("label"," Только избранное");label.prepend(only);
+ function render(){
+ list.replaceChildren();
+ for(const r of learningRoute(topics,typeof records==="undefined"?[]:records).filter(r=>!only.checked||marks.includes(r.topic))){
+ const d=el("div");d.className="hub-block";
+ d.append(el("strong",r.topic),el("p",r.score===null?"Ещё нет самооценки":(r.due?"Пора повторить · ":"")+"Самооценка "+r.score+"/4"));
+ const open=el("button","Повторить тему");open.type="button";open.addEventListener("click",()=>{document.getElementById("topic").value=r.topic;nextQuestion();page("interview")});
+ const mark=el("button",marks.includes(r.topic)?"Убрать из избранного":"В избранное");mark.type="button";mark.className="secondary";mark.addEventListener("click",()=>{const next=marks.includes(r.topic)?marks.filter(x=>x!==r.topic):[...marks,r.topic];try{localStorage.setItem(key,JSON.stringify(next));marks=next;notice.textContent="Избранное сохранено."}catch{notice.textContent="Не удалось сохранить избранное."}render()});d.append(open,mark);list.append(d);
+ }
+ if(!list.children.length)list.append(el("p","Нет избранных тем."));
+ }
+ refresh.addEventListener("click",render);only.addEventListener("change",render);root.append(el("p","Рекомендации основаны на локальных самооценках, а не на подтверждённых компетенциях. Сначала просроченные темы, затем слабые и неизученные."),refresh,label,notice,list);render();
+ }
+}
