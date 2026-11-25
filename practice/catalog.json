@@ -1,0 +1,156 @@
+[
+  {
+    "id": "PR-KAFKA-01",
+    "topic": "Kafka",
+    "level": "Middle → Senior",
+    "minutes": 60,
+    "title": "Partitions, offsets и consumer lag",
+    "profile": "kafka",
+    "command": "docker compose -f practice/compose.yaml --profile kafka up -d",
+    "enter": "docker compose -f practice/compose.yaml exec kafka bash",
+    "tasks": [
+      "Создай topic с 3 partitions и replication factor 1.",
+      "Отправь 100 синтетических событий с ключами, прочитай их consumer group.",
+      "Останови consumer, добавь события, измерь lag и восстановление.",
+      "Объясни порядок сообщений в partition, at-least-once и ограничения одного broker."
+    ],
+    "evidence": [
+      "Topic describe: 3 partitions.",
+      "Consumer group lag до/после остановки и восстановления.",
+      "Объяснение повторов и порядка сообщений."
+    ],
+    "docs": "https://kafka.apache.org/41/getting-started/quickstart/"
+  },
+  {
+    "id": "PR-KAFKA-02",
+    "topic": "Kafka",
+    "level": "Senior",
+    "minutes": 60,
+    "title": "Диагностика producer и consumer",
+    "profile": "kafka",
+    "command": "docker compose -f practice/compose.yaml --profile kafka up -d",
+    "enter": "docker compose -f practice/compose.yaml exec kafka bash",
+    "tasks": [
+      "Проверь текущий topic и consumer group, зафиксируй baseline.",
+      "Сымитируй отказ consumer или broker только в этом стенде; сопоставь симптомы.",
+      "Восстанови сервис и проверь offsets, lag и возможные дубли.",
+      "Опиши проект многоброкерного KRaft-кластера: quorum, ISR, acks и min.insync.replicas."
+    ],
+    "evidence": [
+      "Логи и baseline без секретов.",
+      "Хронология отказа и восстановления.",
+      "ADR с ограничениями одноброкерного стенда."
+    ],
+    "docs": "https://kafka.apache.org/41/documentation/"
+  },
+  {
+    "id": "PR-PG-01",
+    "topic": "PostgreSQL",
+    "level": "Middle → Senior",
+    "minutes": 60,
+    "title": "Медленный SQL и индекс",
+    "profile": "postgres",
+    "command": "docker compose -f practice/compose.yaml --profile postgres up -d",
+    "enter": "docker compose -f practice/compose.yaml exec postgres psql -U student -d academy",
+    "tasks": [
+      "Создай собственную таблицу синтетических заказов, минимум 100000 строк.",
+      "Измерь план запроса EXPLAIN (ANALYZE, BUFFERS) до изменения.",
+      "Подбери индекс, повтори измерение на том же наборе данных.",
+      "Объясни trade-off индекса, статистику и почему Seq Scan не всегда проблема."
+    ],
+    "evidence": [
+      "Два плана на одинаковом запросе и данных.",
+      "Обоснование выбранного индекса.",
+      "Сравнение actual rows, buffers и времени без выдуманных чисел."
+    ],
+    "docs": "https://www.postgresql.org/docs/16/using-explain.html"
+  },
+  {
+    "id": "PR-PG-02",
+    "topic": "PostgreSQL",
+    "level": "Senior",
+    "minutes": 60,
+    "title": "Locks, транзакции и восстановление",
+    "profile": "postgres",
+    "command": "docker compose -f practice/compose.yaml --profile postgres up -d",
+    "enter": "docker compose -f practice/compose.yaml exec postgres psql -U student -d academy",
+    "tasks": [
+      "Открой две psql-сессии на учебной БД и воспроизведи ожидание блокировки.",
+      "Определи блокирующую сессию по системным представлениям.",
+      "Безопасно заверши учебную транзакцию, проверь целостность данных.",
+      "Создай логический backup и восстанови его в отдельную учебную БД."
+    ],
+    "evidence": [
+      "Идентификаторы сессий, wait events и причина.",
+      "Доказательство снятия блокировки.",
+      "Проверка количества строк в восстановленной БД."
+    ],
+    "docs": "https://www.postgresql.org/docs/16/monitoring-stats.html"
+  },
+  {
+    "id": "PR-PATRONI-01",
+    "topic": "Patroni / etcd",
+    "level": "Senior",
+    "minutes": 120,
+    "title": "Leader election, репликация и failover",
+    "profile": "patroni",
+    "command": "docker compose -f practice/compose.yaml --profile patroni up -d --build",
+    "enter": "docker compose -f practice/compose.yaml exec pg1 patronictl -c /etc/patroni.yml list",
+    "tasks": [
+      "Дождись двух PostgreSQL nodes, определи leader и replica через patronictl.",
+      "Запиши синтетические данные на leader и проверь репликацию на втором узле.",
+      "Останови именно текущий leader в учебном Compose; наблюдай election.",
+      "После появления нового leader проверь данные, верни старый узел и опиши RTO/RPO и риск потери DCS."
+    ],
+    "evidence": [
+      "Два узла и исходный leader.",
+      "Доказательства репликации и смены leader.",
+      "Измеренные RTO/RPO либо честно обозначенные ограничения; один etcd не является HA."
+    ],
+    "docs": "https://patroni.readthedocs.io/en/latest/patronictl.html"
+  },
+  {
+    "id": "PR-REDIS-01",
+    "topic": "Redis",
+    "level": "Senior",
+    "minutes": 60,
+    "title": "TTL, eviction и persistence",
+    "profile": "redis",
+    "command": "docker compose -f practice/compose.yaml --profile redis up -d",
+    "enter": "docker compose -f practice/compose.yaml exec redis redis-cli",
+    "tasks": [
+      "Создай временные ключи и сравни TTL.",
+      "Изучи INFO memory и persistence; проверь конфигурацию maxmemory.",
+      "Создай ограниченную нагрузку синтетическими ключами (не более 20 MB).",
+      "Сравни восстановление ключей после перезапуска и объясни cache vs durable storage."
+    ],
+    "evidence": [
+      "TTL и INFO до/после.",
+      "Наблюдаемая политика eviction.",
+      "Результат перезапуска и ограничения долговечности."
+    ],
+    "docs": "https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/"
+  },
+  {
+    "id": "PR-NGINX-01",
+    "topic": "Nginx / HTTP",
+    "level": "Senior",
+    "minutes": 60,
+    "title": "Reverse proxy и диагностика upstream",
+    "profile": "nginx",
+    "command": "docker compose -f practice/compose.yaml --profile nginx up -d",
+    "enter": "curl -i http://127.0.0.1:18081/",
+    "tasks": [
+      "Проверь прокси и backend отдельно в стенде.",
+      "Останови учебный backend, зафиксируй HTTP статус и логи Nginx.",
+      "Восстанови backend и измерь время восстановления.",
+      "Предложи health checks, таймауты и разделение ошибок 502/504."
+    ],
+    "evidence": [
+      "HTTP до отказа, во время и после.",
+      "Логи с причиной ошибки.",
+      "Предложения по снижению MTTR."
+    ],
+    "docs": "https://nginx.org/en/docs/http/ngx_http_proxy_module.html"
+  }
+]
