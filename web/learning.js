@@ -56,6 +56,18 @@ by("incident-hint-button").addEventListener("click",()=>{if(active){txt("inciden
 by("incident-debrief-button").addEventListener("click",()=>{if(!active)return;if(!by("incident-answer").value.trim()){txt("incident-feedback","Сначала запиши собственную гипотезу.");return}txt("incident-debrief",active.debrief);by("incident-debrief").hidden=false;txt("incident-feedback","Сравни свой подход с разбором. Это самообучение, не независимая оценка.")});
 by("incident-copy").addEventListener("click",()=>{if(active)copy("Академия: проведи независимую проверку моего решения синтетического инцидента "+active.id+" из learning/incidents.json в academy/engineering-pro-v3. Не меняй STATE. Задавай уточнения по одному.")});
 read("/api/incidents").then(data=>{if(!Array.isArray(data))throw Error("Неверный каталог");incidents=data;by("incident-select").replaceChildren(...data.map(x=>{const o=el("option",x.id+" · "+x.title);o.value=x.id;return o}));showIncident()}).catch(e=>txt("incident-feedback","BLOCKED: "+e.message));
+by("design-template").addEventListener("click",()=>copy("ADR: контекст и требования\nОграничения и допущения\nВарианты и компромиссы\nРешение и последствия\nFailure domains и безопасность\nSLI/SLO, RTO/RPO: цели и доказательства\nПлан внедрения, rollback, проверки\nRunbook: trigger, diagnose, mitigate, verify, escalate\nОтветственный и дата ревью"));
+read("/api/design").then(data=>{
+  if(!Array.isArray(data))throw Error("Неверный каталог");
+  by("design-list").replaceChildren(...data.map(x=>{
+    const d=el("details");d.append(el("summary",x.id+" · "+x.title),el("p",x.scope,"dim"));
+    for(const [heading,rows] of [["Требования",x.requirements],["Что подготовить",x.deliverables],["Критерии архитектурной защиты",x.rubric]]){
+      const list=el("ul");rows.forEach(v=>list.append(el("li",v)));d.append(el("h3",heading),list);
+    }
+    d.append(button("Защитить архитектуру перед наставником",()=>copy("Академия: проведи архитектурную защиту "+x.id+" из learning/design.json ветки academy/engineering-pro-v3. Задавай по одному вопросу, оцени реальные ответы, не меняй STATE.")));return d;
+  }));
+  txt("design-status","Кейсов: "+data.length);
+}).catch(e=>txt("design-status","BLOCKED: "+e.message));
 function renderHistory(){
   if(!history)return;
   const rows=history.items.filter(r=>historyMatches(r,by("history-filter").value));
