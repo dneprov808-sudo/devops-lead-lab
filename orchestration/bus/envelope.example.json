@@ -1,0 +1,25 @@
+{
+  "bus_version": 1,
+  "channel": "test",
+  "handoff": {
+    "handoff_version": 1,
+    "handoff_id": "orchestrator/ACADEMY-004/recommendation/example-v1",
+    "from": "orchestrator",
+    "to": "orchestrator",
+    "task_id": "ACADEMY-004",
+    "event": "recommendation",
+    "observed_state_revision": 1,
+    "control_ref": "academy/orchestration-v1",
+    "observed_control_commit": null,
+    "artifact_ref": null,
+    "artifact_commit": null,
+    "result": "not_applicable",
+    "summary": "Synthetic example; no study state change.",
+    "evidence": [],
+    "proposed_status": null,
+    "next_action": "Inspect test queue",
+    "limitations": [
+      "test channel only"
+    ]
+  }
+}
