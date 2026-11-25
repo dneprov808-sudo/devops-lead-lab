@@ -42,6 +42,8 @@ function renderState(d){
   text("commit","Control "+d.commit+" · "+new Date(d.checked_at).toLocaleString("ru-RU",{timeZone:"Europe/Moscow"})+" МСК");
   $("workflow").replaceChildren(...Object.entries(d.workflow).map(([k,v])=>elem("span",k+": "+v,"chip "+(v==="completed"?"done":""))));
   $("roadmap-list").replaceChildren(...d.roadmap.map(r=>{const x=elem("details");const n=Number(r[0]);x.open=n===d.week;x.append(elem("summary","Неделя "+r[0]+" · "+r[1]+(x.open?" (текущая)":"")),elem("p",r[2]));return x}));
+  $("roadmap-proposal").replaceChildren(...(d.proposed_roadmap||[]).map(r=>{const x=elem("article",undefined,"row-card");x.append(elem("strong","Неделя "+r[0]+" · "+r[1]),elem("p",r[2]));return x}));
+  $("skill-proposal").replaceChildren(...(d.proposed_skills||[]).map(r=>{const x=elem("article",undefined,"row-card");x.append(elem("strong",r[0]),elem("p","Предложенная цель: "+r[3]),elem("small",r[4]));return x}));
   $("skill-list").replaceChildren(...d.skills.map(r=>{const x=elem("article",undefined,"row-card");x.append(elem("strong",r[0]),elem("p","Подтверждено: "+r[2]+" · Цель: "+r[3]),elem("small",r[4]));return x}));
 }
 async function sync(){
@@ -60,6 +62,7 @@ $("test").addEventListener("click",async()=>{if(!$("trust").checked||!csrf)retur
 BANK.forEach(r=>{const o=elem("option",r[0]);o.value=r[0];$("topic").append(o)});
 const questionSequence=new Map();
 function nextQuestion(){
+  if(window.academyReviewPending&&window.academyReviewPending()){alertMsg("Сначала повтори отправку сохранённой попытки во вкладке Повторение.");return;}
   const topic=$("topic").value;const row=BANK.find(r=>r[0]===topic);
   const prior=records.find(r=>r.topic===topic);const seq=questionSequence.get(topic)||0;
   const selected=pickQuestion(row,prior,seq);questionSequence.set(topic,seq+1);
