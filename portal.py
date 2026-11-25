@@ -1,4 +1,4 @@
-"""Academy portal: loopback-only, read-only GitHub, explicit local tests."""
+"""Unified Academy: loopback-only, explicit result writes, canonical STATE read-only."""
 import datetime as dt
 import hashlib
 import hmac
@@ -78,7 +78,7 @@ def snapshot():
     if len(remote) != 2 or remote[1] != "refs/heads/" + REF or not re.fullmatch(r"[0-9a-f]{40}", remote[0]):
         raise ValueError("Canonical ref unavailable")
     commit = remote[0]
-    git("fetch", "--no-tags", "origin", commit)
+    git("fetch", "--no-tags", "--no-write-fetch-head", "origin", commit)
     def read(path):
         return git("show", commit + ":" + path)
     d = yaml.safe_load(read("orchestration/STATE.yaml"))
@@ -93,6 +93,8 @@ def snapshot():
             "next": d["next_action"]["task"], "workflow": d["workflow"],
             "roadmap": table(read("ROADMAP.md"), 3),
             "skills": table(read("SKILL_MATRIX.md"), 5),
+            "proposed_skills": table((ROOT / "release/SKILL_MATRIX_PROPOSAL.md").read_text(encoding="utf-8"), 5),
+            "proposed_roadmap": table((ROOT / "release/ROADMAP_PROPOSAL.md").read_text(encoding="utf-8"), 3),
             "accepted": d["handoffs"]["accepted_ids"], "pending": d["handoffs"]["pending_review"],
             "checked_at": dt.datetime.now(dt.timezone.utc).isoformat()}
 
@@ -209,7 +211,7 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == "/api/hub":
                 return self.reply(json.loads((ROOT / "learning/hub.json").read_text(encoding="utf-8")))
             if self.path == "/api/version":
-                return self.reply({"release": "Learning Hub v4", "branch": "academy/learning-hub-v4"})
+                return self.reply({"release": "Unified Release v5", "branch": "academy/unified-v5"})
             if self.path == "/api/session":
                 return self.reply({"csrf": KEY})
             if self.path == "/api/state":
