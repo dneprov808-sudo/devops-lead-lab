@@ -9,7 +9,21 @@
     "diagnosis": "Сначала сравни baseline, CPU user/system/iowait, память available и swap, диски и inode. Затем локализуй конкретный процесс и его ожидание. Не убивай процесс до фиксации причины.",
     "pitfalls": "OOM, D-state, исчерпание inode, удалённый но открытый файл, throttling cgroup. Не считай page cache утечкой памяти.",
     "question": "Объясни отличие load, utilisation и saturation; предложи безопасную последовательность проверки сервера, на котором растёт задержка.",
-    "source": "https://docs.kernel.org/admin-guide/cgroup-v2.html"
+    "source": "https://docs.kernel.org/admin-guide/cgroup-v2.html",
+    "lesson": {
+      "intro": "Linux управляет процессами, памятью, файлами и сетью. Bash позволяет объединять команды в повторяемые операции.",
+      "example": "Сервис перестал отвечать. Сначала выясни, жив ли процесс, слушает ли он порт и хватает ли ресурсов. Не перезапускай его вслепую.",
+      "quiz": {
+        "question": "Процесс существует, но порт не слушается. Что проверишь дальше?",
+        "options": [
+          "Журнал сервиса и состояние запуска",
+          "Сразу увеличить RAM",
+          "Удалить журнал"
+        ],
+        "correct": 0,
+        "explanation": "Наличие PID не доказывает готовность сервиса."
+      }
+    }
   },
   {
     "id": "net",
@@ -21,7 +35,21 @@
     "diagnosis": "Раздели NXDOMAIN, timeout, refused, TLS verify error и HTTP status. Сравни обе стороны соединения; packet capture только в учебной сети. UDP не имеет TCP handshake.",
     "pitfalls": "Асимметричный маршрут, MTU, firewall, истекший сертификат, неправильный SNI. Не отключай TLS verification как исправление.",
     "question": "Как доказать, что reset/timeout возникли не в приложении? Какие данные нужны от сетевой команды?",
-    "source": "https://man7.org/linux/man-pages/man8/ip-route.8.html"
+    "source": "https://man7.org/linux/man-pages/man8/ip-route.8.html",
+    "lesson": {
+      "intro": "DNS переводит имя в адрес, маршрутизация выбирает путь, TCP устанавливает соединение, TLS защищает обмен, HTTP передаёт запрос.",
+      "example": "Если curl сообщает timeout, отдели DNS, TCP, TLS и HTTP: ошибка на каждом этапе требует разных проверок.",
+      "quiz": {
+        "question": "TCP подключается, но TLS завершается ошибкой. Что проверить?",
+        "options": [
+          "Только ping",
+          "Сертификат, имя сервера и TLS handshake",
+          "Свободное место"
+        ],
+        "correct": 1,
+        "explanation": "Успешный TCP не гарантирует успешный TLS."
+      }
+    }
   },
   {
     "id": "git",
@@ -33,7 +61,21 @@
     "diagnosis": "Перед изменением проверь branch, diff и remote. Сопоставляй доставленный artifact digest с утверждённым commit; при drift реши, принять изменение в Git или откатить.",
     "pitfalls": "Force push, потеря локальных изменений, mutable image tags, ручные правки вне GitOps. Не используй reset --hard для обычной синхронизации.",
     "question": "Как организовать break-glass изменение и вернуться к GitOps без потери аудита?",
-    "source": "https://git-scm.com/docs"
+    "source": "https://git-scm.com/docs",
+    "lesson": {
+      "intro": "Git хранит снимки файлов и связи между коммитами. Ветка — указатель на коммит, а не отдельная копия проекта.",
+      "example": "Перед релизом сравни изменения, проверь SHA и убедись, что разворачивается проверенный артефакт.",
+      "quiz": {
+        "question": "Как безопасно отменить опубликованный коммит?",
+        "options": [
+          "git revert",
+          "git reset --hard и force push",
+          "Удалить репозиторий"
+        ],
+        "correct": 0,
+        "explanation": "Revert создаёт новый коммит, сохраняя историю."
+      }
+    }
   },
   {
     "id": "docker",
@@ -45,7 +87,21 @@
     "diagnosis": "В учебном контексте проверь exit code, OOMKilled, mounts, network, UID и ограничения. Отдельно проверь артефакт, конфигурацию и внешние зависимости.",
     "pitfalls": "Теги latest, root, секреты в ENV/слоях, bind mount маскирует файлы, unbounded logs, неверная архитектура образа.",
     "question": "Как защитить поставку образов и откатить релиз, не откатывая данные бездумно?",
-    "source": "https://docs.docker.com/engine/"
+    "source": "https://docs.docker.com/engine/",
+    "lesson": {
+      "intro": "Образ содержит файловую систему и метаданные, контейнер — запущенный экземпляр с изоляцией процессов.",
+      "example": "После пересоздания контейнера данные исчезли: проверь, где приложение записывало файлы и подключён ли том.",
+      "quiz": {
+        "question": "Что сохраняет данные при удалении контейнера?",
+        "options": [
+          "PID",
+          "Именованный том",
+          "EXPOSE"
+        ],
+        "correct": 1,
+        "explanation": "Том имеет отдельный жизненный цикл."
+      }
+    }
   },
   {
     "id": "ansible",
@@ -57,7 +113,21 @@
     "diagnosis": "Только локальный учебный inventory: проверь scope, переменные и diff без секретов; затем ограничь batch, выполни health checks и повторный запуск.",
     "pitfalls": "Shell без changed_when, небезопасные defaults, broad host pattern, секреты в diff, handler после частичного отказа.",
     "question": "Как спроектировать rollout на 500 узлах с serial, canary и условиями остановки?",
-    "source": "https://docs.ansible.com/ansible/latest/playbook_guide/index.html"
+    "source": "https://docs.ansible.com/ansible/latest/playbook_guide/index.html",
+    "lesson": {
+      "intro": "Ansible подключается к узлам и приводит их к описанному состоянию. Идемпотентная задача не меняет уже правильную конфигурацию.",
+      "example": "Обновление конфига должно вызывать перезапуск только при изменении файла; для этого подходят template и handler.",
+      "quiz": {
+        "question": "Повторный запуск роли без изменений должен…",
+        "options": [
+          "Всегда перезапускать сервис",
+          "Удалять конфиг",
+          "Не менять состояние"
+        ],
+        "correct": 2,
+        "explanation": "Идемпотентность снижает риск повторного запуска."
+      }
+    }
   },
   {
     "id": "cicd",
@@ -69,7 +139,21 @@
     "diagnosis": "Сверь точный SHA, источники зависимостей и права runner. Для pipeline нужны gates, concurrency, ограничение ресурсов, логирование и сценарий восстановления.",
     "pitfalls": "Секреты в логах, runner с избыточными правами, гонки деплоев, mutable tags, миграции без backward compatibility.",
     "question": "Как сделать pipeline для критического сервиса с expand-contract миграциями и безопасным rollback?",
-    "source": "https://docs.github.com/en/actions"
+    "source": "https://docs.github.com/en/actions",
+    "lesson": {
+      "intro": "CI проверяет и собирает изменения, CD доставляет проверенный артефакт в среду.",
+      "example": "Сборка прошла тесты: продвигай тот же образ по digest, а не пересобирай его отдельно для production.",
+      "quiz": {
+        "question": "Почему лучше продвигать один digest?",
+        "options": [
+          "Чтобы тестировать именно разворачиваемый артефакт",
+          "Чтобы отключить тесты",
+          "Чтобы не хранить историю"
+        ],
+        "correct": 0,
+        "explanation": "Одинаковый digest связывает проверку и релиз."
+      }
+    }
   },
   {
     "id": "terraform",
@@ -81,7 +165,21 @@
     "diagnosis": "Только отдельный локальный проект: проверь provider/backend и workspace, читай plan перед apply. Exit 2 у detailed-exitcode означает изменения, не ошибку. Не публикуй state.",
     "pitfalls": "Удаление ресурса при rename без moved, потеря state, внешние правки, неправильный workspace, секреты в plan.",
     "question": "Как импортировать существующий ресурс и проверить, что следующий plan не удалит его?",
-    "source": "https://developer.hashicorp.com/terraform/language/state"
+    "source": "https://developer.hashicorp.com/terraform/language/state",
+    "lesson": {
+      "intro": "Terraform сравнивает конфигурацию, state и сведения провайдера, затем строит план изменений.",
+      "example": "Ресурс изменили вручную. Сначала изучи plan и причину расхождения, а не запускай apply автоматически.",
+      "quiz": {
+        "question": "Что показывает plan?",
+        "options": [
+          "Гарантию отсутствия отказов",
+          "Предлагаемые изменения ресурсов",
+          "Только список файлов"
+        ],
+        "correct": 1,
+        "explanation": "План не гарантирует успешное применение."
+      }
+    }
   },
   {
     "id": "k8s",
@@ -93,7 +191,21 @@
     "diagnosis": "Перед любой командой проверь локальный context и namespace. Сопоставь rollout, события, endpoints, probes, DNS, network policy и ресурсы. Не лечи всё рестартом.",
     "pitfalls": "CrashLoopBackOff — симптом, Pending из-за scheduling, Service без endpoints, ошибочная readiness, несовместимые Helm values.",
     "question": "Как построить rollout с PDB, probes, ресурсами и измеримым критерием rollback?",
-    "source": "https://kubernetes.io/docs/tasks/debug/debug-application/"
+    "source": "https://kubernetes.io/docs/tasks/debug/debug-application/",
+    "lesson": {
+      "intro": "Контроллеры Kubernetes постоянно стремятся привести фактическое состояние к желаемому. Service направляет трафик к подходящим endpoints.",
+      "example": "Pod запущен, но не готов: проверь readiness, события, логи и EndpointSlice.",
+      "quiz": {
+        "question": "Что означает Running без Ready?",
+        "options": [
+          "Сервис гарантированно доступен",
+          "Контейнер запущен, но готовность не подтверждена",
+          "Образ отсутствует"
+        ],
+        "correct": 1,
+        "explanation": "Running и Ready описывают разные свойства."
+      }
+    }
   },
   {
     "id": "kafka",
@@ -105,7 +217,21 @@
     "diagnosis": "Сравни producer rate, consumer throughput, lag по partitions, rebalance, ошибки и ISR. Определи, является ли lag ростом нагрузки, дисбалансом ключей или остановкой consumer.",
     "pitfalls": "Hot partition, rebalance storm, offset commit до внешней записи, недостаточный ISR, истечение retention. Увеличение consumers сверх partitions не увеличивает параллелизм.",
     "question": "Спроектируй обработку платежного события с повторной доставкой, идемпотентностью и DLQ. Как доказать отсутствие потери?",
-    "source": "https://kafka.apache.org/41/documentation/"
+    "source": "https://kafka.apache.org/41/documentation/",
+    "lesson": {
+      "intro": "Kafka хранит события в разделах журнала. Consumer group распределяет разделы между потребителями.",
+      "example": "Lag растёт, когда обработка отстаёт от поступления событий. Проверь скорость, ошибки и распределение разделов.",
+      "quiz": {
+        "question": "Где Kafka гарантирует порядок записей?",
+        "options": [
+          "Во всём кластере",
+          "Внутри одного раздела",
+          "Во всех топиках одновременно"
+        ],
+        "correct": 1,
+        "explanation": "Глобального порядка между разделами нет."
+      }
+    }
   },
   {
     "id": "postgres",
@@ -117,7 +243,21 @@
     "diagnosis": "В учебной БД сопоставь wait events, активные транзакции, locks, actual vs estimated rows, buffers, dead tuples, WAL и disk. Сначала read-only диагностика.",
     "pitfalls": "Длинная транзакция мешает очистке, lock convoy, устаревшая статистика, рост WAL, backup без restore drill.",
     "question": "Как отличить I/O bottleneck от lock contention, и когда добавление индекса не поможет?",
-    "source": "https://www.postgresql.org/docs/16/monitoring-stats.html"
+    "source": "https://www.postgresql.org/docs/16/monitoring-stats.html",
+    "lesson": {
+      "intro": "PostgreSQL использует MVCC для видимости версий строк, WAL для восстановления и индексы для ускорения доступа.",
+      "example": "Медленный запрос исследуй через план выполнения, статистику, блокировки и I/O; индекс не всегда помогает.",
+      "quiz": {
+        "question": "Что может удерживать старые версии строк?",
+        "options": [
+          "Длительная транзакция",
+          "DNS TTL",
+          "Порт HTTP"
+        ],
+        "correct": 0,
+        "explanation": "Старый snapshot может мешать очистке версий."
+      }
+    }
   },
   {
     "id": "patroni",
@@ -129,7 +269,21 @@
     "diagnosis": "Определи текущего leader, replica lag, доступность DCS, timeline и роль БД. До переключения оценить риск data loss; после проверить read/write routing и восстановление старого leader.",
     "pitfalls": "Split brain, DCS quorum loss, lagging candidate, неверный health check балансировщика, отказ replication slots/рост WAL. Не promote вручную при неизвестной роли.",
     "question": "Как связаны ttl, loop_wait и retry_timeout? Как измерить RTO/RPO при failover и не перепутать их с целями?",
-    "source": "https://patroni.readthedocs.io/en/latest/"
+    "source": "https://patroni.readthedocs.io/en/latest/",
+    "lesson": {
+      "intro": "Patroni координирует роль PostgreSQL через распределённое хранилище состояния. Репликация данных выполняется PostgreSQL.",
+      "example": "При отказе лидера важно проверить кворум DCS, состояние реплик и возможность безопасного продвижения.",
+      "quiz": {
+        "question": "Гарантирует ли асинхронная репликация RPO=0?",
+        "options": [
+          "Да",
+          "Нет",
+          "Только при наличии Grafana"
+        ],
+        "correct": 1,
+        "explanation": "Непереданные записи могут быть потеряны."
+      }
+    }
   },
   {
     "id": "redis",
@@ -141,7 +295,21 @@
     "diagnosis": "Смотри used_memory, evicted_keys, expired_keys, hit ratio, latency и persistence status. Не выполняй KEYS * на больших наборах; для исследования используй SCAN.",
     "pitfalls": "Hot key, cache stampede, OOM при noeviction, большой fork overhead, потеря записей между fsync. Не делай FLUSHALL в рабочей системе.",
     "question": "Как выбрать TTL, политику eviction и защиту от stampede для кеша торговых данных?",
-    "source": "https://redis.io/docs/latest/operate/oss_and_stack/management/"
+    "source": "https://redis.io/docs/latest/operate/oss_and_stack/management/",
+    "lesson": {
+      "intro": "Redis хранит структуры данных в памяти. TTL задаёт срок жизни ключа, eviction освобождает память согласно политике.",
+      "example": "Рост памяти может привести к вытеснению ключей или отказу записи в зависимости от maxmemory-policy.",
+      "quiz": {
+        "question": "TTL и eviction — одно и то же?",
+        "options": [
+          "Да",
+          "Нет",
+          "Только в кластере"
+        ],
+        "correct": 1,
+        "explanation": "TTL связан со временем, eviction — с давлением памяти."
+      }
+    }
   },
   {
     "id": "rabbitmq",
@@ -153,7 +321,21 @@
     "diagnosis": "Раздели ready и unacked, скорость publish/deliver/ack и disk/memory alarms. Проверь routing key, bindings, retry policy. В этой версии отдельного RabbitMQ-стенда нет.",
     "pitfalls": "Requeue loop, poison message, неверная durable конфигурация, неограниченный backlog, подтверждение до durable side effect.",
     "question": "Сравни Kafka и RabbitMQ для событийного журнала и очереди задач; объясни delivery guarantees.",
-    "source": "https://www.rabbitmq.com/docs/"
+    "source": "https://www.rabbitmq.com/docs/",
+    "lesson": {
+      "intro": "Producer отправляет сообщение в exchange, правила маршрутизации направляют его в очереди, consumer подтверждает обработку.",
+      "example": "Если consumer падает до подтверждения, сообщение может быть доставлено повторно.",
+      "quiz": {
+        "question": "Когда подтверждать обработку?",
+        "options": [
+          "До обработки",
+          "После успешной обработки",
+          "При запуске процесса"
+        ],
+        "correct": 1,
+        "explanation": "Повторная доставка требует идемпотентности."
+      }
+    }
   },
   {
     "id": "proxy",
@@ -165,7 +347,21 @@
     "diagnosis": "Сравни client latency, connect/response time, upstream status и health. Проверь DNS resolution, route, socket, лимиты и настройки timeout.",
     "pitfalls": "Retry неидемпотентного POST, stale DNS, health check проверяет только порт, цепочки timeout, отсутствие backpressure.",
     "question": "Как построить read/write routing для PostgreSQL и избежать отправки writes на replica?",
-    "source": "https://nginx.org/en/docs/http/ngx_http_proxy_module.html"
+    "source": "https://nginx.org/en/docs/http/ngx_http_proxy_module.html",
+    "lesson": {
+      "intro": "Reverse proxy принимает клиентский запрос и передаёт его upstream. Таймауты ограничивают ожидание разных этапов.",
+      "example": "При 502/504 проверь журнал proxy, доступность upstream и задержку ответа.",
+      "quiz": {
+        "question": "504 обычно означает…",
+        "options": [
+          "Истечение ожидания ответа upstream",
+          "Успешный запрос",
+          "Отсутствие DNS у клиента"
+        ],
+        "correct": 0,
+        "explanation": "Точная причина уточняется по журналу и конфигурации."
+      }
+    }
   },
   {
     "id": "prom",
@@ -177,7 +373,21 @@
     "diagnosis": "Проверь Targets, labels, scrape interval, cardinality, gaps и запросы. Алерт должен отражать пользовательский симптом и иметь действие/runbook.",
     "pitfalls": "High cardinality, rate по gauge, среднее p95, missing data считается нулём, alert storm. В текущем стенде доступны probe metrics; HTTP counter/histogram — примеры для инструментированного приложения.",
     "question": "Как разделить симптом и причину в алертах и определить latency SLI для сервиса?",
-    "source": "https://prometheus.io/docs/practices/histograms/"
+    "source": "https://prometheus.io/docs/practices/histograms/",
+    "lesson": {
+      "intro": "Prometheus собирает числовые временные ряды, Grafana отображает их. Метрики помогают видеть динамику системы.",
+      "example": "Для счётчика ошибок оценивай скорость прироста, а не абсолютное накопленное значение.",
+      "quiz": {
+        "question": "Что использовать для скорости роста counter?",
+        "options": [
+          "rate()",
+          "Случайный gauge",
+          "Удаление метрики"
+        ],
+        "correct": 0,
+        "explanation": "rate учитывает изменение счётчика за интервал."
+      }
+    }
   },
   {
     "id": "logs",
@@ -189,7 +399,21 @@
     "diagnosis": "Сначала установи окно времени и impact. Сопоставь release, request IDs, latency и ошибки по зависимостям. Не публикуй реальные payload/PII.",
     "pitfalls": "Часы не синхронизированы, секреты в логах, trace sampling скрывает редкие ошибки, чрезмерная кардинальность labels.",
     "question": "Как спроектировать наблюдаемость событийного пайплайна, где запрос проходит Kafka, БД и асинхронного consumer?",
-    "source": "https://opentelemetry.io/docs/concepts/signals/"
+    "source": "https://opentelemetry.io/docs/concepts/signals/",
+    "lesson": {
+      "intro": "Логи описывают события, метрики — числовую динамику, трассировки — путь запроса между сервисами.",
+      "example": "При медленном запросе trace помогает найти медленный участок, а журнал — конкретную ошибку.",
+      "quiz": {
+        "question": "Что связывает spans одного запроса?",
+        "options": [
+          "Trace ID",
+          "Размер диска",
+          "Имя пользователя ОС"
+        ],
+        "correct": 0,
+        "explanation": "Trace ID объединяет участки распределённой операции."
+      }
+    }
   },
   {
     "id": "security",
@@ -201,7 +425,21 @@
     "diagnosis": "Раздели workload identity и человеческий доступ. Определи trust boundaries, срок credentials, политику revocation и журнал действий.",
     "pitfalls": "Секреты в Git history, долгоживущие PAT, секреты в командной строке, неограниченный runner, доверие mutable tags.",
     "question": "Как локализовать утечку токена CI, отозвать его и доказать отсутствие дальнейшего доступа?",
-    "source": "https://developer.hashicorp.com/vault/docs"
+    "source": "https://developer.hashicorp.com/vault/docs",
+    "lesson": {
+      "intro": "Секреты должны храниться отдельно от кода, а права — ограничиваться необходимыми операциями.",
+      "example": "Если токен попал в Git, его нужно отозвать или заменить; удаление строки из последнего коммита недостаточно.",
+      "quiz": {
+        "question": "Первое действие при утечке токена?",
+        "options": [
+          "Отозвать или ротировать токен",
+          "Переименовать файл",
+          "Скрыть интерфейс"
+        ],
+        "correct": 0,
+        "explanation": "Секрет мог быть скопирован из истории."
+      }
+    }
   },
   {
     "id": "sre",
@@ -213,7 +451,21 @@
     "diagnosis": "Зафиксируй severity, время начала, blast radius, owner, mitigation, критерии восстановления и следующий update. Отдельно составь RCA с доказательствами.",
     "pitfalls": "SLO без denominator, усреднение разных классов трафика, алерты без действий, поиск виновного вместо системных причин.",
     "question": "Как согласовать release freeze при быстром расходе error budget и восстановить поставку?",
-    "source": "https://sre.google/workbook/alerting-on-slos/"
+    "source": "https://sre.google/workbook/alerting-on-slos/",
+    "lesson": {
+      "intro": "SLI измеряет качество, SLO задаёт целевой уровень, error budget показывает допустимую долю плохих событий.",
+      "example": "Если бюджет ошибок быстро расходуется, приоритет смещается к восстановлению надёжности.",
+      "quiz": {
+        "question": "SLO 99,9% успешных запросов означает допустимую долю ошибок…",
+        "options": [
+          "10%",
+          "0,1%",
+          "1%"
+        ],
+        "correct": 1,
+        "explanation": "Бюджет равен 100% минус целевой SLO."
+      }
+    }
   },
   {
     "id": "dr",
@@ -225,7 +477,21 @@
     "diagnosis": "Проверь отказ узла, сетевой раздел, потерю DCS, исчерпание диска, логическое удаление; тестируй restore отдельно. Capacity оценивай по peak и headroom.",
     "pitfalls": "Общий storage, backup в той же failure domain, failover без fencing, несогласованные RPO/RTO, неиспытанный runbook.",
     "question": "Как доказать соответствие RTO 5 минут и RPO 30 секунд без выдуманных результатов?",
-    "source": "https://sre.google/sre-book/managing-critical-state/"
+    "source": "https://sre.google/sre-book/managing-critical-state/",
+    "lesson": {
+      "intro": "RTO — целевое время восстановления, RPO — допустимая потеря данных, выраженная временем.",
+      "example": "Наличие резервной копии не доказывает возможность восстановления. Нужен тест restore.",
+      "quiz": {
+        "question": "Как подтвердить достижимость RTO?",
+        "options": [
+          "Измерить восстановление на стенде",
+          "Посчитать файлы backup",
+          "Посмотреть название кластера"
+        ],
+        "correct": 0,
+        "explanation": "RTO проверяется фактическим временем восстановления."
+      }
+    }
   },
   {
     "id": "lead",
@@ -237,6 +503,20 @@
     "diagnosis": "Определи пользователей платформы и их bottleneck. Измеряй adoption, lead time, change failure, recovery и поддержку. Делегируй с критериями и обратной связью.",
     "pitfalls": "Платформа без пользователей, метрики ради метрик, бесконечная автоматизация, single-person bottleneck, отсутствие ownership.",
     "question": "Как выбрать между разработкой собственной платформы и использованием готового решения с учётом TCO и рисков?",
-    "source": "https://sre.google/sre-book/part-III-practices/"
+    "source": "https://sre.google/sre-book/part-III-practices/",
+    "lesson": {
+      "intro": "Lead отвечает за технические решения, риски и способность команды безопасно доставлять изменения.",
+      "example": "При выборе архитектуры сравни варианты по стоимости, надёжности и сложности эксплуатации; зафиксируй решение в ADR.",
+      "quiz": {
+        "question": "Что делает ADR полезным?",
+        "options": [
+          "Только название технологии",
+          "Контекст, варианты, решение и последствия",
+          "Количество страниц"
+        ],
+        "correct": 1,
+        "explanation": "ADR сохраняет причины выбора и компромиссы."
+      }
+    }
   }
 ]
