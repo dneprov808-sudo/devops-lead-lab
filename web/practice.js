@@ -107,11 +107,18 @@ by("save-lab-result").addEventListener("click",async()=>{
   try{txt("save-lab-status","Сохранение…");showResult("save-lab-status",await post({kind:"lab_test",attempt}))}
   catch(e){txt("save-lab-status","BLOCKED / DELIVERY_UNKNOWN: "+e.message);if(labAttempt===attempt)by("save-lab-result").disabled=false}
 });
-fetch("/api/practice-catalog",{cache:"no-store"}).then(r=>{if(!r.ok)throw Error("Каталог недоступен");return r.json()}).then(data=>{
-  if(!Array.isArray(data))throw Error("Некорректный каталог");
-  catalog=data;by("practice-list").replaceChildren(...catalog.map(m=>{
+function renderCatalog(){
+  const query=by("practice-search").value.trim().toLocaleLowerCase("ru-RU");
+  const rows=catalog.filter(m=>JSON.stringify(m).toLocaleLowerCase("ru-RU").includes(query));
+  txt("practice-count","Найдено: "+rows.length+" / "+catalog.length);
+  by("practice-list").replaceChildren(...rows.map(m=>{
     const card=element("article");card.className="row-card";card.append(element("strong",m.id+" · "+m.title),element("p",m.topic+" · "+m.level+" · "+m.minutes+" мин"));
     const b=element("button","Открыть практику");b.className="secondary";b.addEventListener("click",()=>open(m));card.append(b);return card;
-  }))
+  }));
+}
+by("practice-search").addEventListener("input",renderCatalog);
+fetch("/api/practice-catalog",{cache:"no-store"}).then(r=>{if(!r.ok)throw Error("Каталог недоступен");return r.json()}).then(data=>{
+  if(!Array.isArray(data))throw Error("Некорректный каталог");
+  catalog=data;renderCatalog()
 }).catch(e=>{by("practice-list").append(element("p","BLOCKED: "+e.message))});
 })();
