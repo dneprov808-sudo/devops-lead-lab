@@ -78,7 +78,7 @@ def start(minutes):
     verify_fixtures()
     branch = git("branch", "--show-current")
     if branch != STUDENT:
-        if branch not in ("academy/dx-v1", "academy/web-portal-v1", "academy/practice-v2", "academy/engineering-pro-v3", "academy/learning-hub-v4", "academy/unified-v5") or git("status", "--porcelain"):
+        if branch not in ("academy/dx-v1", "academy/web-portal-v1", "academy/practice-v2", "academy/engineering-pro-v3", "academy/learning-hub-v4", "academy/unified-v5", "academy/stable") or git("status", "--porcelain"):
             raise ValueError("Use a clean DX/portal checkout or existing student branch; no reset.")
         exists = git("branch", "--list", STUDENT)
         if not exists and git("ls-remote", "--heads", "origin", "refs/heads/" + STUDENT):
