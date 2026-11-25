@@ -152,5 +152,49 @@
       "Предложения по снижению MTTR."
     ],
     "docs": "https://nginx.org/en/docs/http/ngx_http_proxy_module.html"
+  },
+  {
+    "id": "PR-PATRONI-02",
+    "topic": "Patroni / etcd",
+    "level": "Senior → Lead",
+    "minutes": 90,
+    "title": "Потеря DCS и защита от split-brain",
+    "profile": "patroni",
+    "command": "docker compose -f practice/compose.yaml --profile patroni up -d --build",
+    "enter": "docker compose -f practice/compose.yaml exec pg1 patronictl -c /etc/patroni.yml list",
+    "tasks": [
+      "После PR-PATRONI-01 зафиксируй leader, replica и DCS состояние.",
+      "Останови только учебный etcd, наблюдай поведение leader, REST и попытки записи.",
+      "Верни etcd, проверь сходимость и отсутствие двух доступных для записи PostgreSQL.",
+      "Подготовь ADR для 3-node DCS, fencing, синхронной репликации, мониторинга и recovery."
+    ],
+    "evidence": [
+      "Хронология DCS outage и recovery.",
+      "Проверка ролей и доступности записи до/после.",
+      "ADR: quorum, fencing, RTO/RPO и ограничения стенда."
+    ],
+    "docs": "https://patroni.readthedocs.io/en/latest/faq.html"
+  },
+  {
+    "id": "PR-OBS-01",
+    "topic": "Prometheus / Grafana",
+    "level": "Senior",
+    "minutes": 60,
+    "title": "Blackbox monitoring и SLI доступности",
+    "profile": "observability",
+    "command": "docker compose -f practice/compose.yaml --profile observability up -d",
+    "enter": "Prometheus: http://127.0.0.1:19090 · Grafana: http://127.0.0.1:13000",
+    "tasks": [
+      "Проверь Prometheus Targets и метрики probe_success / probe_duration_seconds.",
+      "Подключи Grafana к http://prometheus:9090 и создай собственную панель доступности.",
+      "Останови учебный obs-target, сопоставь probe_success с up, восстанови target.",
+      "Предложи SLI и правило алерта с выдержкой; объясни отличие scrape failure от service failure."
+    ],
+    "evidence": [
+      "Панель Grafana и метрики до/во время/после отказа.",
+      "Различие up и probe_success на реальных данных.",
+      "Обоснованный SLI и правило алерта без выдуманного SLO."
+    ],
+    "docs": "https://prometheus.io/docs/guides/multi-target-exporter/"
   }
 ]
