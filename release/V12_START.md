@@ -18,7 +18,7 @@ python release/gate.py
 Рекомендуемый baseline: Python 3.12–3.14, Node 22. Установить Chromium для Playwright командой `python -m playwright install chromium`, локальный Docker Compose, Trivy и pip-audit отдельно. Публичные загрузки зависимостей/баз уязвимостей возможны, платные сервисы не требуются.
 
 ```bash
-python release/gate.py --full --security
+python release/gate.py --full --security --report "$HOME/academy-v12-gate.json"
 python portal.py
 ```
 
@@ -40,3 +40,5 @@ python portal.py
 ## Acceptance
 
 Пройти локальный gate, затем живые K8s/HA/Linux/IaC/CI/Ollama проверки и независимое ревью. Отдельно принять миграцию на копии данных, проверить сохранность старых черновиков. Не повышать статус компетенций без подтверждённого выполнения. См. V12_DELIVERY.md.
+
+Gate evidence: `--report` requires a clean tracked Git checkout, a known HEAD, and an unused output path outside the checkout. Report records exact commit, clean/same-commit status, Python version, each command and status, omitted checks, without captured logs or answers. Test storage is temporary even if ACADEMY_DATA_DIR is set. A missing dependency or unavailable command yields BLOCKED (125), failures yield FAIL (1). This does not certify unexecuted HA or domain-specific tests. Use a new report filename on retry. Review reports before sharing; they include local command paths.

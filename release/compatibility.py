@@ -15,4 +15,4 @@ def check():
 if __name__=="__main__":
     errors=check()
     print(json.dumps({"status":"BLOCKED" if errors else "PASS","errors":errors}))
-    sys.exit(bool(errors))
+    sys.exit(125 if errors else 0)
