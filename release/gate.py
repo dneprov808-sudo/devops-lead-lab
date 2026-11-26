@@ -6,7 +6,7 @@ def commands(full=False,live_production=False,k8s_live=False,security=False):
     cmds = [[sys.executable,"release/compatibility.py"],[sys.executable,"-m","unittest","discover","-v","-p","test_*.py"]]
     cmds += [["node",str(p.relative_to(root))] for p in sorted(root.glob("test_*.mjs"))]
     cmds += [["node","--test",str(p.relative_to(root))] for p in sorted((root/"orchestration/bus").glob("test_*.mjs"))]
-    cmds += [[sys.executable,"release/security_check.py"],["node","release/knowledge_audit.mjs"]]
+    cmds += [[sys.executable,"release/security_check.py"],["node","release/knowledge_audit.mjs"],["node","release/knowledge_v12.mjs"]]
     if full:
         cmds += [[sys.executable,"release/browser_e2e.py"]]
         for p in sorted(root.glob("*/compose.yaml")):

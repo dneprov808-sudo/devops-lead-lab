@@ -29,7 +29,7 @@ promote:
   needs: [{job: build, artifacts: true}, {job: security, artifacts: false}]
   script:
     - test -n "$REVIEWED_SHA256"
-    - python3 v12-labs/cicd/pipeline.py promote bundle release "$REVIEWED_SHA256"
+    - python3 v12-labs/cicd/pipeline.py promote bundle promoted-bundle "$REVIEWED_SHA256"
   artifacts:
-    paths: [release/]
+    paths: [promoted-bundle/]
     expire_in: 1 day
