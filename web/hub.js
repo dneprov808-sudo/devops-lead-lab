@@ -31,6 +31,7 @@ function hubFilter(rows,query,group){
 function hubCounts(rows){
   const unique=arr=>new Set(arr).size;
   return {topics:rows.length, guides:unique(rows.flatMap(x=>x.guide?[x.guide.id]:[])),
+    chapters:unique(rows.flatMap(x=>(x.guide?.chapters||[]).map(c=>c.id))),
     labs:unique(rows.flatMap(x=>x.labs.map(a=>a.id))),
     cases:unique(rows.flatMap(x=>x.cases.map(a=>a.id))),
     designs:unique(rows.flatMap(x=>x.designs.map(a=>a.id))),
@@ -56,7 +57,7 @@ function updateGrid(){
    top.append(el("span",row.mark,"hub-mark"),el("span",row.group,"hub-category"));
    c.append(top,el("h3",row.title),el("p",row.guide?.title||"Справочник недоступен","dim"));
    const meta=el("div",undefined,"hub-counts");
-   for(const [n,s] of [[row.labs.length,"практик"],[row.proQuestions.length||row.bank.reduce((a,q)=>a+q.length-1,0),"вопросов"],[row.cases.length,"кейсов"]])meta.append(el("span",n+" "+s));
+   for(const [n,s] of [[row.guide?.chapters?.length||0,"глав"],[row.labs.length,"практик"],[row.proQuestions.length||row.bank.reduce((a,q)=>a+q.length-1,0),"вопросов"],[row.cases.length,"кейсов"]])meta.append(el("span",n+" "+s));
    c.append(meta,btn("Открыть материалы →",()=>openTopic(row),"hub-open"));
    by("hub-grid").append(c);
  }
@@ -90,7 +91,7 @@ function openTopic(row){
  const lesson=k?.lesson;
  const intro=lesson?details("Проверить себя — один вопрос",(()=>{const q=lesson.quiz;const feedback=el("p","Выбери вариант ответа.","dim");feedback.setAttribute("role","status");return [el("p",q.question),...q.options.map((option,i)=>btn(option,()=>{feedback.textContent=(i===q.correct?"Верно. ":"Не совсем. ")+q.explanation;})),feedback,el("p","Это самопроверка, результат не влияет на оценку компетенции.","dim")];})()):null;
  section("theory","01 · Теория и команды",k?[
-   el("p",k.level,"dim"),el("h3",k.title),...(lesson?[el("h4","Как это работает"),el("p",lesson.intro),el("h4","Пример из работы"),el("p",lesson.example),intro]:[]),details("Подробнее: техническая теория",[el("p",k.concept)]),...(k.deep?[details("Под капотом и в production",[el("h4","Внутреннее устройство"),el("p",k.deep.internals),el("h4","Эксплуатация"),el("p",k.deep.production)])]:[]),el("h4","Диагностические команды"),el("pre",k.commands),btn("Копировать команды",()=>copy(k.commands)),el("h4","Порядок диагностики"),el("p",k.diagnosis),el("h4","Типичные ошибки"),el("p",k.pitfalls),el("h4","Вопрос уровня Lead"),el("p",k.question),link("Официальная документация ↗",k.source)
+   el("p",k.level,"dim"),el("h3",k.title),theoryChapters(k,el,btn,link,copy),...(lesson?[el("h4","Как это работает"),el("p",lesson.intro),el("h4","Пример из работы"),el("p",lesson.example),intro]:[]),details("Подробнее: техническая теория",[el("p",k.concept)]),...(k.deep?[details("Под капотом и в production",[el("h4","Внутреннее устройство"),el("p",k.deep.internals),el("h4","Эксплуатация"),el("p",k.deep.production)])]:[]),el("h4","Диагностические команды"),el("pre",k.commands),btn("Копировать команды",()=>copy(k.commands)),el("h4","Порядок диагностики"),el("p",k.diagnosis),el("h4","Типичные ошибки"),el("p",k.pitfalls),el("h4","Вопрос уровня Lead"),el("p",k.question),link("Официальная документация ↗",k.source)
  ]:[el("p","Справочник не загружен.")]);
  section("practice","02 · Практические задания ("+row.labs.length+")",row.labs.length?row.labs.map(m=>details(m.id+" · "+m.title,[
    el("p",m.level+" · "+m.minutes+" мин","dim"),el("h4","Локальный запуск (проверь Docker context)"),el("pre",m.command),btn("Копировать запуск",()=>copy(m.command)),el("pre",m.enter),el("h4","Задание"),list(m.tasks,"ol"),el("h4","Критерии результата"),list(m.evidence),link("Документация ↗",m.docs),
@@ -137,7 +138,7 @@ async function load(){
    if([...group.options].some(o=>o.value===old))group.value=old;
    updateGrid();
    const c=hubCounts(rows),missing=results.flatMap((r,i)=>r.status==="rejected"?[urls[i]]:[]);
-   by("hub-status").textContent=(missing.length?"Частичная загрузка · отсутствует "+missing.join(", ")+" · ":"Готово · ")+c.topics+" технологий · "+c.guides+" справочников · "+c.labs+" практик · "+(c.proQuestions?c.proQuestions+" вопросов Pro + "+c.questions+" legacy":c.questions+" уникальных вопросов")+" · "+c.cases+" инцидентов · "+c.designs+" архитектурных кейсов";
+   by("hub-status").textContent=(missing.length?"Частичная загрузка · отсутствует "+missing.join(", ")+" · ":"Готово · ")+c.topics+" технологий · "+c.chapters+" глав · "+c.guides+" справочников · "+c.labs+" практик · "+(c.proQuestions?c.proQuestions+" вопросов Pro + "+c.questions+" legacy":c.questions+" уникальных вопросов")+" · "+c.cases+" инцидентов · "+c.designs+" архитектурных кейсов";
    if(chosen)closeTopic();
  }catch(e){rows=[];by("hub-grid").replaceChildren();closeTopic();by("hub-status").textContent="BLOCKED: "+e.message+" Проверь /api/version и перезапусти python3 portal.py."}
  finally{if(generation===loadGeneration)by("hub-reload").disabled=false}
