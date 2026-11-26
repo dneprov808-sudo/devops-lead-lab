@@ -32,6 +32,28 @@ function restoreDrafts(storage,bank,backup){
  try{for(const [key,value] of writes){storage.setItem(key,value);done.push(key)}}catch(e){for(const k of done)storage.removeItem(k);throw e}
  return {restored:done.length,existing:entries.length-done.length};
 }
+// Reconcile only after server acknowledged the original event ID (including idempotent retry).
+function reconcilePending(storage,key,original){
+ const prefix="academy-v11-draft:", pendingKey=prefix+key;
+ if(!key.startsWith("pending:")||storage.getItem(pendingKey)!==JSON.stringify(original))return {cleared:false,draftCleared:false};
+ const target=key.slice(8),draftKey=prefix+target,raw=storage.getItem(draftKey);
+ let same=false;
+ if(raw!==null){
+  try{
+   const d=JSON.parse(raw),v=original.data;
+   if(original.kind==="attempt")same=target===v.question_id&&d===v.answer;
+   if(original.kind==="mock"&&target==="mock-active"){
+    same=d?.finished===true&&d.profile===v.profile&&V11_PROFILES[d.profile]?.minutes===v.minutes&&Number.isFinite(d.started)&&new Date(d.started).toISOString()===new Date(v.started_at).toISOString()&&Array.isArray(d.ids)&&Array.isArray(d.answers)&&Array.isArray(v.responses)&&d.ids.length===v.responses.length&&d.answers.length===v.responses.length&&v.responses.every((x,i)=>x.question_id===d.ids[i]&&x.answer===d.answers[i]);
+   }
+  }catch{}
+ }
+ // Clear the matching draft first; if interrupted, the original pending ID can still be retried.
+ if(same&&storage.getItem(draftKey)===raw)storage.removeItem(draftKey);else same=false;
+ if(storage.getItem(pendingKey)!==JSON.stringify(original))return {cleared:false,draftCleared:same};
+ storage.removeItem(pendingKey);
+ return {cleared:true,draftCleared:same};
+}
+
 if(typeof document!=="undefined"){
  const root=document.getElementById("v12-drafts");if(root){
   const add=(tag,text)=>{const e=document.createElement(tag);e.textContent=text;root.append(e);return e};
@@ -42,6 +64,6 @@ if(typeof document!=="undefined"){
   const pendingList=add("select","");pendingList.setAttribute("aria-label","Незавершённая отправка");
   function pendingOptions(){pendingList.replaceChildren();try{for(const [key,value] of Object.entries(draftBackup(localStorage,INTERVIEW_PRO_BANK).items)){if(key.startsWith("pending:")){const o=document.createElement("option");o.value=key;o.textContent=key+" · "+value.id;pendingList.append(o)}}}catch(e){status.textContent=e.message}}
   add("button","Показать незавершённые отправки").onclick=pendingOptions;
-  add("button","Повторить выбранную отправку").onclick=async()=>{try{const key=pendingList.value;if(!key)throw Error("Нет записи");const value=AcademyStudy.read(key);if(!value)throw Error("Запись отсутствует");if(!confirm("Сохранить исходную неизменённую запись локально?"))return;await AcademyStudy.request("/api/v11/event",value);AcademyStudy.remove(key);status.textContent="Сохранено · "+value.id+"; перезагрузи страницу.";pendingOptions()}catch(e){status.textContent=e.message}};
+  const retry=add("button","Повторить выбранную отправку");retry.onclick=async()=>{retry.disabled=true;try{const key=pendingList.value;if(!key)throw Error("Нет записи");const value=AcademyStudy.read(key);if(!value)throw Error("Запись отсутствует");if(!confirm("Сохранить исходную неизменённую запись локально?"))return;const result=await AcademyStudy.request("/api/v11/event",value);if(result.inserted+result.existing!==1)throw Error("Не подтверждена отправка исходного события");const done=reconcilePending(localStorage,key,value);if(!done.cleared){status.textContent="Сервер сохранил "+value.id+", но локальная запись изменилась. Не удаляю её.";pendingOptions();return}window.location.reload()}catch(e){status.textContent=e.message}finally{retry.disabled=false}};
  }
 }

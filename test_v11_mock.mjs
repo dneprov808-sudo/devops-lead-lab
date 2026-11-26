@@ -11,4 +11,7 @@ for(const [name,p] of Object.entries(profiles))for(const seed of [0,0.25,0.5,0.7
  assert.ok(valid({profile:name,ids:selected.map(q=>q.id),answers:selected.map(()=>''),started:0,index:0,finished:false},bank));
 }
 assert.throws(()=>plan('lead',[]));
+const bad=bank.filter(q=>q.topic==='Linux').slice(0,18);
+assert.ok(!valid({profile:'entry',ids:bad.map(q=>q.id),answers:bad.map(()=>''),started:0,index:0,finished:false},bank));
+assert.ok(!valid({profile:'entry',ids:bad.map(q=>q.id),answers:bad.map(()=>''),started:Date.now()+3600000,index:0,finished:false},bank));
 console.log('Structured mock quota contract PASS');
