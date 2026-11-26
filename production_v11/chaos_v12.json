@@ -1,0 +1,410 @@
+[
+  {
+    "id": "CHAOS-001",
+    "domain": "worker",
+    "symptom": "После успешной регистрации заявки остаются незавершёнными.",
+    "goal": "Доказать восстановление обработки и отсутствие потери подтверждённых ID.",
+    "evidence": [
+      "backlog",
+      "processed",
+      "DB-only ID"
+    ],
+    "execution": "local_stop",
+    "operator_target": "worker",
+    "deadline_seconds": 180
+  },
+  {
+    "id": "CHAOS-002",
+    "domain": "publisher",
+    "symptom": "Новые заявки сохраняются, но не поступают на обработку.",
+    "goal": "Восстановить доставку ранее принятых заявок.",
+    "evidence": [
+      "outbox",
+      "delivery ack",
+      "processed"
+    ],
+    "execution": "local_stop",
+    "operator_target": "publisher",
+    "deadline_seconds": 180
+  },
+  {
+    "id": "CHAOS-003",
+    "domain": "kafka",
+    "symptom": "Периодические задержки доставки событий; часть сообщений приходит с опозданием.",
+    "goal": "Подтвердить, что запись и чтение устойчивы при потере одного узла.",
+    "evidence": [
+      "ISR",
+      "quorum",
+      "acknowledged IDs"
+    ],
+    "execution": "local_stop",
+    "operator_target": "kafka",
+    "deadline_seconds": 180
+  },
+  {
+    "id": "CHAOS-004",
+    "domain": "kafka",
+    "symptom": "После обслуживания одного узла выросла задержка публикации.",
+    "goal": "Проверить репликацию и восстановление ISR.",
+    "evidence": [
+      "ISR",
+      "producer errors",
+      "backlog"
+    ],
+    "execution": "local_stop",
+    "operator_target": "kafka2",
+    "deadline_seconds": 180
+  },
+  {
+    "id": "CHAOS-005",
+    "domain": "kafka",
+    "symptom": "Часть клиентских подключений завершается ошибкой, остальные работают.",
+    "goal": "Локализовать влияние отказа узла и подтвердить восстановление.",
+    "evidence": [
+      "broker health",
+      "consumer lag"
+    ],
+    "execution": "local_stop",
+    "operator_target": "kafka3",
+    "deadline_seconds": 180
+  },
+  {
+    "id": "CHAOS-006",
+    "domain": "redis",
+    "symptom": "Чтение ранее обработанных заявок стало медленнее.",
+    "goal": "Проверить бизнес-доступность при отказе узла кеша.",
+    "evidence": [
+      "Sentinel role",
+      "DB fallback"
+    ],
+    "execution": "local_stop",
+    "operator_target": "redis",
+    "deadline_seconds": 180
+  },
+  {
+    "id": "CHAOS-007",
+    "domain": "redis",
+    "symptom": "Один из узлов кеша недоступен, приложение отвечает.",
+    "goal": "Проверить целостность результата и состояние репликации.",
+    "evidence": [
+      "role",
+      "replication",
+      "DB-only ID"
+    ],
+    "execution": "local_stop",
+    "operator_target": "redis2",
+    "deadline_seconds": 180
+  },
+  {
+    "id": "CHAOS-008",
+    "domain": "redis",
+    "symptom": "Изменение топологии кеша совпало с ростом задержки чтения.",
+    "goal": "Оценить доступность и возврат к устойчивому состоянию.",
+    "evidence": [
+      "Sentinel quorum",
+      "latency"
+    ],
+    "execution": "local_stop",
+    "operator_target": "redis3",
+    "deadline_seconds": 180
+  },
+  {
+    "id": "CHAOS-009",
+    "domain": "api",
+    "symptom": "Некоторые запросы завершаются ошибками, другие проходят.",
+    "goal": "Восстановить стабильную доступность за балансировщиком.",
+    "evidence": [
+      "HTTP outcomes",
+      "acknowledged IDs"
+    ],
+    "execution": "local_stop",
+    "operator_target": "api",
+    "deadline_seconds": 180
+  },
+  {
+    "id": "CHAOS-010",
+    "domain": "api",
+    "symptom": "Сервис обрабатывает трафик с уменьшенной ёмкостью.",
+    "goal": "Проверить влияние потери API-реплики.",
+    "evidence": [
+      "HTTP outcomes",
+      "capacity"
+    ],
+    "execution": "local_stop",
+    "operator_target": "api2",
+    "deadline_seconds": 180
+  },
+  {
+    "id": "CHAOS-011",
+    "domain": "dcs",
+    "symptom": "Часть служебных метрик кластера недоступна.",
+    "goal": "Проверить сохранение единственного writer и majority.",
+    "evidence": [
+      "DCS quorum",
+      "Patroni roles"
+    ],
+    "execution": "local_stop",
+    "operator_target": "etcd1",
+    "deadline_seconds": 180
+  },
+  {
+    "id": "CHAOS-012",
+    "domain": "dcs",
+    "symptom": "Один узел управляющего контура не отвечает.",
+    "goal": "Оценить состояние quorum и последствия для записи.",
+    "evidence": [
+      "DCS quorum",
+      "primary"
+    ],
+    "execution": "local_stop",
+    "operator_target": "etcd2",
+    "deadline_seconds": 180
+  },
+  {
+    "id": "CHAOS-013",
+    "domain": "dcs",
+    "symptom": "После обслуживания появился предупреждающий сигнал DCS.",
+    "goal": "Восстановить нормальную топологию без изменения данных.",
+    "evidence": [
+      "DCS health",
+      "roles"
+    ],
+    "execution": "local_stop",
+    "operator_target": "etcd3",
+    "deadline_seconds": 180
+  },
+  {
+    "id": "CHAOS-014",
+    "domain": "postgres",
+    "symptom": "Часть запросов к данным временно не завершается.",
+    "goal": "Определить роль недоступного узла и подтвердить сохранность данных.",
+    "evidence": [
+      "Patroni role",
+      "DB-only IDs"
+    ],
+    "execution": "local_stop",
+    "operator_target": "pg1",
+    "deadline_seconds": 180
+  },
+  {
+    "id": "CHAOS-015",
+    "domain": "postgres",
+    "symptom": "Доступность БД изменилась после отказа одного экземпляра.",
+    "goal": "Проверить promotion/rejoin и факт отсутствия двойного writer.",
+    "evidence": [
+      "timeline",
+      "role",
+      "acknowledged IDs"
+    ],
+    "execution": "local_stop",
+    "operator_target": "pg2",
+    "deadline_seconds": 180
+  },
+  {
+    "id": "CHAOS-016",
+    "domain": "load",
+    "symptom": "При росте входящего потока увеличивается время обработки.",
+    "goal": "Измерить устойчивую пропускную способность и backlog.",
+    "evidence": [
+      "RPS",
+      "errors",
+      "queue"
+    ],
+    "execution": "bounded_load",
+    "operator_target": "load",
+    "deadline_seconds": 180
+  },
+  {
+    "id": "CHAOS-017",
+    "domain": "kafka",
+    "symptom": "Один consumer обрабатывает больше событий, чем остальные.",
+    "goal": "Определить распределение нагрузки по partitions.",
+    "evidence": [
+      "partition lag",
+      "key distribution"
+    ],
+    "execution": "manual_isolated",
+    "operator_target": null,
+    "deadline_seconds": 180
+  },
+  {
+    "id": "CHAOS-018",
+    "domain": "kafka",
+    "symptom": "После повторной отправки события возникают подозрения на дубликаты.",
+    "goal": "Доказать идемпотентность результата.",
+    "evidence": [
+      "stable event ID",
+      "DB invariant"
+    ],
+    "execution": "manual_isolated",
+    "operator_target": null,
+    "deadline_seconds": 180
+  },
+  {
+    "id": "CHAOS-019",
+    "domain": "kafka",
+    "symptom": "Исторический поток прочитан не полностью.",
+    "goal": "Определить границу доступной истории и риск replay.",
+    "evidence": [
+      "earliest/latest offsets",
+      "retention"
+    ],
+    "execution": "manual_isolated",
+    "operator_target": null,
+    "deadline_seconds": 180
+  },
+  {
+    "id": "CHAOS-020",
+    "domain": "postgres",
+    "symptom": "Операции с данными ждут, CPU не загружен.",
+    "goal": "Найти blocker и безопасно снять ограничение.",
+    "evidence": [
+      "pg_blocking_pids",
+      "transaction age"
+    ],
+    "execution": "manual_isolated",
+    "operator_target": null,
+    "deadline_seconds": 180
+  },
+  {
+    "id": "CHAOS-021",
+    "domain": "postgres",
+    "symptom": "Размер WAL увеличивается при недоступности потребителя.",
+    "goal": "Проверить причину retention и восстановить запас диска.",
+    "evidence": [
+      "slot",
+      "WAL size",
+      "free bytes"
+    ],
+    "execution": "manual_isolated",
+    "operator_target": null,
+    "deadline_seconds": 180
+  },
+  {
+    "id": "CHAOS-022",
+    "domain": "postgres",
+    "symptom": "Запрос стал медленнее после роста таблицы.",
+    "goal": "Проверить план выполнения и доказать улучшение.",
+    "evidence": [
+      "EXPLAIN",
+      "actual rows",
+      "latency"
+    ],
+    "execution": "manual_isolated",
+    "operator_target": null,
+    "deadline_seconds": 180
+  },
+  {
+    "id": "CHAOS-023",
+    "domain": "postgres",
+    "symptom": "Нужно восстановить данные на выбранный момент.",
+    "goal": "Доказать восстановление в отдельном экземпляре.",
+    "evidence": [
+      "backup + WAL",
+      "restore point",
+      "data checksum"
+    ],
+    "execution": "manual_isolated",
+    "operator_target": null,
+    "deadline_seconds": 180
+  },
+  {
+    "id": "CHAOS-024",
+    "domain": "redis",
+    "symptom": "Доля промахов кеша резко выросла.",
+    "goal": "Определить причину и ограничить нагрузку на БД.",
+    "evidence": [
+      "hit rate",
+      "evictions",
+      "backend latency"
+    ],
+    "execution": "manual_isolated",
+    "operator_target": null,
+    "deadline_seconds": 180
+  },
+  {
+    "id": "CHAOS-025",
+    "domain": "network",
+    "symptom": "Часть DNS-имён перестала разрешаться внутри учебного сегмента.",
+    "goal": "Локализовать сбой резолвинга и восстановить доступ.",
+    "evidence": [
+      "DNS query",
+      "resolver",
+      "HTTP"
+    ],
+    "execution": "manual_isolated",
+    "operator_target": null,
+    "deadline_seconds": 180
+  },
+  {
+    "id": "CHAOS-026",
+    "domain": "network",
+    "symptom": "Запросы проходят, но периодически превышают deadline.",
+    "goal": "Локализовать задержку по цепочке и доказать восстановление.",
+    "evidence": [
+      "RTT",
+      "timeout",
+      "retries",
+      "SLI"
+    ],
+    "execution": "manual_isolated",
+    "operator_target": null,
+    "deadline_seconds": 180
+  },
+  {
+    "id": "CHAOS-027",
+    "domain": "kubernetes",
+    "symptom": "Новая версия не достигает готовности, старая ещё работает.",
+    "goal": "Восстановить rollout без потери доступности.",
+    "evidence": [
+      "generation",
+      "readiness",
+      "endpoints"
+    ],
+    "execution": "manual_isolated",
+    "operator_target": null,
+    "deadline_seconds": 180
+  },
+  {
+    "id": "CHAOS-028",
+    "domain": "kubernetes",
+    "symptom": "Pod запущен, но сервис недоступен по имени.",
+    "goal": "Проверить соответствие selectors и endpoints.",
+    "evidence": [
+      "EndpointSlice",
+      "DNS",
+      "HTTP"
+    ],
+    "execution": "manual_isolated",
+    "operator_target": null,
+    "deadline_seconds": 180
+  },
+  {
+    "id": "CHAOS-029",
+    "domain": "observability",
+    "symptom": "Дашборд показывает нормальное значение, свежих данных нет.",
+    "goal": "Обнаружить пропажу телеметрии и не перепутать её с нормой.",
+    "evidence": [
+      "sample age",
+      "absent",
+      "independent probe"
+    ],
+    "execution": "manual_isolated",
+    "operator_target": null,
+    "deadline_seconds": 180
+  },
+  {
+    "id": "CHAOS-030",
+    "domain": "release",
+    "symptom": "После изменения схемы часть клиентов перестала работать.",
+    "goal": "Выбрать обратимый вариант восстановления и подтвердить данные.",
+    "evidence": [
+      "compatibility",
+      "reconciliation",
+      "user SLI"
+    ],
+    "execution": "manual_isolated",
+    "operator_target": null,
+    "deadline_seconds": 180
+  }
+]
