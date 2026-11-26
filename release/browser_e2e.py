@@ -43,7 +43,7 @@ def main():
                 page.reload(wait_until="domcontentloaded")
                 page.locator('nav button[data-page="mock"]').click()
                 expect(page.get_by_label("Ответ структурированного интервью")).to_have_value("resumable synthetic answer")
-                assert page.request.get("http://127.0.0.1:8080/api/version").json()["release"].startswith("Academy v11")
+                assert page.request.get("http://127.0.0.1:8080/api/version").json()["release"].startswith("Academy v12")
                 assert page.request.post("http://127.0.0.1:8080/api/test").status==403
                 assert page.request.get("http://127.0.0.1:8080/portal.py").status==404
                 assert not errors,errors
