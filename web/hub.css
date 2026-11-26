@@ -349,3 +349,16 @@ main{max-width:1536px;padding:20px clamp(22px,3vw,48px) 36px}
 .wb-practice-evidence .check{font-size:13px;line-height:1.5}
 .wb-practice-evidence button{margin:4px 5px 4px 0}
 @media(max-width:1050px){.wb-practice-body{grid-template-columns:1fr;gap:18px}.wb-practice-evidence{border-left:0;padding:18px 0 0;border-top:1px solid var(--border)}}
+
+/* Theory reader: long-form content in the existing workspace, not a new catalog. */
+.theory-course{margin:18px 0 28px}
+.theory-course>h3{color:var(--text);font-size:19px}
+.theory-course>p{max-width:84ch;font-size:13px}
+.theory-chapter{background:var(--panel)!important;border:1px solid var(--border);padding:18px 20px;margin:10px 0;scroll-margin-top:90px}
+.theory-chapter>summary{font-size:15px;font-weight:700;color:var(--text);line-height:1.45}
+.theory-chapter[open]>summary{border-bottom:1px solid var(--border);padding-bottom:12px;color:var(--accent)}
+.theory-chapter>h4{font-size:14px;margin:20px 0 7px;color:var(--text)}
+.theory-chapter>p{max-width:85ch;font-size:14px;line-height:1.8;margin:0 0 12px}
+.theory-chapter>pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:320px}
+.theory-chapter>a{display:inline-block;margin-top:5px;font-size:13px}
+@media(max-width:800px){.theory-chapter{padding:14px}.theory-chapter>p{line-height:1.7}}

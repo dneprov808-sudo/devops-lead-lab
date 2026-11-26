@@ -16,7 +16,7 @@ async function smokeHub(js,html,bank,data){
  const fetch=async path=>({ok:path in data,status:path in data?200:404,json:async()=>data[path]});
  const window={academyOpenPractice:async id=>{calledPractice=id;return true},academyOpenIncident:async()=>true};
  const page=id=>{calledPage=id};const nextQuestion=()=>{calledTopic=ids.get("topic").value};
- new Function("document","fetch","window","BANK","page","nextQuestion","copy","alertMsg",js)(document,fetch,window,bank,page,nextQuestion,()=>{},x=>alerts.push(x));
+ new Function("document","fetch","window","BANK","page","nextQuestion","copy","alertMsg",readFileSync(new URL("./web/learning.js",import.meta.url),"utf8").split("\n(() => {")[0]+"\n"+js)(document,fetch,window,bank,page,nextQuestion,()=>{},x=>alerts.push(x));
  for(let i=0;i<20;i++)await Promise.resolve();
  const grid=ids.get("hub-grid"),body=ids.get("hub-detail-body");
  const walk=(n)=>[n,...n.children.flatMap(walk)];
@@ -24,6 +24,7 @@ async function smokeHub(js,html,bank,data){
  const checks=[["render 20 technology cards",grid.children.length===20]];
  const kafka=grid.children[0];await findButton(kafka,"Открыть материалы →").click();
  checks.push(["Kafka detail rendered",ids.get("hub-detail-title").textContent==="Kafka"&&body.children.length===5]);
+ checks.push(["all three Kafka theory chapters rendered",walk(body.children[0]).filter(n=>n.className==="theory-chapter").length===3&&walk(body.children[0]).some(n=>n.textContent.includes("transactional outbox"))]);
  checks.push(["catalog hidden, theory visible",ids.get("hub-catalog").hidden===true&&body.children[0].hidden===false&&body.children.slice(1).every(n=>n.hidden)]);
  await ids.get("hub-detail-nav").children[1].click();
  checks.push(["practice tab isolated",body.children[1].hidden===false&&body.children.filter(n=>!n.hidden).length===1]);
