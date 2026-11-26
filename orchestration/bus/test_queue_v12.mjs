@@ -1,0 +1,10 @@
+import assert from "node:assert/strict";
+import {planQueue} from "./queue_v12.mjs";
+const snapshot={control_ref:"academy/orchestration-v1",control_commit:"a".repeat(40),state_blob:"b".repeat(40),revision:1,task_id:"LAB-001",task_status:"assigned"};
+const result={status:"READY",writes:0,revision:1,state_blob:snapshot.state_blob,journal:[],proposals:[]};
+assert.equal(planQueue(snapshot,result).queue[0].role,"student");
+assert.equal(planQueue(snapshot,{...result,revision:2}).status,"BLOCKED");
+assert.equal(planQueue(snapshot,{...result,journal:[{status:"collision",handoff_id:"x"}]}).queue[0].role,"orchestrator");
+assert.equal(planQueue(snapshot,{...result,proposals:[{handoff_id:"x"},{handoff_id:"y"}]}).status,"BLOCKED");
+assert.equal(planQueue({...snapshot,task_status:"awaiting_exam"},result).queue[0].role,"knowledge_examiner");
+assert.equal(planQueue(snapshot,{...result,writes:1}).status,"BLOCKED");

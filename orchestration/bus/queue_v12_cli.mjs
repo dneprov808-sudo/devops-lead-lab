@@ -1,0 +1,11 @@
+import {readFileSync,writeFileSync,statSync} from "node:fs";
+import {planConsumer} from "./consumer.mjs";
+import {planQueue} from "./queue_v12.mjs";
+if(process.argv.length!==4)throw Error("Usage: node queue_v12_cli.mjs INPUT.json OUTPUT.json");
+if(statSync(process.argv[2]).size>4*1024*1024)throw Error("Input too large");
+const input=JSON.parse(readFileSync(process.argv[2],"utf8"));
+const consumer=planConsumer(input.issues,input.snapshot,input.verified,input.options);
+const result=planQueue(input.snapshot,consumer);
+writeFileSync(process.argv[3],JSON.stringify({schema_version:1,created_at:new Date().toISOString(),...result},null,2)+"\n",{flag:"wx",mode:0o600});
+console.log(result.status);
+if(result.status==="BLOCKED")process.exitCode=2;
