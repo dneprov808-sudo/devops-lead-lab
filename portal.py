@@ -16,6 +16,9 @@ import uuid
 import practice_results
 import practice_history
 import learning_store
+import academy_metrics
+import logging
+import time
 import sqlite3
 from production.status import read_status
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -202,6 +205,12 @@ def allowed(headers, port=PORT, mutate=False):
     return not mutate or (origin is not None and hmac.compare_digest(headers.get("X-Academy-CSRF", ""), KEY))
 
 class Handler(BaseHTTPRequestHandler):
+    def log_message(self, *args):
+        pass
+    def route_label(self):
+        route=self.path
+        known={"/api/v11/health","/api/v11/metrics","/api/v11/export","/api/v11/summary","/api/v11/event","/api/v11/import","/api/test","/api/practice-save","/api/practice-history","/api/state","/api/handoffs","/api/version","/api/session","/api/hub","/api/knowledge","/api/practice-catalog","/api/design","/api/incidents","/api/production/status"}
+        return route if route in known else "static" if route in STATIC else "other"
     def send_data(self, status, kind, data):
         self.send_response(status)
         self.send_header("Content-Type", kind)
@@ -211,16 +220,22 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("Content-Security-Policy", "default-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'")
         self.end_headers()
+        academy_metrics.observe(self.route_label(),status,time.monotonic()-getattr(self,"_started",time.monotonic()))
         self.wfile.write(data)
     def reply(self, data, status=200):
         self.send_data(status, "application/json; charset=utf-8", json.dumps(data, ensure_ascii=False).encode())
     def do_GET(self):
+        self._started=time.monotonic()
         if not allowed(self.headers):
             return self.reply({"error": "Forbidden"}, 403)
         try:
             if self.path in STATIC:
                 name, kind = STATIC[self.path]
                 return self.send_data(200, kind, (WEB / name).read_bytes())
+            if self.path == "/api/v11/health":
+                return self.reply({"status":"ok","storage":learning_store.Store().health(),"remote":"not_checked"})
+            if self.path == "/api/v11/metrics":
+                return self.send_data(200,"text/plain; version=0.0.4; charset=utf-8",academy_metrics.metrics().encode())
             if self.path == "/api/v11/export":
                 return self.reply(learning_store.Store().export())
             if self.path == "/api/v11/summary":
@@ -252,6 +267,7 @@ class Handler(BaseHTTPRequestHandler):
         except (OSError, ValueError, KeyError, TypeError, AttributeError, yaml.YAMLError, sqlite3.Error):
             return self.reply({"status": "blocked", "error": "Read failed; check Git/gh access and canonical data."}, 503)
     def do_POST(self):
+        self._started=time.monotonic()
         if not allowed(self.headers, mutate=True):
             return self.reply({"error": "Forbidden"}, 403)
         if self.path in ("/api/v11/event", "/api/v11/import"):
@@ -298,6 +314,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply({"status": "blocked", "error": "Local tests blocked: verify fixtures, dependencies or active run."}, 409)
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO,format="%(message)s")
     with ThreadingHTTPServer((HOST, PORT), Handler) as server:
         print(f"Academy: http://{HOST}:{PORT} (Ctrl-C to stop)", flush=True)
         try:

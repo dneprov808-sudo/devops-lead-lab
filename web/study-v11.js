@@ -16,7 +16,9 @@ const AcademyStudy=(()=>{
  }
  function record(kind,data){return {id:crypto.randomUUID(),created_at:new Date().toISOString(),kind,data}}
  async function save(key,kind,data){
-  const pending=read("pending:"+key)||record(kind,data);
+  const existing=read("pending:"+key);
+  if(existing&&(existing.kind!==kind||JSON.stringify(existing.data)!==JSON.stringify(data)))throw Error("Предыдущая отправка не подтверждена; восстанови прежний payload");
+  const pending=existing||record(kind,data);
   if(!write("pending:"+key,pending))throw Error("Cannot preserve retry ID");
   const result=await request("/api/v11/event",pending);
   remove("pending:"+key);return {result,id:pending.id};
@@ -59,6 +61,13 @@ if(typeof document!=="undefined"){
     const plan=studyPlan(INTERVIEW_PRO_BANK,d.self_reviews,today,Number(minutes.value));
     add("h3","План на сегодня: "+plan.length+" вопросов",panel);
     for(const q of plan)button(panel,q.id+" · "+q.topic,()=>window.academyOpenPro([q.id]));
+    add("h3","Матрица локальных доказательств",panel);
+    for(const topic of [...new Set(INTERVIEW_PRO_BANK.map(q=>q.topic))]){
+      const t=d.by_topic[topic]||{attempts:0,questions:0,proposals:0};
+      add("p",topic+" · попыток "+t.attempts+" · уникальных "+t.questions+" · предложений ревью "+t.proposals+" · канонический балл не выводится",panel);
+    }
+    add("h3","Предложения оценки (не подтверждены)",panel);
+    for(const row of d.proposals)add("p",row.question_id+" · "+row.score+" / 4 · "+row.reviewer,panel);
     add("h3","Журнал ошибок",panel);
     for(const row of d.errors)button(panel,row.question_id+" · "+row.error,()=>window.academyOpenPro([row.question_id]));
     if(!d.errors.length)add("p","Нет зафиксированных ошибок.",panel);

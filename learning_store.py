@@ -7,6 +7,7 @@ from pathlib import Path
 import re
 import sqlite3
 import uuid
+from urllib.parse import urlsplit
 
 ROOT=Path(__file__).resolve().parent
 SCHEMA=1
@@ -86,6 +87,29 @@ def validate(record, ids):
         string(data["reviewer"],200); string(data["evidence"],6000); string(data["error"],3000,False)
         if data["commit"] is not None and (not isinstance(data["commit"],str) or not SHA.fullmatch(data["commit"])):
             raise ValueError("Invalid commit")
+    elif kind=="design":
+        if set(data)!={"title","rps","per_replica","util_percent","zones","db_gb","restore_mbps","decision","alternatives","verification"}: raise ValueError("Design fields")
+        for k in ("title","decision","alternatives","verification"): string(data[k],6000)
+        for k,low,high in (("rps",1,10**9),("per_replica",1,10**7),("util_percent",1,100),("zones",2,20),("db_gb",1,10**7),("restore_mbps",1,10**6)):
+            if type(data[k]) is not int or not low<=data[k]<=high: raise ValueError("Design number")
+    elif kind=="vacancy":
+        if set(data)!={"title","company","source","observed","salary_min","salary_max","basis","topics"}: raise ValueError("Vacancy fields")
+        string(data["title"],200); string(data["company"],200); string(data["source"],2048)
+        u=urlsplit(data["source"])
+        if u.scheme!="https" or not u.hostname or u.username or u.password: raise ValueError("Source URL")
+        day=dt.date.fromisoformat(data["observed"])
+        if day.isoformat()!=data["observed"] or day>dt.date.today(): raise ValueError("Vacancy date")
+        for k in ("salary_min","salary_max"):
+            if data[k] is not None and (type(data[k]) is not int or not 0<data[k]<=100000000): raise ValueError("Salary in RUB/month")
+        if data["salary_min"] is not None and data["salary_max"] is not None and data["salary_min"]>data["salary_max"]: raise ValueError("Salary range")
+        if data["basis"] not in ("gross","net","unknown"): raise ValueError("Salary basis")
+        topics={q.get("topic") for q in ids.values()}
+        if not isinstance(data["topics"],list) or not data["topics"] or not all(isinstance(t,str) and t in topics for t in data["topics"]) or len(set(data["topics"]))!=len(data["topics"]): raise ValueError("Vacancy topics")
+    elif kind=="portfolio":
+        if set(data)!={"title","topic","impact","evidence","commit"}: raise ValueError("Portfolio fields")
+        for k in ("title","impact","evidence"): string(data[k],6000)
+        if data["topic"] not in {q.get("topic") for q in ids.values()}: raise ValueError("Unknown topic")
+        if data["commit"] is not None and (not isinstance(data["commit"],str) or not SHA.fullmatch(data["commit"])): raise ValueError("Invalid SHA")
     else: raise ValueError("Unknown event kind")
     return {"id":ident,"kind":kind,"created_at":created,"data":data}
 
@@ -154,17 +178,28 @@ class Store:
 
     def summary(self):
         events=self.export()["events"]
-        latest={}; errors=[]; proposals=0; mocks=0
+        latest={}; errors=[]; proposals=0; mocks=0; by_topic={}; reviews=[]
         for e in events:
             d=e["data"]
             if e["kind"]=="attempt":
+                topic=self.bank[d["question_id"]].get("topic","unknown")
+                item=by_topic.setdefault(topic,{"attempts":0,"questions":set(),"proposals":0})
+                item["attempts"]+=1; item["questions"].add(d["question_id"])
                 if d["score"] is not None:
                     day=dt.datetime.fromisoformat(e["created_at"]).astimezone(dt.timezone(dt.timedelta(hours=3))).date()
                     latest[d["question_id"]]={"question_id":d["question_id"],"score":d["score"],"due":(day+dt.timedelta(days=INTERVALS[d["score"]])).isoformat(),"verification":"self_reported"}
                 if d["error"]: errors.append({"id":e["id"],"question_id":d["question_id"],"error":d["error"]})
-            elif e["kind"]=="review_proposal": proposals+=1
+            elif e["kind"]=="review_proposal":
+                proposals+=1
+                topic=self.bank[d["question_id"]].get("topic","unknown")
+                by_topic.setdefault(topic,{"attempts":0,"questions":set(),"proposals":0})["proposals"]+=1
+                reviews.append({"id":e["id"],"question_id":d["question_id"],"score":d["score"],"reviewer":d["reviewer"],"status":"unverified_proposal"})
             elif e["kind"]=="mock": mocks+=1
-        return {"events":len(events),"self_reviews":list(latest.values()),"errors":errors[-100:],"review_proposals":proposals,"mock_sessions":mocks,"canonical_grade":"unchanged"}
+        return {"events":len(events),"self_reviews":list(latest.values()),"errors":errors[-100:],"review_proposals":proposals,"mock_sessions":mocks,"canonical_grade":"unchanged","by_topic":{k:{**v,"questions":len(v["questions"])} for k,v in by_topic.items()},"proposals":reviews[-100:]}
+
+    def health(self):
+        with self.connect() as con:
+            return {"status":"ok","schema_version":con.execute("PRAGMA user_version").fetchone()[0]}
 
     def backup(self,destination):
         destination=Path(destination)
