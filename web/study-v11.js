@@ -56,7 +56,7 @@ if(typeof document!=="undefined"){
    try{
     const d=await AcademyStudy.request("/api/v11/summary");const assessment=await AcademyStudy.request("/api/v12/assessment");panel.replaceChildren();
     add("h3","Локальный прогресс",panel);
-    add("p",d.events+" записей · "+d.mock_sessions+" mock · "+d.review_proposals+" предложений оценки. Канонический grade не меняется.",panel);
+    add("p",d.events+" записей · "+d.legacy_results+" прежних результатов · "+d.mock_sessions+" mock · "+d.review_proposals+" предложений оценки. Канонический grade не меняется.",panel);
     const today=new Intl.DateTimeFormat("sv-SE",{timeZone:"Europe/Moscow",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
     const reviewed=new Map(d.self_reviews.map(x=>[x.question_id,x]));for(const x of assessment.reviewed_questions)reviewed.set(x.question_id,x);
     const plan=studyPlan(INTERVIEW_PRO_BANK,[...reviewed.values()],today,Number(minutes.value));

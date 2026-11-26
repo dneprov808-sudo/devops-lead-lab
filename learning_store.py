@@ -111,6 +111,10 @@ def validate(record, ids):
         for k in ("title","impact","evidence"): string(data[k],6000)
         if data["topic"] not in {q.get("topic") for q in ids.values()}: raise ValueError("Unknown topic")
         if data["commit"] is not None and (not isinstance(data["commit"],str) or not SHA.fullmatch(data["commit"])): raise ValueError("Invalid SHA")
+    elif kind=="legacy_result":
+        from migration_v12 import validate_legacy
+        original=validate_legacy(data)
+        if original["attempt"]!=ident: raise ValueError("Legacy ID mismatch")
     else: raise ValueError("Unknown event kind")
     return {"id":ident,"kind":kind,"created_at":created,"data":data}
 
@@ -185,7 +189,7 @@ class Store:
 
     def summary(self):
         events=self.export()["events"]
-        latest={}; errors=[]; proposals=0; mocks=0; by_topic={}; reviews=[]
+        latest={}; errors=[]; proposals=0; mocks=0; by_topic={}; reviews=[]; legacy=[]
         for e in events:
             d=e["data"]
             if e["kind"]=="attempt":
@@ -202,7 +206,8 @@ class Store:
                 by_topic.setdefault(topic,{"attempts":0,"questions":set(),"proposals":0})["proposals"]+=1
                 reviews.append({"id":e["id"],"question_id":d["question_id"],"score":d["score"],"reviewer":d["reviewer"],"status":"unverified_proposal"})
             elif e["kind"]=="mock": mocks+=1
-        return {"events":len(events),"self_reviews":list(latest.values()),"errors":errors[-100:],"review_proposals":proposals,"mock_sessions":mocks,"canonical_grade":"unchanged","by_topic":{k:{**v,"questions":len(v["questions"])} for k,v in by_topic.items()},"proposals":reviews[-100:]}
+            elif e["kind"]=="legacy_result": legacy.append(d["record"])
+        return {"events":len(events),"self_reviews":list(latest.values()),"errors":errors[-100:],"review_proposals":proposals,"mock_sessions":mocks,"canonical_grade":"unchanged","legacy_results":len(legacy),"by_topic":{k:{**v,"questions":len(v["questions"])} for k,v in by_topic.items()},"proposals":reviews[-100:]}
 
     def health(self):
         with self.connect() as con:
