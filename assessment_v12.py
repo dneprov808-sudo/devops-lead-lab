@@ -20,7 +20,7 @@ def event(con, ident):
     if not row: raise ValueError("Unknown event")
     return json.loads(row[0])
 
-def binding(con, proposal_id):
+def binding(con, proposal_id, *, enforce_score=True):
     p=event(con,proposal_id)
     if p["kind"]!="review_proposal": raise ValueError("Expected review proposal")
     a=event(con,p["data"]["attempt_id"])
@@ -32,18 +32,21 @@ def binding(con, proposal_id):
         if len(answers)!=1: raise ValueError("Review question mismatch")
         answer=answers[0]
     else: raise ValueError("Review attempt mismatch")
-    if not answer.strip() and p["data"]["score"]!=0: raise ValueError("Blank response can only receive zero")
+    if enforce_score and not answer.strip() and p["data"]["score"]!=0: raise ValueError("Blank response can only receive zero")
     return p,a,digest({"proposal":p,"attempt":a})
+
+def validate_operator(operator, review_ref):
+    string(operator,200);string(review_ref,2000)
+    if operator.strip().lower() in ("student","ollama","ai","self","llm"):
+        raise ValueError("Independent human reviewer required")
 
 def decide(store, proposal_id, expected_hash, decision, operator, review_ref):
     """Local trusted operator action, NOT cryptographic identity or canonical approval."""
     if decision not in ("accept","reject"): raise ValueError("Invalid decision")
-    string(operator,200);string(review_ref,2000)
-    if operator.strip().lower() in ("student","ollama","ai","self","llm"):
-        raise ValueError("Independent human reviewer required")
+    validate_operator(operator,review_ref)
     with store.connect() as con:
         table(con)
-        p,a,actual=binding(con,proposal_id)
+        p,a,actual=binding(con,proposal_id,enforce_score=decision=="accept")
         if actual!=expected_hash: raise ValueError("Stale review binding")
         existing=con.execute("SELECT payload FROM review_decisions WHERE proposal_id=?",(proposal_id,)).fetchone()
         record={"proposal_id":proposal_id,"binding_sha256":actual,"decision":decision,"operator":operator,"review_ref":review_ref}
@@ -100,7 +103,7 @@ def main():
     args=p.parse_args();store=Store()
     if args.action=="inspect":
         with store.connect() as con:
-            proposal,attempt,sha=binding(con,args.proposal)
+            proposal,attempt,sha=binding(con,args.proposal,enforce_score=False)
             out={"proposal":proposal,"attempt":attempt,"binding_sha256":sha,"rubric":RUBRIC}
     elif args.action=="decide": out=decide(store,args.proposal,args.sha256,args.decision,args.operator,args.review_ref)
     else: out=report(store)
