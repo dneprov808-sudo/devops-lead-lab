@@ -1,10 +1,22 @@
-function hubJoin(manifest,knowledge,practice,incidents,design,bank){
+// Canonical question IDs; legacy bank remains a separate compatibility view.
+function hubProQuestions(id,bank){
+ const topics={kafka:["Kafka"],postgres:["PostgreSQL & Patroni"],patroni:["PostgreSQL & Patroni"],redis:["Redis"],k8s:["Kubernetes","Helm"],docker:["Docker"],terraform:["Terraform"],ansible:["Ansible"],cicd:["CI/CD & GitOps"],git:["CI/CD & GitOps"],linux:["Linux"],net:["Networking"],prom:["Observability"],logs:["Observability"],sre:["SRE & Incident Management"],dr:["System Design & Platform Engineering"],security:["DevSecOps"],lead:["Leadership","System Design & Platform Engineering"]};
+ return bank.filter(q=>{
+  if(!(topics[id]||[]).includes(q.topic))return false;
+  if(id==="postgres")return q.section!=="patroni";
+  if(id==="patroni")return q.section==="patroni";
+  if(id==="logs")return q.section==="telemetry";
+  return true;
+ });
+}
+function hubJoin(manifest,knowledge,practice,incidents,design,bank,proBank=[]){
   return manifest.map(m=>({
     ...m,guide:knowledge.find(k=>k.id===m.id)||null,
     labs:practice.filter(p=>m.profiles.includes(p.profile)),
     cases:incidents.filter(i=>i.topic===m.id),
     designs:design.filter(d=>m.designs.includes(d.id)),
-    bank:bank.filter(q=>m.questions.includes(q[0]))
+    bank:bank.filter(q=>m.questions.includes(q[0])),
+    proQuestions:hubProQuestions(m.id,proBank)
   }));
 }
 function hubFilter(rows,query,group){
@@ -12,7 +24,7 @@ function hubFilter(rows,query,group){
   return rows.filter(row=>{
     if(group&&row.group!==group)return false;
     // Search questions and symptoms, not hidden answers.
-    const hay=JSON.stringify([row.title,row.group,row.aliases,row.guide,row.labs,row.cases.map(x=>[x.title,x.symptoms]),row.designs,row.bank.map(q=>[q[0],...q.slice(1).map(x=>x[0])])]).toLocaleLowerCase("ru-RU");
+    const hay=JSON.stringify([row.title,row.group,row.aliases,row.guide,row.labs,row.cases.map(x=>[x.title,x.symptoms]),row.designs,row.bank.map(q=>[q[0],...q.slice(1).map(x=>x[0])]),row.proQuestions.map(q=>[q.id,q.question,q.section])]).toLocaleLowerCase("ru-RU");
     return words.every(w=>hay.includes(w));
   });
 }
@@ -22,7 +34,7 @@ function hubCounts(rows){
     labs:unique(rows.flatMap(x=>x.labs.map(a=>a.id))),
     cases:unique(rows.flatMap(x=>x.cases.map(a=>a.id))),
     designs:unique(rows.flatMap(x=>x.designs.map(a=>a.id))),
-    questions:unique(rows.flatMap(x=>x.bank.flatMap(q=>q.slice(1).map((_,i)=>q[0]+":"+i))))};
+    questions:unique(rows.flatMap(x=>x.bank.flatMap(q=>q.slice(1).map((_,i)=>q[0]+":"+i)))),proQuestions:unique(rows.flatMap(x=>x.proQuestions.map(q=>q.id)))};
 }
 (() => {
 "use strict";
@@ -44,7 +56,7 @@ function updateGrid(){
    top.append(el("span",row.mark,"hub-mark"),el("span",row.group,"hub-category"));
    c.append(top,el("h3",row.title),el("p",row.guide?.title||"Справочник недоступен","dim"));
    const meta=el("div",undefined,"hub-counts");
-   for(const [n,s] of [[row.labs.length,"практик"],[row.bank.reduce((a,q)=>a+q.length-1,0),"вопросов"],[row.cases.length,"кейсов"]])meta.append(el("span",n+" "+s));
+   for(const [n,s] of [[row.labs.length,"практик"],[row.proQuestions.length||row.bank.reduce((a,q)=>a+q.length-1,0),"вопросов"],[row.cases.length,"кейсов"]])meta.append(el("span",n+" "+s));
    c.append(meta,btn("Открыть материалы →",()=>openTopic(row),"hub-open"));
    by("hub-grid").append(c);
  }
@@ -68,7 +80,7 @@ function openTopic(row){
    el("p",m.level+" · "+m.minutes+" мин","dim"),el("h4","Локальный запуск (проверь Docker context)"),el("pre",m.command),btn("Копировать запуск",()=>copy(m.command)),el("pre",m.enter),el("h4","Задание"),list(m.tasks,"ol"),el("h4","Критерии результата"),list(m.evidence),link("Документация ↗",m.docs),
    btn("Выполнить и сохранить результат",async()=>{if(!window.academyOpenPractice||!await window.academyOpenPractice(m.id))alertMsg("Практика недоступна или выполняется сохранение. Повтори после загрузки.")},"hub-open")
  ])):[el("p","Отдельного задания на готовом Docker-стенде пока нет. Используй теорию, вопросы и архитектурные упражнения; для Linux/HTTP доступна основная LAB-001.","dim")]);
- section("interview","03 · Собеседования",row.bank.length?row.bank.flatMap(q=>[
+ section("interview","03 · Собеседования",row.proQuestions.length?[el("p",row.proQuestions.length+" вопросов Interview Pro; старый тренажёр сохранён отдельно."),btn("Открыть Interview Pro по технологии",()=>window.academyOpenPro(row.proQuestions.map(q=>q.id)),"hub-open"),...row.proQuestions.slice(0,5).map(q=>btn(q.id+" · "+q.question,()=>window.academyOpenPro([q.id])))]:row.bank.length?row.bank.flatMap(q=>[
    btn("Запустить тренажёр: "+q[0],()=>{by("topic").value=q[0];nextQuestion();page("interview")},"hub-open"),
    ...q.slice(1).map(([question,rubric],i)=>{
      const a=el("textarea");a.rows=3;a.placeholder="Сформулируй ответ самостоятельно (не сохраняется)";a.setAttribute("aria-label","Ответ на вопрос "+(i+1));
@@ -101,14 +113,14 @@ async function load(){
    if(generation!==loadGeneration)return;
    if(results[0].status!=="fulfilled")throw Error("Не удалось загрузить карту технологий (/api/hub). Проверь версию сервера.");
    const data=results.map(r=>r.status==="fulfilled"?r.value:[]);
-   rows=hubJoin(...data,typeof BANK==="undefined"?[]:BANK);
+   rows=hubJoin(...data,typeof BANK==="undefined"?[]:BANK,typeof INTERVIEW_PRO_BANK==="undefined"?[]:INTERVIEW_PRO_BANK);
    const group=by("hub-group"),old=group.value;
    const option=(name,value)=>{const n=el("option",name);n.value=value;return n};
    group.replaceChildren(option("Все направления",""),...[...new Set(rows.map(x=>x.group))].map(x=>option(x,x)));
    if([...group.options].some(o=>o.value===old))group.value=old;
    updateGrid();
    const c=hubCounts(rows),missing=results.flatMap((r,i)=>r.status==="rejected"?[urls[i]]:[]);
-   by("hub-status").textContent=(missing.length?"Частичная загрузка · отсутствует "+missing.join(", ")+" · ":"Готово · ")+c.topics+" технологий · "+c.guides+" справочников · "+c.labs+" практик · "+c.questions+" уникальных вопросов · "+c.cases+" инцидентов · "+c.designs+" архитектурных кейсов";
+   by("hub-status").textContent=(missing.length?"Частичная загрузка · отсутствует "+missing.join(", ")+" · ":"Готово · ")+c.topics+" технологий · "+c.guides+" справочников · "+c.labs+" практик · "+(c.proQuestions?c.proQuestions+" вопросов Pro + "+c.questions+" legacy":c.questions+" уникальных вопросов")+" · "+c.cases+" инцидентов · "+c.designs+" архитектурных кейсов";
    if(chosen){const next=rows.find(x=>x.id===chosen.id);if(next){chosen=next;by("hub-detail").hidden=true;chosen=null;}}
  }catch(e){rows=[];by("hub-grid").replaceChildren();by("hub-detail").hidden=true;chosen=null;by("hub-status").textContent="BLOCKED: "+e.message+" Проверь /api/version и перезапусти python3 portal.py."}
  finally{if(generation===loadGeneration)by("hub-reload").disabled=false}

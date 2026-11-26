@@ -38,7 +38,7 @@ if(typeof document!=="undefined"){
  const lab=add("label","Поиск ",filters),search=add("input","",lab);search.type="search";search.placeholder="Термин или ID";
  const status=add("p","");status.setAttribute("role","status");
  const panel=add("article","");
- let filtered=bank,index=0;
+ let filtered=bank,index=0,scope=null;
  const render=()=>{
   panel.replaceChildren();
   if(!filtered.length){status.textContent="Нет совпадений";return;}
@@ -48,12 +48,14 @@ if(typeof document!=="undefined"){
   add("p","Уточнения: "+q.follow_up,panel);
   if(q.source_prompts?.length){const details=add("details","",panel);add("summary","Формулировки из Kubernetes k8s.md ("+q.source_prompts.length+")",details);const list=add("ul","",details);for(const p of q.source_prompts)add("li","#"+p.number+" · "+p.question,list);add("p","Вопросы о личном опыте: рассказывай только о выполненных тобой работах и лабораториях, не выдавай теорию за production-опыт.",details);}
   const input=add("textarea","",panel);input.rows=5;input.setAttribute("aria-label","Самостоятельный ответ");
+  if(typeof AcademyStudy!=="undefined"){input.value=AcademyStudy.read(q.id)||"";input.oninput=()=>{if(!AcademyStudy.write(q.id,input.value))notice.textContent="Черновик не сохранён: storage unavailable.";};}
   const notice=add("p","",panel);
   const reveal=add("button","Показать разбор",panel);
-  reveal.onclick=()=>{if(!input.value.trim()){notice.textContent="Сначала сформулируй свой ответ.";return;}notice.textContent="Сравни свой ответ с разбором, не оценивай только по совпадению слов.";reveal.disabled=true;add("h3","Подробный ответ",panel);add("p",q.answer,panel);add("h3","Практическая проверка",panel);add("p",q.practice,panel);add("h3","Критерии и ошибки",panel);add("p",q.rubric,panel);const a=add("a","Официальная документация",panel);a.href=q.source;a.target="_blank";a.rel="noopener noreferrer";};
+  reveal.onclick=()=>{if(!input.value.trim()){notice.textContent="Сначала сформулируй свой ответ.";return;}notice.textContent="Сравни свой ответ с разбором, не оценивай только по совпадению слов.";reveal.disabled=true;add("h3","Подробный ответ",panel);add("p",q.answer,panel);add("h3","Практическая проверка",panel);add("p",q.practice,panel);add("h3","Критерии и ошибки",panel);add("p",q.rubric,panel);const a=add("a","Официальная документация",panel);a.href=q.source;a.target="_blank";a.rel="noopener noreferrer";if(typeof AcademyStudy!=="undefined"){const grade=add("select","",panel);grade.setAttribute("aria-label","Самооценка");for(const n of ["",0,1,2,3,4]){const o=add("option",n===""?"Не оценено":String(n),grade);o.value=String(n)}const error=add("input","",panel);error.placeholder="Что не получилось";error.setAttribute("aria-label","Ошибка");const save=add("button","Сохранить попытку локально",panel);save.onclick=async()=>{save.disabled=true;try{const x=await AcademyStudy.save(q.id,"attempt",{question_id:q.id,answer:input.value,score:grade.value===""?null:Number(grade.value),error:error.value});notice.textContent="Сохранено · "+x.id+" · самооценка.";AcademyStudy.remove(q.id);}catch(e){notice.textContent="BLOCKED: "+e.message+"; повтори сохранение той же попытки.";save.disabled=false}}}};
   const nav=add("div","",panel);const prev=add("button","Назад",nav),next=add("button","Далее",nav);prev.disabled=index===0;next.disabled=index===filtered.length-1;prev.onclick=()=>{index--;render();};next.onclick=()=>{index++;render();};
  };
- const update=()=>{filtered=proFilter(bank,{topic:topic.value,section:section.value,level:level.value,query:search.value});index=0;render();};
+ const update=()=>{scope=null;filtered=proFilter(bank,{topic:topic.value,section:section.value,level:level.value,query:search.value});index=0;render();};
+ window.academyOpenPro=ids=>{scope=new Set(ids);topic.value="";section.value="";level.value="";search.value="";filtered=bank.filter(q=>scope.has(q.id));index=0;render();page("interview-pro");};
  for(const s of [topic,section,level])s.onchange=update;search.oninput=update;render();
  }
  }
