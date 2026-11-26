@@ -1,0 +1,2 @@
+# v9 first increment
+Base 1aef872cc72fc6c0f5a0aa3b897dd8d5a4566259. Continue existing ACADEMY-017, not duplicate issue. New supplementary K8S-ACC-01 and TF-ACC-01. Canonical LAB-001 and STATE unchanged. Pending: 700 curated questions, interview sessions, Helm/Argo CD, CI/CD/Ansible, production integration, cloud/security, assessment, design, leadership, career, accelerated route, full regression and backup restore. No release claim until runtime evidence. No paid services or merge.
