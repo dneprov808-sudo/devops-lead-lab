@@ -3,18 +3,25 @@ function proNormalize(s){return s.toLowerCase().replace(/[^\p{L}\p{N}]/gu,"");}
 function proValidate(bank){
  const fields=["id","topic","section","level","question","answer","follow_up","practice","rubric","source"];
  if(!Array.isArray(bank)||!bank.length)return false;
- const ids=new Set(),questions=new Set();
+ const ids=new Set(),questions=new Set(),sourceNumbers=new Set();
  for(const q of bank){
   if(!q||typeof q!=="object"||!fields.every(k=>typeof q[k]==="string"&&q[k].trim())||! /^[A-Z][A-Z0-9-]*-\d{3,}$/.test(q.id)||!["middle","senior","lead"].includes(q.level)||!q.source.startsWith("https://"))return false;
   const key=proNormalize(q.question);
   if(!key||ids.has(q.id)||questions.has(key))return false;
+  if(Object.hasOwn(q,"source_prompts")){
+   if(!Array.isArray(q.source_prompts)||!q.source_prompts.length)return false;
+   for(const item of q.source_prompts){
+    if(!item||!Number.isInteger(item.number)||item.number<1||sourceNumbers.has(item.number)||typeof item.question!=="string"||!item.question.trim())return false;
+    sourceNumbers.add(item.number);
+   }
+  }
   ids.add(q.id);questions.add(key);
  }
  return true;
 }
 function proFilter(bank,{topic="",section="",level="",query=""}={}){
  const terms=query.toLowerCase().trim().split(/\s+/).filter(Boolean);
- return bank.filter(q=>(!topic||q.topic===topic)&&(!section||q.section===section)&&(!level||q.level===level)&&terms.every(t=>[q.id,q.topic,q.section,q.question,q.follow_up].join(" ").toLowerCase().includes(t)));
+ return bank.filter(q=>(!topic||q.topic===topic)&&(!section||q.section===section)&&(!level||q.level===level)&&terms.every(t=>[q.id,q.topic,q.section,q.question,q.follow_up,...(q.source_prompts||[]).map(p=>p.question+" источник "+p.number)].join(" ").toLowerCase().includes(t)));
 }
 function proMockPool(bank){return bank.map(q=>[q.topic,q.question,q.follow_up,q.rubric,q.id]);}
 if(typeof document!=="undefined"){
@@ -24,7 +31,7 @@ if(typeof document!=="undefined"){
  if(!proValidate(INTERVIEW_PRO_BANK)){add("p","Ошибка формата банка. Модуль недоступен.");}
  else{
  const bank=INTERVIEW_PRO_BANK;
- add("p",bank.length+" / 700 новых вопросов. Старый банк сохранён. Ответы для обучения, не подтверждение компетенций.");
+ add("p",bank.length+" / 738 вопросов (700 по исходному плану + 38 дополнительных). Исходные формулировки не считаются отдельными вопросами. Старый банк сохранён.");
  const filters=add("div","");
  function select(label,values){const lab=add("label",label+" ",filters);const s=add("select","",lab);for(const v of ["",...new Set(values)]){const o=add("option",v||"Все",s);o.value=v;}return s;}
  const topic=select("Технология",bank.map(q=>q.topic)),section=select("Раздел",bank.map(q=>q.section)),level=select("Уровень",["middle","senior","lead"]);
@@ -39,6 +46,7 @@ if(typeof document!=="undefined"){
   status.textContent=(index+1)+" / "+filtered.length+" · "+q.id+" · "+q.level;
   add("h2",q.question,panel);
   add("p","Уточнения: "+q.follow_up,panel);
+  if(q.source_prompts?.length){const details=add("details","",panel);add("summary","Формулировки из Kubernetes k8s.md ("+q.source_prompts.length+")",details);const list=add("ul","",details);for(const p of q.source_prompts)add("li","#"+p.number+" · "+p.question,list);add("p","Вопросы о личном опыте: рассказывай только о выполненных тобой работах и лабораториях, не выдавай теорию за production-опыт.",details);}
   const input=add("textarea","",panel);input.rows=5;input.setAttribute("aria-label","Самостоятельный ответ");
   const notice=add("p","",panel);
   const reveal=add("button","Показать разбор",panel);
