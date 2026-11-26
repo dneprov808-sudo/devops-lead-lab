@@ -10,7 +10,7 @@ function checkHub(js,html,manifest,knowledge,practice,incidents,design,bank){
  const find=id=>rows.find(x=>x.id===id);
  return {counts:c,errors,checks:[
  ["syntax, static DOM IDs",errors.length===0&&new Set(ids).size===ids.length],
- ["hub is default page",html.includes('<section id="hub" class="page">')&&html.includes('<section id="overview" class="page" hidden>')&&html.includes('data-page="hub" class="active"')],
+ ["dashboard default, catalog separate",html.includes('<section id="home" class="page">')&&html.includes('<section id="hub" class="page" hidden>')&&html.includes('<section id="overview" class="page" hidden>')&&html.includes('data-page="home" class="active"')],
  ["all 20 unique guides",c.topics===20&&c.guides===knowledge.length&&new Set(manifest.map(x=>x.id)).size===manifest.length],
  ["all practice tasks reached",c.labs===practice.length&&practice.every(p=>rows.some(r=>r.labs.some(l=>l.id===p.id)))],
  ["all questions reached",c.questions===bank.reduce((n,q)=>n+q.length-1,0)],
