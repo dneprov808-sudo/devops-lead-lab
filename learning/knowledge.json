@@ -61,6 +61,102 @@
         "commands": "df -h; df -i; lsof +L1; systemctl status; journalctl -u SERVICE --since '-15 min'",
         "question": "Как спроектировать эксплуатационный скрипт, чтобы он не сообщал ложный успех при сбое команды?",
         "source": "https://www.gnu.org/software/bash/manual/"
+      },
+      {
+        "id": "linux-04",
+        "title": "Права, UID/GID, umask и ACL",
+        "level": "foundation",
+        "explanation": "Доступ к файлу проверяется по effective UID/GID процесса, supplementary groups и правам inode. Для каталога r разрешает перечислять имена, x — проходить через него, w — менять записи при наличии x. Поэтому читаемый файл в недоступном каталоге остаётся недоступным. Umask убирает биты из запрошенного режима при создании объекта, но не меняет существующие файлы.",
+        "production": "ACL позволяют назначить права отдельным пользователям и группам; ACL mask ограничивает эффективные права ряда записей. Sticky bit на общем каталоге ограничивает удаление чужих файлов. SELinux или AppArmor могут запретить действие, которое разрешено обычными Unix permissions. Проверяй контекст процесса, а не только chmod.",
+        "example": "Сервис получает Permission denied при открытии /srv/demo/config.yml, хотя файл имеет 0644. Найди первый родительский каталог без права x для service account. Не исправляй проблему chmod 777.",
+        "commands": "id; namei -l /srv/demo/config.yml; stat /srv/demo/config.yml; getfacl /srv/demo/config.yml",
+        "question": "Почему chmod 644 не гарантирует доступ к файлу?",
+        "source": "https://man7.org/linux/man-pages/man7/path_resolution.7.html",
+        "snippet": {
+          "language": "bash",
+          "code": "namei -l /srv/demo/config.yml\nid",
+          "notes": "namei показывает права каждого компонента пути; id показывает группы текущего пользователя, которые нужно сопоставить с пользователем сервиса."
+        }
+      },
+      {
+        "id": "linux-05",
+        "title": "Сигналы, job control и дерево процессов",
+        "level": "foundation",
+        "explanation": "Сигнал — асинхронное уведомление процесса. SIGTERM обычно допускает обработку и корректное завершение, SIGKILL нельзя перехватить. SIGCHLD уведомляет родителя о событии дочернего процесса; wait забирает статус завершения. Shell job может объединять процессы в process group, а терминал посылает Ctrl+C foreground group.",
+        "production": "При graceful shutdown сервис прекращает приём новой работы, завершает текущую и освобождает ресурсы в пределах deadline. SIGKILL не позволяет выполнить cleanup; его применение может оставить незавершённые операции. Zombie уже не выполняется, его нельзя устранить повторным сигналом самому zombie.",
+        "example": "После остановки launcher дочерний worker продолжает слушать порт. Проверь PPID, PGID, SID и владельца service unit, а не убивай произвольный PID.",
+        "commands": "ps -eo pid,ppid,pgid,sid,stat,comm; pstree -p; ss -lntp",
+        "question": "Чем orphan отличается от zombie и что делает wait?",
+        "source": "https://man7.org/linux/man-pages/man7/signal.7.html",
+        "snippet": {
+          "language": "bash",
+          "code": "ps -o pid,ppid,pgid,sid,stat,comm -p $$\nps -eo pid,ppid,stat,comm | head",
+          "notes": "Первый вывод показывает shell, его родителя, группу и сессию; второй даёт обзор дерева без изменения процессов."
+        }
+      },
+      {
+        "id": "linux-06",
+        "title": "CPU, run queue и PSI: диагностика saturation",
+        "level": "senior",
+        "explanation": "Utilisation описывает занятость ресурса, saturation — ожидание работы из-за нехватки ресурса. vmstat r показывает runnable задачи, b — блокированные задачи. CPU user, system, idle, iowait и steal помогают разделять работу приложения, ядра и внешние ограничения. PSI измеряет долю времени, когда задачи задерживаются из-за конкуренции за ресурс.",
+        "production": "В многопоточном сервисе средний CPU может быть низким при насыщении одного ядра или lock contention. В виртуальной машине steal указывает на время, отнятое гипервизором. Сравни p95 latency, очередь, throttling и per-core метрики в одинаковом окне.",
+        "example": "При 40% CPU запросы тормозят, один worker загружен на 100%. Найди горячий поток и проверь последовательный участок или неравномерное распределение работы.",
+        "commands": "vmstat 1 5; mpstat -P ALL 1 3; cat /proc/pressure/cpu",
+        "question": "Как доказать, что bottleneck связан с CPU, а не с I/O?",
+        "source": "https://docs.kernel.org/accounting/psi.html",
+        "snippet": {
+          "language": "bash",
+          "code": "vmstat 1 5\ncat /proc/pressure/cpu",
+          "notes": "В vmstat сравни r, b, us, sy, wa и st; в PSI some показывает интервалы ожидания CPU хотя бы одной задачи."
+        }
+      },
+      {
+        "id": "linux-07",
+        "title": "VFS, mount namespace и проверка хранилища",
+        "level": "senior",
+        "explanation": "VFS предоставляет единый интерфейс к различным файловым системам. Mount связывает дерево файловой системы с точкой в пространстве имён. Bind mount показывает существующее дерево в другой точке, а mount namespace может скрыть часть host mounts от процесса. /proc/PID/mountinfo описывает представление конкретного процесса.",
+        "production": "df, lsblk и findmnt отвечают на разные вопросы: занятость файловой системы, блоковые устройства и таблица mounts. При диагностике контейнера сравни представления host и приложения. Высокий latency I/O измеряй через iostat и прикладные задержки, учитывай очередь и тип устройства.",
+        "example": "На хосте файл обновился, внутри приложения виден старый. Проверь mount, symlink, inode и открытые дескрипторы. При атомарной замене отдельного bind-mounted файла процесс может продолжать видеть прежний inode.",
+        "commands": "findmnt; lsblk -f; stat /srv/demo/config.yml; cat /proc/self/mountinfo; iostat -xz 1 3",
+        "question": "Почему изменение файла на хосте не всегда видно внутри контейнера?",
+        "source": "https://docs.kernel.org/filesystems/proc.html",
+        "snippet": {
+          "language": "bash",
+          "code": "findmnt -T /tmp\nstat -c '%d:%i %n' /tmp",
+          "notes": "findmnt определяет файловую систему по пути; stat показывает device и inode, полезные для сравнения двух представлений."
+        }
+      },
+      {
+        "id": "linux-08",
+        "title": "systemd: зависимости, readiness и ограничения",
+        "level": "lead",
+        "explanation": "Unit описывает процесс и его жизненный цикл. After задаёт порядок запуска, но не автоматически подтягивает зависимость; Wants и Requires выражают разные уровни зависимости. Type=simple не подтверждает готовность приложения, Type=notify позволяет сервису явно сообщить readiness при поддержке протокола.",
+        "production": "Restart=on-failure полезен при временных сбоях, но без ограничения частоты может скрыть crash loop. Отдельно задают service account, рабочий каталог, timeout и hardening. Не смешивай автоматический restart с исправлением причины, а systemctl is-active с бизнес-health.",
+        "example": "После boot сервис стартует раньше БД. Проверь порядок и требования unit, затем реализуй bounded retry в приложении или корректную readiness зависимость.",
+        "commands": "systemctl cat demo.service; systemctl show demo.service -p MainPID -p Result -p NRestarts; journalctl -u demo.service --since '-15 min'",
+        "question": "Чем After отличается от Requires и почему active не равен ready?",
+        "source": "https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html",
+        "snippet": {
+          "language": "ini",
+          "code": "[Service]\nType=simple\nUser=academy\nExecStart=/usr/local/bin/demo\nRestart=on-failure\nRestartSec=5s\nTimeoutStopSec=30s",
+          "notes": "Фрагмент unit, не готовый сервис: User ограничивает права, RestartSec задаёт задержку, TimeoutStopSec ограничивает время остановки; readiness нужно измерять отдельно."
+        }
+      },
+      {
+        "id": "linux-09",
+        "title": "Диагностика через /proc, strace и безопасная эскалация",
+        "level": "lead",
+        "explanation": "/proc/PID/status, limits, fd, maps и smaps_rollup дают снимки состояния процесса. strace наблюдает системные вызовы и сигналы; длительный read, futex или connect может подсказать, где процесс ждёт. Но tracing добавляет overhead, требует прав и способен показать чувствительные данные.",
+        "production": "Сначала используй дешёвые агрегаты, затем узкий trace конкретного процесса в лаборатории с ограниченным временем. PID может быть переиспользован после завершения процесса. Не собирай окружение, аргументы или полные буферы в общий тикет. Фиксируй timestamp, гипотезу и подтверждающий сигнал.",
+        "example": "Сервис жив, но все запросы висят. Сравни fd, limits, socket states и метрики потоков. Только затем, с разрешением, используй короткое наблюдение за нужными вызовами.",
+        "commands": "cat /proc/self/limits; ls /proc/self/fd; cat /proc/self/status; strace -c /bin/true",
+        "question": "Как выбрать между strace, логами и метриками при деградации latency?",
+        "source": "https://docs.kernel.org/filesystems/proc.html",
+        "snippet": {
+          "language": "bash",
+          "code": "strace -c /bin/true\ncat /proc/self/limits",
+          "notes": "Безопасный пример: strace запускает короткий локальный процесс, а не подключается к работающему сервису; -c показывает сводку вызовов. limits даёт текущие ограничения процесса."
+        }
       }
     ]
   },
@@ -256,6 +352,102 @@
         "commands": "docker compose config; docker compose ps -a; docker network ls; docker volume ls; docker stats --no-stream",
         "question": "Почему rollback образа базы данных может быть невозможен без совместимой схемы и проверенного восстановления?",
         "source": "https://docs.docker.com/engine/storage/"
+      },
+      {
+        "id": "docker-04",
+        "title": "Registry, manifest, digest и архитектуры",
+        "level": "foundation",
+        "explanation": "Registry хранит манифесты и слои по содержимому. Tag — удобная ссылка, которую можно переназначить, digest идентифицирует конкретное содержимое. Manifest list или OCI image index связывает варианты образов с platform, например linux/amd64 и linux/arm64. Runtime выбирает подходящий вариант.",
+        "production": "Фиксация digest полезна для воспроизводимости, но требует процесса регулярного обновления. Multi-platform образ должен проверяться на целевых архитектурах: эмуляция может быть медленнее и не выявить аппаратно-зависимые ошибки. Не путай image ID локального config и registry manifest digest.",
+        "example": "Сборка прошла на ARM ноутбуке, сервер amd64 получает exec format error. Сопоставь platform образа, manifest и архитектуру бинарника.",
+        "commands": "docker image inspect IMAGE --format '{{.Architecture}} {{.Os}}'; docker buildx imagetools inspect IMAGE",
+        "question": "Почему один tag может запускать разные бинарники на разных хостах?",
+        "source": "https://docs.docker.com/build/building/multi-platform/",
+        "snippet": {
+          "language": "bash",
+          "code": "docker image inspect IMAGE --format '{{.Id}} {{.Architecture}} {{.Os}}'\ndocker buildx imagetools inspect IMAGE",
+          "notes": "Первый вызов читает локальные метаданные, второй — manifest в registry (может обращаться к сети). IMAGE замени на учебный образ."
+        }
+      },
+      {
+        "id": "docker-05",
+        "title": "ENTRYPOINT, CMD, PID 1 и healthcheck",
+        "level": "foundation",
+        "explanation": "ENTRYPOINT задаёт основную команду, CMD — аргументы по умолчанию или команду при отсутствии entrypoint. Exec-форма передаёт аргументы без промежуточного shell. Shell-форма запускает оболочку, что меняет обработку переменных и сигналов. Контейнер живёт, пока работает его основной процесс.",
+        "production": "HEALTHCHECK задаёт отдельную команду проверки и переводит контейнер в healthy/unhealthy; Docker Engine сам по себе не перезапускает контейнер только из-за unhealthy. Не включай зависимость от каждого downstream в liveness, если это вызывает каскад restart. Grace period должен учитывать время завершения запросов.",
+        "example": "Контейнер работает, healthcheck unhealthy. Изучи конкретный exit code и вывод проверки, отличай отсутствие утилиты curl в образе от ошибки приложения.",
+        "commands": "docker inspect --format '{{json .State.Health}}' CONTAINER; docker inspect --format '{{json .Config.Entrypoint}} {{json .Config.Cmd}}' CONTAINER",
+        "question": "Почему статус unhealthy не означает автоматический restart?",
+        "source": "https://docs.docker.com/reference/dockerfile/",
+        "snippet": {
+          "language": "dockerfile",
+          "code": "ENTRYPOINT [\"/app/server\"]\nCMD [\"--port\", \"8080\"]",
+          "notes": "Exec-form: server — PID 1 при прямом запуске; CMD передаёт defaults, аргументы docker run могут заменить их. Фрагмент предполагает существующий бинарник."
+        }
+      },
+      {
+        "id": "docker-06",
+        "title": "Multi-stage сборка и безопасная передача секретов",
+        "level": "senior",
+        "explanation": "Builder stage содержит компиляторы и dev-зависимости; final stage копирует только runtime-артефакт. COPY --from использует другую стадию. Кеш BuildKit может переиспользовать слой при неизменных входах; mount cache предназначен для ускорения, а не для гарантии состава результата.",
+        "production": "Не помещай пароль в ARG, ENV, COPY или обычный layer. BuildKit secret mount даёт временный доступ в отдельном RUN; команда внутри всё равно не должна сохранять секрет в результирующих файлах или выводить его в лог. Фиксируй dependency lock, тестируй образ и проверяй runtime UID.",
+        "example": "Размер финального образа 2 ГБ, в нём компилятор и тестовые файлы. Выдели builder и скопируй необходимый результат; проверь shared libraries и сертификаты.",
+        "commands": "docker history IMAGE; docker image inspect IMAGE",
+        "question": "Какие риски остаются при использовании BuildKit secret mount?",
+        "source": "https://docs.docker.com/build/building/secrets/",
+        "snippet": {
+          "language": "dockerfile",
+          "code": "FROM golang:1.24 AS build\nWORKDIR /src\nCOPY . .\nRUN CGO_ENABLED=0 go build -o /out/server .\nFROM scratch\nCOPY --from=build /out/server /server\nUSER 65532:65532\nENTRYPOINT [\"/server\"]",
+          "notes": "Учебный фрагмент для Go-модуля: builder компилирует, scratch содержит только бинарник, USER задаёт UID/GID. Для реального HTTPS может потребоваться CA bundle; версии и digest фиксируются отдельно."
+        }
+      },
+      {
+        "id": "docker-07",
+        "title": "Compose service discovery и readiness dependencies",
+        "level": "senior",
+        "explanation": "Compose создаёт сеть проекта, в которой service name разрешается встроенным DNS. При пересоздании контейнера IP может измениться, а имя сервиса сохраняется. Host port нужен внешним клиентам; между сервисами используется container port. Зависимости запускаются согласно depends_on, но короткая форма не ожидает успешного healthcheck.",
+        "production": "Long syntax с condition: service_healthy позволяет дождаться healthcheck зависимости при старте. Это не постоянная гарантия доступности: БД может отказать после запуска API. Клиент должен уметь восстанавливать соединения и иметь ограниченный retry/backoff.",
+        "example": "API обращается к localhost:5432 вместо db:5432. Внутри контейнера localhost — сам API. Проверь DNS, принадлежность сети, health БД и параметры клиента.",
+        "commands": "docker compose config --quiet; docker compose ps -a; docker network ls",
+        "question": "Чем service_healthy отличается от обычного depends_on?",
+        "source": "https://docs.docker.com/compose/how-tos/startup-order/",
+        "snippet": {
+          "language": "yaml",
+          "code": "services:\n  db:\n    image: postgres:17\n    environment:\n      POSTGRES_PASSWORD: demo-only\n    healthcheck:\n      test: [\"CMD-SHELL\", \"pg_isready -U postgres\"]\n      interval: 5s\n      timeout: 3s\n      retries: 10\n  api:\n    image: academy-api:local\n    depends_on:\n      db:\n        condition: service_healthy",
+          "notes": "Иллюстративный Compose: пароль только синтетический, API-образ должен быть собран отдельно. Проверка db лишь регулирует старт; порты не опубликованы."
+        }
+      },
+      {
+        "id": "docker-08",
+        "title": "Rootless, capabilities и границы доверия Docker",
+        "level": "lead",
+        "explanation": "Rootless Docker запускает daemon и контейнеры без root на host с использованием user namespaces. Это уменьшает последствия ряда уязвимостей, но имеет ограничения по networking, storage и ресурсам. Non-root внутри обычного контейнера и rootless daemon — разные уровни защиты.",
+        "production": "Доступ к обычному rootful Docker socket практически эквивалентен широкому управлению хостом. Не монтируй socket в произвольные build jobs. Убирай ненужные capabilities, запрещай privilege escalation, используй read-only rootfs и явно разрешённые writable каталоги. Проверяй совместимость приложения.",
+        "example": "CI runner получил docker.sock, а job выполняет непроверенный код. Раздели доверенные среды, оцени права socket и запрети доступ к секретам и production.",
+        "commands": "docker info --format '{{json .SecurityOptions}}'; docker inspect --format '{{json .HostConfig.CapAdd}} {{.HostConfig.Privileged}}' CONTAINER",
+        "question": "Почему non-root в контейнере недостаточен, если контейнеру доступен Docker socket?",
+        "source": "https://docs.docker.com/engine/security/rootless/",
+        "snippet": {
+          "language": "yaml",
+          "code": "services:\n  api:\n    image: academy-api:local\n    user: \"65532:65532\"\n    read_only: true\n    cap_drop: [ALL]\n    security_opt:\n      - no-new-privileges:true\n    tmpfs:\n      - /tmp",
+          "notes": "Пример hardening, не универсальный рецепт: user ограничивает UID, read_only запрещает запись в rootfs, tmpfs оставляет временный каталог. Приложение должно поддерживать такой запуск."
+        }
+      },
+      {
+        "id": "docker-09",
+        "title": "Ресурсные ограничения и расследование OOM контейнера",
+        "level": "lead",
+        "explanation": "Docker передаёт resource limits механизмам ядра. CPU quota ограничивает доступное время процессора, CPU shares задают относительный вес при конкуренции. Memory limit ограничивает память контейнера; heap приложения и page cache конкурируют за доступный бюджет. Конфигурация swap зависит от режима и поддержки host.",
+        "production": "Смотри одновременно runtime state, cgroup events, kernel logs и latency. OOMKilled, exit code 137 и ручной SIGKILL не тождественны. Для Java или Go учитывай runtime awareness of cgroups; лимит heap должен оставлять место native memory и другим расходам.",
+        "example": "После уменьшения memory limit приложение рестартует под нагрузкой. Сравни peak working set, лимит, OOM events и версию runtime; проверь повторный нагрузочный сценарий.",
+        "commands": "docker stats --no-stream; docker inspect --format '{{.State.OOMKilled}} {{.State.ExitCode}} {{.HostConfig.Memory}}' CONTAINER",
+        "question": "Как установить лимит памяти на основе нагрузочного профиля, а не среднего RSS?",
+        "source": "https://docs.docker.com/engine/containers/resource_constraints/",
+        "snippet": {
+          "language": "yaml",
+          "code": "services:\n  api:\n    image: academy-api:local\n    mem_limit: 512m\n    cpus: 1.0",
+          "notes": "Compose example: лимит памяти 512 MiB по Docker unit semantics, CPU quota примерно одного CPU. Это ограничения, не гарантия производительности; проверь фактические HostConfig."
+        }
       }
     ]
   },
@@ -516,6 +708,102 @@
         "commands": "kubectl --kubeconfig v11-labs/k8s/academy-v11.kubeconfig --context kind-academy-v11 get hpa,pvc -A; kubectl --kubeconfig v11-labs/k8s/academy-v11.kubeconfig --context kind-academy-v11 describe nodes; helm list --kubeconfig v11-labs/k8s/academy-v11.kubeconfig --kube-context kind-academy-v11 -A",
         "question": "Какие failure domains, ресурсы и проверки нужны для реального HA приложения на Kubernetes?",
         "source": "https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/"
+      },
+      {
+        "id": "k8s-04",
+        "title": "Pod lifecycle, init containers и причины рестартов",
+        "level": "foundation",
+        "explanation": "Pod phase — высокоуровневое состояние, а container status отражает конкретное выполнение. Init containers обычно выполняются по порядку до запуска обычных контейнеров; существуют отдельные semantics restartable sidecars. CrashLoopBackOff — отображаемая причина ожидания повторного старта, а не самостоятельная phase Pod.",
+        "production": "Проверяй events, container state, lastState, exit code и previous logs. ImagePullBackOff связан с получением образа, Pending может означать ожидание scheduling или volume. Не удаляй Pod до сбора доказательств: контроллер создаст новый и часть контекста исчезнет.",
+        "example": "Deployment имеет 0 ready из 3, Pods в CrashLoopBackOff. Сравни конфигурацию, секреты, previous logs и exit code, затем исправь desired state.",
+        "commands": "kubectl --kubeconfig v11-labs/k8s/academy-v11.kubeconfig --context kind-academy-v11 get pods -n academy-v11; kubectl --kubeconfig v11-labs/k8s/academy-v11.kubeconfig --context kind-academy-v11 describe pod POD -n academy-v11",
+        "question": "Чем Pod Running отличается от контейнера Ready?",
+        "source": "https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/",
+        "snippet": {
+          "language": "yaml",
+          "code": "initContainers:\n  - name: prepare\n    image: busybox:1.36\n    command: [\"sh\", \"-c\", \"echo preparing\"]\ncontainers:\n  - name: app\n    image: academy-api:local",
+          "notes": "Фрагмент spec Pod: обычный init должен завершиться успешно до app. Само наличие init не доказывает доступность внешней системы."
+        }
+      },
+      {
+        "id": "k8s-05",
+        "title": "Labels, selectors, Service и EndpointSlice",
+        "level": "foundation",
+        "explanation": "Labels описывают объекты, selectors выбирают набор объектов. Deployment selector связывает ReplicaSet/Pods; Service selector обычно используется для автоматического заполнения EndpointSlices. EndpointSlice содержит адреса и условия готовности endpoints. Service port — клиентский порт, targetPort — порт backend.",
+        "production": "При отсутствии endpoints проверь namespace и labels, затем readiness. Endpoint может быть not ready, terminating или обслуживать соединения во время завершения. Реализация data plane зависит от kube-proxy или альтернативной CNI. Не лечи selector mismatch изменением DNS.",
+        "example": "Service доступен по DNS, но нет backend. Сопоставь selector и реальные labels; убедись, что приложение слушает нужный targetPort.",
+        "commands": "kubectl --kubeconfig v11-labs/k8s/academy-v11.kubeconfig --context kind-academy-v11 get svc,endpointslices -n academy-v11; kubectl --kubeconfig v11-labs/k8s/academy-v11.kubeconfig --context kind-academy-v11 get pods -n academy-v11 --show-labels",
+        "question": "Почему корректный Service ClusterIP не гарантирует наличие backend?",
+        "source": "https://kubernetes.io/docs/concepts/services-networking/endpoint-slices/",
+        "snippet": {
+          "language": "yaml",
+          "code": "apiVersion: v1\nkind: Service\nmetadata:\n  name: demo\nspec:\n  selector:\n    app: demo\n  ports:\n    - port: 80\n      targetPort: 8080",
+          "notes": "selector ищет Pod с app=demo в том же namespace; клиенты идут на 80, backend должен слушать 8080. Не применяй в чужом кластере."
+        }
+      },
+      {
+        "id": "k8s-06",
+        "title": "Scheduler, affinity, taints и topology spread",
+        "level": "senior",
+        "explanation": "Scheduler сначала фильтрует подходящие nodes по ограничениям, затем оценивает кандидатов. Node affinity выражает предпочтения или требования к labels. Taint отталкивает Pod, toleration позволяет не быть отклонённым по этому taint, но не гарантирует размещение. Topology spread ограничивает перекос между failure domains.",
+        "production": "Requests учитываются даже при низкой текущей загрузке. Жёсткая anti-affinity или spread с DoNotSchedule может оставить Pod Pending, если нет подходящих доменов. Различай требования availability и оптимизацию распределения; закладывай резерв узлов для rollout и аварий.",
+        "example": "Три реплики не помещаются после потери зоны: у deployment обязательная anti-affinity, а свободные nodes находятся в одном домене. Изучи FailedScheduling и проектные требования.",
+        "commands": "kubectl --kubeconfig v11-labs/k8s/academy-v11.kubeconfig --context kind-academy-v11 get nodes --show-labels; kubectl --kubeconfig v11-labs/k8s/academy-v11.kubeconfig --context kind-academy-v11 get events -n academy-v11",
+        "question": "Почему toleration не означает, что Pod обязательно попадёт на нужный node?",
+        "source": "https://kubernetes.io/docs/concepts/scheduling-eviction/",
+        "snippet": {
+          "language": "yaml",
+          "code": "topologySpreadConstraints:\n  - maxSkew: 1\n    topologyKey: kubernetes.io/hostname\n    whenUnsatisfiable: DoNotSchedule\n    labelSelector:\n      matchLabels:\n        app: demo",
+          "notes": "Фрагмент Pod spec: spread распределяет Pods с app=demo по hostname; DoNotSchedule не допускает нарушающий ограничение вариант. Это не гарантия зонального HA."
+        }
+      },
+      {
+        "id": "k8s-07",
+        "title": "QoS, eviction, quota и защита соседних workloads",
+        "level": "senior",
+        "explanation": "Requests участвуют в scheduling; limits ограничивают выполнение. Для обычных контейнеров класс Guaranteed требует заданных и равных CPU/memory requests и limits у всех контейнеров; Burstable и BestEffort дают другие характеристики при pressure. Node eviction отличается от OOM внутри контейнера. ResourceQuota ограничивает суммарные ресурсы namespace, LimitRange может задавать defaults и границы.",
+        "production": "Memory limit не резервирует физическую память сверх request. CPU limits могут повышать tail latency через throttling. Quota защищает namespace от чрезмерных запросов, но не заменяет проектирование ёмкости. При Pending или rejected create отличай admission quota от scheduler capacity.",
+        "example": "Pod не создаётся с exceeded quota, хотя nodes свободны. Проверь hard/used namespace и requests в manifest. Увеличение node capacity само не изменит quota.",
+        "commands": "kubectl --kubeconfig v11-labs/k8s/academy-v11.kubeconfig --context kind-academy-v11 get resourcequota,limitrange -n academy-v11; kubectl --kubeconfig v11-labs/k8s/academy-v11.kubeconfig --context kind-academy-v11 describe resourcequota -n academy-v11",
+        "question": "Чем eviction node pressure отличается от OOMKilled?",
+        "source": "https://kubernetes.io/docs/concepts/policy/resource-quotas/",
+        "snippet": {
+          "language": "yaml",
+          "code": "resources:\n  requests:\n    cpu: 200m\n    memory: 128Mi\n  limits:\n    cpu: 500m\n    memory: 256Mi",
+          "notes": "200m учитывается при scheduling, 500m ограничивает CPU. 128Mi — запрос памяти, 256Mi — лимит. Такой обычный контейнер не соответствует Guaranteed."
+        }
+      },
+      {
+        "id": "k8s-08",
+        "title": "RBAC, ServiceAccount и NetworkPolicy",
+        "level": "lead",
+        "explanation": "ServiceAccount представляет workload identity для Kubernetes API. Role описывает разрешения в namespace, RoleBinding связывает роль с subjects; ClusterRole может задавать более широкие правила, но RoleBinding ограничивает её использованием в namespace. RBAC аддитивен, явного deny в правилах нет.",
+        "production": "NetworkPolicy регулирует сетевой трафик при наличии поддерживающего CNI; она не заменяет API authorization. Если workload не нужен доступ к API, рассмотри отключение automount токена. Минимизируй verbs, resources и scope; создание Pod иногда даёт косвенный доступ к credentials.",
+        "example": "Приложению нужно читать ConfigMap, оно получило cluster-admin. Замени права на namespace-scoped read и проверь разрешённое и запрещённое действие.",
+        "commands": "kubectl --kubeconfig v11-labs/k8s/academy-v11.kubeconfig --context kind-academy-v11 auth can-i get configmaps -n academy-v11",
+        "question": "Почему NetworkPolicy не компенсирует избыточные права ServiceAccount?",
+        "source": "https://kubernetes.io/docs/reference/access-authn-authz/rbac/",
+        "snippet": {
+          "language": "yaml",
+          "code": "apiVersion: rbac.authorization.k8s.io/v1\nkind: Role\nmetadata:\n  name: config-reader\n  namespace: academy-v11\nrules:\n  - apiGroups: [\"\"]\n    resources: [\"configmaps\"]\n    verbs: [\"get\", \"list\"]",
+          "notes": "Role не даёт права сама по себе — нужен RoleBinding. У неё нет прав на secrets, запись или другие namespaces."
+        }
+      },
+      {
+        "id": "k8s-09",
+        "title": "Helm values, templates и проверка релиза",
+        "level": "lead",
+        "explanation": "Chart содержит templates, default values и метаданные. Helm объединяет значения из defaults, файлов и параметров запуска; templates преобразуют данные в манифесты. Release сохраняет историю применённых ревизий. helm template рендерит локально, но не заменяет admission и runtime проверки.",
+        "production": "Проверяй chart lint, отрендеренный diff, API совместимость и readiness. Не передавай секреты открытыми values: они могут попасть в историю release. Rollback Helm возвращает манифесты, но не восстанавливает данные PV и не отменяет внешние side effects.",
+        "example": "После upgrade selector Deployment стал несовместимым с существующим объектом. Найди diff до применения; immutable поля иногда требуют другого плана миграции.",
+        "commands": "helm lint v11-labs/k8s/chart; helm template academy-v11 v11-labs/k8s/chart -n academy-v11",
+        "question": "Почему успешный helm lint не доказывает, что upgrade пройдёт?",
+        "source": "https://helm.sh/docs/chart_template_guide/values_files/",
+        "snippet": {
+          "language": "yaml",
+          "code": "replicaCount: 2\nresources:\n  requests:\n    cpu: 100m\n    memory: 128Mi",
+          "notes": "Это иллюстрация values.yaml, а не универсальные ключи: chart должен действительно использовать replicaCount и resources в templates. Проверь helm template."
+        }
       }
     ]
   },
