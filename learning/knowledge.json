@@ -188,7 +188,7 @@
         "explanation": "GitOps описывает желаемое состояние декларативно, версионирует его и использует агента для получения и согласования состояния. Controller сравнивает desired и observed state; drift — различие. GitOps не равен push-деплою из CI: reconciliation происходит регулярно и независимо от разового pipeline.",
         "production": "Контроллер не знает намерений оператора: auto-sync может отменить ручной hotfix, prune удалить ресурс. Политики, разделение окружений, окно изменений и план восстановления определяют blast radius. Секреты не хранят открытым текстом в Git.",
         "example": "Инженер вручную меняет replicas, GitOps возвращает значение. Сначала выясни владельца ресурса и diff, затем внеси согласованное изменение в desired state.",
-        "commands": "git diff; git log --oneline -5; kubectl --context kind-academy-v11 get deployments -n academy-v11",
+        "commands": "git diff; git log --oneline -5; kubectl --kubeconfig v11-labs/k8s/academy-v11.kubeconfig --context kind-academy-v11 get deployments -n academy-v11",
         "question": "Как совместить автоматическое reconciliation и безопасный emergency hotfix?",
         "source": "https://opengitops.dev/"
       }
@@ -315,7 +315,7 @@
         "id": "ansible-03",
         "title": "Приоритет переменных и rolling deployment",
         "level": "lead",
-        "explanation": "Ansible различает config settings, command-line options, playbook keywords и variables; extra vars имеют высокий приоритет среди переменных. Точный источник значения зависит от scope и типа. Проверяй inventory и фактическую версию ansible-core, не переносишь правила 2.16 автоматически на 2.9.",
+        "explanation": "Ansible различает config settings, command-line options, playbook keywords и variables; extra vars имеют высокий приоритет среди переменных. Точный источник значения зависит от scope и типа. Проверяй inventory и фактическую версию ansible-core, не переноси правила 2.16 автоматически на 2.9.",
         "production": "Для rolling release используй ограничение batch через serial, проверку readiness и остановку при нарушении порогов. forks управляет параллельностью, strategy — последовательностью выполнения хостов. Ошибка одного узла не должна приводить к необратимому обновлению остальных; rollback зависит от приложения и состояния данных.",
         "example": "При rollout на десяти шлюзах первый batch перестал отвечать. Останови дальнейшие изменения, собери факты, проверь предыдущий артефакт и только затем восстанавливай.",
         "commands": "ansible --version; ansible-config dump --only-changed; ansible-playbook -i inventories/dev/hosts play.yml --list-hosts",
@@ -426,7 +426,7 @@
         "explanation": "Terraform читает HCL-конфигурацию, загружает providers/modules при init и строит граф зависимостей по ссылкам между ресурсами. Provider преобразует декларацию в вызовы API. Plan сравнивает конфигурацию, state и актуально прочитанное состояние, показывает действия create/update/replace/destroy.",
         "production": "Apply выполняет граф действий и обновляет state. Это не транзакция на всю инфраструктуру: часть ресурсов может успешно измениться до ошибки. Saved plan позволяет исполнить ранее рассмотренный набор действий, но содержит чувствительные данные и требует совместимого окружения.",
         "example": "Изменение имени ресурса приводит к replace. Проверь plan и identity ресурса; для рефакторинга адреса могут применяться moved blocks после ревью.",
-        "commands": "terraform init; terraform validate; terraform plan -out=review.tfplan; terraform show review.tfplan",
+        "commands": "terraform init\nterraform validate\nterraform plan -out=review.tfplan\nterraform show review.tfplan",
         "question": "Что именно происходит при init, plan и apply и почему успешный plan не гарантирует apply?",
         "source": "https://developer.hashicorp.com/terraform/cli/commands/plan"
       },
@@ -491,7 +491,7 @@
         "explanation": "API server принимает запрос, проверяет identity, authorization и admission, затем сохраняет состояние объектов в etcd. Controllers наблюдают API и согласуют observed с desired state. Scheduler выбирает node для Pod, kubelet на node запускает его через CRI runtime и сообщает статус. Deployment управляет ReplicaSet, ReplicaSet поддерживает число Pods.",
         "production": "Pod — минимальная единица размещения; контейнеры внутри Pod обычно разделяют сеть и могут использовать общие volumes. Service предоставляет стабильную точку доступа к выбранным Pods; EndpointSlice отражает endpoints. IP Pod может измениться при пересоздании.",
         "example": "Deployment принят API, но Pod Pending: проверь events, requests, taints, affinity и PVC. Не начинай с логов контейнера, который ещё не запущен.",
-        "commands": "kubectl --context kind-academy-v11 get pods -A; kubectl --context kind-academy-v11 get events -A --sort-by=.lastTimestamp",
+        "commands": "kubectl --kubeconfig v11-labs/k8s/academy-v11.kubeconfig --context kind-academy-v11 get pods -A; kubectl --kubeconfig v11-labs/k8s/academy-v11.kubeconfig --context kind-academy-v11 get events -A --sort-by=.lastTimestamp",
         "question": "Что происходит от kubectl apply Deployment до первого HTTP-ответа?",
         "source": "https://kubernetes.io/docs/concepts/architecture/"
       },
@@ -502,7 +502,7 @@
         "explanation": "Service выбирает Pod по labels; endpoints с readiness определяют доступные backend. CNI реализует сетевое подключение, NetworkPolicy работает только при поддержке enforcement. DNS для Service обычно обслуживается CoreDNS. Ingress/Gateway требует соответствующего controller, одного объекта недостаточно.",
         "production": "Readiness отвечает за готовность принимать трафик, liveness может перезапустить контейнер, startup probe даёт медленному старту время до liveness/readiness. RollingUpdate учитывает maxSurge/maxUnavailable; PDB ограничивает добровольные disruptions, но не является гарантией непрерывной доступности при аварии node.",
         "example": "Pod Running, Service возвращает ошибку. Сверь selectors, EndpointSlice, readiness, port/targetPort и сетевые политики; затем ingress и upstream.",
-        "commands": "kubectl --context kind-academy-v11 get svc,endpointslices -A; kubectl --context kind-academy-v11 get pods -A -o wide",
+        "commands": "kubectl --kubeconfig v11-labs/k8s/academy-v11.kubeconfig --context kind-academy-v11 get svc,endpointslices -A; kubectl --kubeconfig v11-labs/k8s/academy-v11.kubeconfig --context kind-academy-v11 get pods -A -o wide",
         "question": "Как настроить probes, чтобы отказ внешней БД не вызвал массовый restart приложений?",
         "source": "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/"
       },
@@ -513,7 +513,7 @@
         "explanation": "Scheduler ориентируется на requests; limits применяются runtime через механизмы ядра. CPU limit вызывает throttling, memory limit может привести к OOM. HPA масштабирует по наблюдаемым метрикам, зависит от корректных requests и источника метрик. StatefulSet даёт стабильные идентификаторы и привязку PVC, но не реализует репликацию приложения.",
         "production": "PV описывает хранилище, PVC — запрос, StorageClass — параметры динамического provisioning. CSI driver выполняет операции хранения. Helm рендерит chart с values и ведёт историю releases; rollback манифеста не возвращает данные тома. GitOps добавляет reconciliation поверх желаемого состояния.",
         "example": "HPA не добавляет реплики, latency растёт. Проверь метрики и requests, maxReplicas, доступную ёмкость nodes, Pending Pods и bottleneck downstream.",
-        "commands": "kubectl --context kind-academy-v11 get hpa,pvc -A; kubectl --context kind-academy-v11 describe nodes; helm list --kube-context kind-academy-v11 -A",
+        "commands": "kubectl --kubeconfig v11-labs/k8s/academy-v11.kubeconfig --context kind-academy-v11 get hpa,pvc -A; kubectl --kubeconfig v11-labs/k8s/academy-v11.kubeconfig --context kind-academy-v11 describe nodes; helm list --kubeconfig v11-labs/k8s/academy-v11.kubeconfig --kube-context kind-academy-v11 -A",
         "question": "Какие failure domains, ресурсы и проверки нужны для реального HA приложения на Kubernetes?",
         "source": "https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/"
       }
@@ -569,7 +569,7 @@
         "example": "Один брокер упал, produce получает NotEnoughReplicas: проверь ISR по partitions, состояние лидеров, диски и задержку follower, не снижай minISR без решения по риску.",
         "commands": "kafka-topics.sh --bootstrap-server localhost:9092 --describe; kafka-metadata-quorum.sh --bootstrap-server localhost:9092 describe --status",
         "question": "Чем отказ controller quorum отличается от потери ISR у отдельной partition?",
-        "source": "https://kafka.apache.org/documentation/#design_replicatedlog"
+        "source": "https://kafka.apache.org/40/design/design/"
       },
       {
         "id": "kafka-03",
@@ -580,7 +580,7 @@
         "example": "Consumer сохранил заказ в БД и упал до commit offset. Повторная доставка ожидаема, итог не должен создать второй заказ.",
         "commands": "kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group academy",
         "question": "Как доказать отсутствие двойного бизнес-эффекта при повторной доставке?",
-        "source": "https://kafka.apache.org/documentation/#semantics"
+        "source": "https://kafka.apache.org/40/design/design/"
       }
     ]
   },
