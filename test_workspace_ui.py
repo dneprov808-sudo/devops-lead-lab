@@ -61,8 +61,11 @@ class WorkspaceTests(unittest.TestCase):
     def test_all_targets_exist(self):
         self.assertFalse(set(self.dom.targets) - self.dom.pages.keys())
         self.assertEqual(set(self.dom.pages), set(self.dom.targets))
-        self.assertEqual(self.dom.active, ["hub"])
-        self.assertEqual([k for k, v in self.dom.pages.items() if not v], ["hub"])
+        self.assertEqual(self.dom.active, ["home"])
+        self.assertEqual([k for k, v in self.dom.pages.items() if not v], ["home"])
+        self.assertEqual(len(self.dom.pages), 23)
+        self.assertIn("hub", self.dom.pages)
+        self.assertIn("models", self.dom.pages)
 
     def test_deployment_cards(self):
         self.assertEqual(len(self.dom.anchors), 9)
