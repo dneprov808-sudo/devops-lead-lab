@@ -1,0 +1,6 @@
+.terraform/
+.terraform.lock.hcl.tmp
+*.tfstate*
+*.tfplan
+plan.json
+.lab-data/
