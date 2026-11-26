@@ -54,13 +54,15 @@ if(typeof document!=="undefined"){
   const button=(parent,label,fn)=>{const e=add("button",label,parent);e.onclick=fn;return e};
   async function render(){
    try{
-    const d=await AcademyStudy.request("/api/v11/summary");panel.replaceChildren();
+    const d=await AcademyStudy.request("/api/v11/summary");const assessment=await AcademyStudy.request("/api/v12/assessment");panel.replaceChildren();
     add("h3","Локальный прогресс",panel);
     add("p",d.events+" записей · "+d.mock_sessions+" mock · "+d.review_proposals+" предложений оценки. Канонический grade не меняется.",panel);
     const today=new Intl.DateTimeFormat("sv-SE",{timeZone:"Europe/Moscow",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
-    const plan=studyPlan(INTERVIEW_PRO_BANK,d.self_reviews,today,Number(minutes.value));
+    const reviewed=new Map(d.self_reviews.map(x=>[x.question_id,x]));for(const x of assessment.reviewed_questions)reviewed.set(x.question_id,x);
+    const plan=studyPlan(INTERVIEW_PRO_BANK,[...reviewed.values()],today,Number(minutes.value));
     add("h3","План на сегодня: "+plan.length+" вопросов",panel);
     for(const q of plan)button(panel,q.id+" · "+q.topic,()=>window.academyOpenPro([q.id]));
+    add("h3","Независимо рассмотренные локальные доказательства",panel);for(const [topic,v] of Object.entries(assessment.topics))add("p",topic+" · "+v.count+" вопросов · "+v.average+" / 4",panel);for(const exam of assessment.exams)add("p",exam.profile+" · "+exam.reviewed+"/"+exam.expected+" · "+exam.status,panel);add("p","Конфликты оценок: "+assessment.conflicts+"; canonical STATE не изменён.",panel);
     add("h3","Матрица локальных доказательств",panel);
     for(const topic of [...new Set(INTERVIEW_PRO_BANK.map(q=>q.topic))]){
       const t=d.by_topic[topic]||{attempts:0,questions:0,proposals:0};

@@ -16,6 +16,7 @@ import uuid
 import practice_results
 import practice_history
 import learning_store
+import assessment_v12
 import academy_metrics
 import logging
 import time
@@ -210,7 +211,7 @@ class Handler(BaseHTTPRequestHandler):
         pass
     def route_label(self):
         route=self.path
-        known={"/api/v11/career","/api/v11/health","/api/v11/metrics","/api/v11/export","/api/v11/summary","/api/v11/event","/api/v11/import","/api/test","/api/practice-save","/api/practice-history","/api/state","/api/handoffs","/api/version","/api/session","/api/hub","/api/knowledge","/api/practice-catalog","/api/design","/api/incidents","/api/production/status"}
+        known={"/api/v12/assessment","/api/v11/career","/api/v11/health","/api/v11/metrics","/api/v11/export","/api/v11/summary","/api/v11/event","/api/v11/import","/api/test","/api/practice-save","/api/practice-history","/api/state","/api/handoffs","/api/version","/api/session","/api/hub","/api/knowledge","/api/practice-catalog","/api/design","/api/incidents","/api/production/status"}
         return route if route in known else "static" if route in STATIC else "other"
     def send_data(self, status, kind, data):
         self.send_response(status)
@@ -233,6 +234,8 @@ class Handler(BaseHTTPRequestHandler):
             if self.path in STATIC:
                 name, kind = STATIC[self.path]
                 return self.send_data(200, kind, (WEB / name).read_bytes())
+            if self.path == "/api/v12/assessment":
+                return self.reply(assessment_v12.report(learning_store.Store()))
             if self.path == "/api/v11/health":
                 return self.reply({"status":"ok","storage":learning_store.Store().health(),"remote":"not_checked"})
             if self.path == "/api/v11/metrics":
