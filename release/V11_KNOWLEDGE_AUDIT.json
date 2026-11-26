@@ -1,0 +1,10 @@
+{
+  "questions": 738,
+  "uniqueSources": 460,
+  "sourceHosts": 40,
+  "pendingReview": 738,
+  "versionReferenceKnown": 95,
+  "nearDuplicateCandidates": [],
+  "errors": [],
+  "limitations": "Lexical similarity, URL syntax and length only; no full semantic, technical or live link review."
+}

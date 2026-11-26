@@ -1,0 +1,2 @@
+-r requirements-v11.txt
+playwright==1.57.0

@@ -31,7 +31,7 @@ function planConsumer(issues,snapshot,verified={},options={}) {
       else if(snapshot.pending_ids.includes(id)){entry.status="already_pending";entry.reason="await existing review";}
       else if(group.some(g=>g.row.state==="closed")){entry.status="closed_unreconciled";entry.reason="closed is not acceptance";}
       else if(h.event==="blocked"){entry.status="blocked_report";entry.reason="manual blocker review";}
-      else if(h.control_ref!==snapshot.control_ref||h.observed_state_revision!==snapshot.revision){entry.status="stale";entry.reason="fresh preflight required";}
+      else if(h.control_ref!==snapshot.control_ref||h.observed_state_revision!==snapshot.revision||h.observed_control_commit!==snapshot.control_commit){entry.status="stale";entry.reason="fresh preflight required";}
       else if(h.proposed_status===null){entry.status="review_only";entry.reason="recommendation/evidence needs human review; no transition requested";}
       else if(h.task_id!==snapshot.task_id){entry.status="rejected_transition";entry.reason="not active task";}
       else {

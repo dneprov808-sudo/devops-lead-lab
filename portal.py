@@ -15,11 +15,17 @@ import threading
 import uuid
 import practice_results
 import practice_history
+import learning_store
+import academy_metrics
+import logging
+import time
+import sqlite3
 from production.status import read_status
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import yaml
 import academy
+from release.version import version
 
 ROOT = Path(__file__).resolve().parent
 WEB = ROOT / "web"
@@ -43,7 +49,10 @@ STATIC = {"/": ("index.html", "text/html; charset=utf-8"),
           "/hub.js": ("hub.js", "text/javascript; charset=utf-8"),
           "/hub.css": ("hub.css", "text/css; charset=utf-8"),
           "/interview-bank.js": ("interview-bank.js", "text/javascript; charset=utf-8"),
+          "/study-v11.js": ("study-v11.js", "text/javascript; charset=utf-8"),
           "/interview-pro.js": ("interview-pro.js", "text/javascript; charset=utf-8"),
+          "/tools-v11.js": ("tools-v11.js", "text/javascript; charset=utf-8"),
+          "/mock-v11.js": ("mock-v11.js", "text/javascript; charset=utf-8"),
           "/mock.js": ("mock.js", "text/javascript; charset=utf-8"),
           "/accelerator.js": ("accelerator.js", "text/javascript; charset=utf-8"),
           "/production.js": ("production.js", "text/javascript; charset=utf-8"),
@@ -197,6 +206,12 @@ def allowed(headers, port=PORT, mutate=False):
     return not mutate or (origin is not None and hmac.compare_digest(headers.get("X-Academy-CSRF", ""), KEY))
 
 class Handler(BaseHTTPRequestHandler):
+    def log_message(self, *args):
+        pass
+    def route_label(self):
+        route=self.path
+        known={"/api/v11/career","/api/v11/health","/api/v11/metrics","/api/v11/export","/api/v11/summary","/api/v11/event","/api/v11/import","/api/test","/api/practice-save","/api/practice-history","/api/state","/api/handoffs","/api/version","/api/session","/api/hub","/api/knowledge","/api/practice-catalog","/api/design","/api/incidents","/api/production/status"}
+        return route if route in known else "static" if route in STATIC else "other"
     def send_data(self, status, kind, data):
         self.send_response(status)
         self.send_header("Content-Type", kind)
@@ -206,22 +221,34 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("Content-Security-Policy", "default-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'")
         self.end_headers()
+        academy_metrics.observe(self.route_label(),status,time.monotonic()-getattr(self,"_started",time.monotonic()))
         self.wfile.write(data)
     def reply(self, data, status=200):
         self.send_data(status, "application/json; charset=utf-8", json.dumps(data, ensure_ascii=False).encode())
     def do_GET(self):
+        self._started=time.monotonic()
         if not allowed(self.headers):
             return self.reply({"error": "Forbidden"}, 403)
         try:
             if self.path in STATIC:
                 name, kind = STATIC[self.path]
                 return self.send_data(200, kind, (WEB / name).read_bytes())
+            if self.path == "/api/v11/health":
+                return self.reply({"status":"ok","storage":learning_store.Store().health(),"remote":"not_checked"})
+            if self.path == "/api/v11/metrics":
+                return self.send_data(200,"text/plain; version=0.0.4; charset=utf-8",academy_metrics.metrics().encode())
+            if self.path == "/api/v11/career":
+                return self.reply(learning_store.Store().career())
+            if self.path == "/api/v11/export":
+                return self.reply(learning_store.Store().export())
+            if self.path == "/api/v11/summary":
+                return self.reply(learning_store.Store().summary())
             if self.path == "/api/hub":
                 return self.reply(json.loads((ROOT / "learning/hub.json").read_text(encoding="utf-8")))
             if self.path == "/api/production/status":
                 return self.reply(read_status())
             if self.path == "/api/version":
-                return self.reply({"release": "Production Engineering v8", "branch": "academy/stable"})
+                return self.reply(version())
             if self.path == "/api/session":
                 return self.reply({"csrf": KEY})
             if self.path == "/api/state":
@@ -240,11 +267,26 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply(practice_history.read_history(git, command, academy.ORIGINS,
                     practice_results.normalize, catalog(), ROOT))
             return self.reply({"error": "Not found"}, 404)
-        except (OSError, ValueError, KeyError, TypeError, AttributeError, yaml.YAMLError):
+        except (OSError, ValueError, KeyError, TypeError, AttributeError, yaml.YAMLError, sqlite3.Error):
             return self.reply({"status": "blocked", "error": "Read failed; check Git/gh access and canonical data."}, 503)
     def do_POST(self):
+        self._started=time.monotonic()
         if not allowed(self.headers, mutate=True):
             return self.reply({"error": "Forbidden"}, 403)
+        if self.path in ("/api/v11/event", "/api/v11/import"):
+            try:
+                if self.headers.get_content_type()!="application/json" or self.headers.get("Transfer-Encoding"):
+                    raise ValueError("Expected bounded JSON")
+                length=int(self.headers.get("Content-Length","0"))
+                if not 1<=length<=learning_store.MAX_BODY:
+                    raise ValueError("Invalid body size")
+                self.connection.settimeout(10)
+                payload=json.loads(self.rfile.read(length))
+                store=learning_store.Store()
+                result=store.add(payload) if self.path.endswith("/event") else store.import_data(payload)
+                return self.reply(result)
+            except (OSError,ValueError,TypeError,KeyError,OverflowError,sqlite3.Error):
+                return self.reply({"error":"Invalid local record, conflict or storage unavailable"},400)
         if self.path == "/api/practice-save":
             if not SAVE_LOCK.acquire(blocking=False):
                 return self.reply({"error": "Save already in progress; keep the same attempt"}, 409)
@@ -275,6 +317,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply({"status": "blocked", "error": "Local tests blocked: verify fixtures, dependencies or active run."}, 409)
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO,format="%(message)s")
     with ThreadingHTTPServer((HOST, PORT), Handler) as server:
         print(f"Academy: http://{HOST}:{PORT} (Ctrl-C to stop)", flush=True)
         try:

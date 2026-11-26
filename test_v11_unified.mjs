@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const read=p=>fs.readFileSync(new URL(p,import.meta.url),'utf8');
+const bank=new Function(read('./web/interview-bank.js')+';return INTERVIEW_PRO_BANK')();
+const {hubJoin,hubCounts}=new Function(read('./web/hub.js').split('\n(() => {')[0]+';return {hubJoin,hubCounts}')();
+const manifest=JSON.parse(read('./learning/hub.json'));
+const rows=hubJoin(manifest,[],[],[],[],[],bank);
+assert.equal(hubCounts(rows).proQuestions,738);
+assert.equal(hubCounts(rows).topics,20);
+assert.ok(rows.find(r=>r.id==='postgres').proQuestions.every(q=>q.section!=='patroni'));
+assert.ok(rows.find(r=>r.id==='patroni').proQuestions.every(q=>q.section==='patroni'));
+const plan=new Function(read('./web/study-v11.js')+';return studyPlan')();
+const p=plan(bank,[],'2026-11-26',60);
+assert.equal(p.length,12);
+assert.equal(new Set(p.map(q=>q.topic)).size,12);
+assert.equal(plan([bank[0]],[{question_id:bank[0].id,score:4,due:'2026-12-01'}],'2026-11-26',60).length,0);
+assert.equal(plan([bank[0]],[{question_id:bank[0].id,score:0,due:'2026-11-26'}],'2026-11-26',60).length,1);
+console.log('Unified Pro mapping and adaptive route PASS');
