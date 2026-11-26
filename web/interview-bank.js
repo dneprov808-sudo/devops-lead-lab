@@ -70,7 +70,21 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Что произойдёт при добавлении узла? Как исключить неподходящие узлы?",
     "practice": "kubectl get daemonset; сравнить DESIRED, CURRENT, READY; проверить labels и taints узлов.",
     "rubric": "Объяснить привязку к узлам, а не фиксированному числу реплик.",
-    "source": "https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/"
+    "source": "https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/",
+    "source_prompts": [
+      {
+        "number": 26,
+        "question": "Deployment и DaemonSet, две сущности кубера, в чем разница? Какая для чего в большей степени используется?"
+      },
+      {
+        "number": 29,
+        "question": "DaemonSet что это и его практическое использование? И есть ли реплики у DaemonSet?"
+      },
+      {
+        "number": 30,
+        "question": "Что такое DaemonSet, для чего используется?"
+      }
+    ]
   },
   {
     "id": "K8S-007",
@@ -82,7 +96,25 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Почему три реплики StatefulSet не создают репликацию БД? Как влияет podManagementPolicy?",
     "practice": "Проверить DNS, имена Pod и PVC, требования протокола репликации.",
     "rubric": "Не путать оркестрацию с консенсусом или репликацией приложения.",
-    "source": "https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/"
+    "source": "https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/",
+    "source_prompts": [
+      {
+        "number": 31,
+        "question": "StatefulSet в Kubernetes: что такое, зачем надо и его особенности?"
+      },
+      {
+        "number": 32,
+        "question": "Для какого приложения станешь использовать StatefulSet и почему? Почему делают StatefulSet, а не Deployment?"
+      },
+      {
+        "number": 33,
+        "question": "Чем отличается Deployment и StatefulSet?"
+      },
+      {
+        "number": 47,
+        "question": "Расскажи про разницу между PV, PVC и StatefulSet."
+      }
+    ]
   },
   {
     "id": "K8S-008",
@@ -94,7 +126,13 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Чем restartPolicy Never отличается от OnFailure для Job? Что делать с частично выполненной транзакцией?",
     "practice": "kubectl describe job; проверить conditions, failed/succeeded, logs созданных Pod.",
     "rubric": "Объяснить deadline, backoff и семантику побочных эффектов.",
-    "source": "https://kubernetes.io/docs/concepts/workloads/controllers/job/"
+    "source": "https://kubernetes.io/docs/concepts/workloads/controllers/job/",
+    "source_prompts": [
+      {
+        "number": 35,
+        "question": "Что такое Job?"
+      }
+    ]
   },
   {
     "id": "K8S-009",
@@ -106,7 +144,13 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Что будет с долгой задачей при Forbid? Зачем startingDeadlineSeconds?",
     "practice": "Проверить расписание, active Jobs, history limits и идемпотентность операций.",
     "rubric": "Назвать область действия concurrencyPolicy и ограничения гарантий планирования.",
-    "source": "https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/"
+    "source": "https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/",
+    "source_prompts": [
+      {
+        "number": 36,
+        "question": "Какой ресурс создает Job?"
+      }
+    ]
   },
   {
     "id": "K8S-010",
@@ -178,7 +222,13 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Может ли Guaranteed Pod быть evicted? Как QoS связан с memory OOM?",
     "practice": "kubectl get pod -o jsonpath='{.status.qosClass}'; проверить node conditions и reason termination.",
     "rubric": "Назвать условия классов и не смешивать eviction, OOM и preemption.",
-    "source": "https://kubernetes.io/docs/concepts/workloads/pods/pod-qos/"
+    "source": "https://kubernetes.io/docs/concepts/workloads/pods/pod-qos/",
+    "source_prompts": [
+      {
+        "number": 76,
+        "question": "Какие есть ограничения ресурсов в кубе (QoS)?"
+      }
+    ]
   },
   {
     "id": "K8S-016",
@@ -190,7 +240,17 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Чем NoSchedule отличается от NoExecute? Как запретить случайное размещение на обычных узлах?",
     "practice": "kubectl describe node; сравнить taints, tolerations, required nodeAffinity и events.",
     "rubric": "Объяснить разрешение против требования; различить эффекты taint.",
-    "source": "https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/"
+    "source": "https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/",
+    "source_prompts": [
+      {
+        "number": 13,
+        "question": "Что такое taint?"
+      },
+      {
+        "number": 90,
+        "question": "Можно ли как-нибудь сделать так, чтобы поды всегда на определенную ноду попадали?"
+      }
+    ]
   },
   {
     "id": "K8S-017",
@@ -250,7 +310,21 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Почему headless Service не заменяет discovery протокол БД? Как publishNotReadyAddresses меняет поведение?",
     "practice": "Проверить DNS A/AAAA и EndpointSlice; протестировать смену Pod IP.",
     "rubric": "Объяснить endpoint discovery и обязанности клиента.",
-    "source": "https://kubernetes.io/docs/concepts/services-networking/service/"
+    "source": "https://kubernetes.io/docs/concepts/services-networking/service/",
+    "source_prompts": [
+      {
+        "number": 56,
+        "question": "Сервис типа ClusterIP со значением `None` — это что за сервис? Что реализует эти сервисы в кубере?"
+      },
+      {
+        "number": 57,
+        "question": "Что такое Headless Service и для чего используется?"
+      },
+      {
+        "number": 58,
+        "question": "Что такое Headless Service?"
+      }
+    ]
   },
   {
     "id": "K8S-022",
@@ -274,7 +348,13 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Как доказать default-deny без остановки production? Почему нужна отдельная DNS policy?",
     "practice": "На учебном namespace проверить разрешённый и запрещённый TCP-запросы, labels и DNS.",
     "rubric": "Различать API и dataplane; объяснить additive allow и scope policy.",
-    "source": "https://kubernetes.io/docs/concepts/services-networking/network-policies/"
+    "source": "https://kubernetes.io/docs/concepts/services-networking/network-policies/",
+    "source_prompts": [
+      {
+        "number": 67,
+        "question": "Как можно ограничить сетевое взаимодействие между namespace?"
+      }
+    ]
   },
   {
     "id": "K8S-024",
@@ -310,7 +390,17 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Что означает Pending PVC? Где определены reclaimPolicy и volumeBindingMode?",
     "practice": "kubectl get pvc,pv,storageclass; kubectl describe pvc; проверить provisioner и events.",
     "rubric": "Разделять запрос, объект тома и правила provisioning.",
-    "source": "https://kubernetes.io/docs/concepts/storage/persistent-volumes/"
+    "source": "https://kubernetes.io/docs/concepts/storage/persistent-volumes/",
+    "source_prompts": [
+      {
+        "number": 45,
+        "question": "PV (PersistentVolume) и PVC (PersistentVolumeClaim): что это такое, что используется для stateful-приложений?"
+      },
+      {
+        "number": 52,
+        "question": "Что такое StorageClass?"
+      }
+    ]
   },
   {
     "id": "K8S-027",
@@ -466,7 +556,13 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Как учитывать длинные соединения? Когда остановить эксперимент при малой выборке?",
     "practice": "В изолированном стенде измерить долю запросов по версии и ошибки каждой группы.",
     "rubric": "Различать реплики и вес трафика, предусмотреть измерения и rollback.",
-    "source": "https://kubernetes.io/docs/concepts/workloads/management/"
+    "source": "https://kubernetes.io/docs/concepts/workloads/management/",
+    "source_prompts": [
+      {
+        "number": 113,
+        "question": "Расскажите, как бы вы настраивали канареечные релизы."
+      }
+    ]
   },
   {
     "id": "K8S-040",
@@ -538,7 +634,17 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Как отличить нехватку ресурсов от невозможной конфигурации? Что если Pod запрашивает 64 CPU, а самый большой узел имеет 32?",
     "practice": "Сопоставить scheduler events, допустимые node groups, allocatable и limits пула.",
     "rubric": "Отличать HPA и масштабирование узлов; не сводить любой Pending к capacity.",
-    "source": "https://kubernetes.io/docs/concepts/cluster-administration/node-autoscaling/"
+    "source": "https://kubernetes.io/docs/concepts/cluster-administration/node-autoscaling/",
+    "source_prompts": [
+      {
+        "number": 78,
+        "question": "Как бы вы реализовали проблему с нехваткой ресурсов в кластере?"
+      },
+      {
+        "number": 96,
+        "question": "Что если под находится в состоянии `Pending`?"
+      }
+    ]
   },
   {
     "id": "K8S-046",
@@ -586,7 +692,17 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Можно ли выбрать Pod по annotation обычным label selector? Почему уникальный request ID не стоит помещать в label метрик?",
     "practice": "kubectl get pods -l app=demo; сравнить labels и annotations в YAML объекта.",
     "rubric": "Различать выборку, метаданные и последствия изменения selector.",
-    "source": "https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/"
+    "source": "https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/",
+    "source_prompts": [
+      {
+        "number": 88,
+        "question": "Что такое `labels` и `selectors`?"
+      },
+      {
+        "number": 89,
+        "question": "Отличие `label` и `selector`?"
+      }
+    ]
   },
   {
     "id": "K8S-050",
@@ -598,7 +714,13 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Как безопасно удалить старую served version? Где проверять status.storedVersions?",
     "practice": "На тестовой CRD проверить served/storage, round-trip conversion и миграцию существующих объектов.",
     "rubric": "Различать served и storage, учитывать старые клиенты и потерю данных при преобразовании.",
-    "source": "https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definition-versioning/"
+    "source": "https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definition-versioning/",
+    "source_prompts": [
+      {
+        "number": 124,
+        "question": "CRD и операторы."
+      }
+    ]
   },
   {
     "id": "K8S-051",
@@ -610,7 +732,13 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Как избежать повторного создания внешней БД после таймаута API? Что должно храниться в status и finalizer?",
     "practice": "В учебном операторе прервать процесс между внешним действием и обновлением status; проверить отсутствие дублей после рестарта.",
     "rubric": "Объяснить crash consistency, idempotency key и reconciliation по наблюдаемому состоянию.",
-    "source": "https://kubernetes.io/docs/concepts/extend-kubernetes/operator/"
+    "source": "https://kubernetes.io/docs/concepts/extend-kubernetes/operator/",
+    "source_prompts": [
+      {
+        "number": 123,
+        "question": "Что такое оператор, для чего нужен?"
+      }
+    ]
   },
   {
     "id": "K8S-052",
@@ -622,7 +750,13 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Почему статус в kubectl get pods не всегда равен phase? Какие логи смотреть после рестарта?",
     "practice": "kubectl describe pod demo; kubectl logs demo -c app --previous; проверить waiting/terminated state.",
     "rubric": "Различить запуск и загрузку, выбирать правильный источник диагностики.",
-    "source": "https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/"
+    "source": "https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/",
+    "source_prompts": [
+      {
+        "number": 97,
+        "question": "Что если под находится в состоянии `CrashLoopBackOff`?"
+      }
+    ]
   },
   {
     "id": "K8S-053",
@@ -634,7 +768,13 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Как посмотреть предыдущий запуск init container? Что изменится для native sidecar?",
     "practice": "kubectl describe pod demo; kubectl logs demo -c init-db --previous; проверить initContainerStatuses.",
     "rubric": "Различать обычный init и restartable sidecar, опираться на статус конкретного контейнера.",
-    "source": "https://kubernetes.io/docs/concepts/workloads/pods/init-containers/"
+    "source": "https://kubernetes.io/docs/concepts/workloads/pods/init-containers/",
+    "source_prompts": [
+      {
+        "number": 98,
+        "question": "Что такое `init container`? Для чего он нужен?"
+      }
+    ]
   },
   {
     "id": "K8S-054",
@@ -1066,7 +1206,13 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Чем FailedCreatePodSandBox отличается от FailedMount? Почему Docker CLI может не показать контейнеры Kubernetes?",
     "practice": "На учебном узле проверить kubectl describe pod, crictl pods/ps и логи kubelet/CNI/CSI.",
     "rubric": "Различить три интерфейса и диагностировать конкретный этап lifecycle.",
-    "source": "https://kubernetes.io/docs/setup/production-environment/container-runtimes/"
+    "source": "https://kubernetes.io/docs/setup/production-environment/container-runtimes/",
+    "source_prompts": [
+      {
+        "number": 66,
+        "question": "Container Network Interface (CNI)."
+      }
+    ]
   },
   {
     "id": "K8S-090",
@@ -1174,7 +1320,13 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Как меняется запас при одновременном rollout с maxSurge=2? Что если storage привязан к отказавшей зоне?",
     "practice": "Составить таблицу capacity по пулам и проверить размещение и нагрузку при симулированном отказе.",
     "rubric": "Рассчитать запас и учесть topology, время восстановления и неопределённость реальной нагрузки.",
-    "source": "https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/"
+    "source": "https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/",
+    "source_prompts": [
+      {
+        "number": 81,
+        "question": "Если у тебя high-availability приложение, как ты будешь реализовывать скейлинг приложений в кластере?"
+      }
+    ]
   },
   {
     "id": "K8S-099",
@@ -1210,7 +1362,33 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Чем worker отличается от control plane? Где хранится состояние?",
     "practice": "kubectl get nodes -o wide; kubectl get pods -n kube-system; на учебном узле проверить службы kubelet и runtime.",
     "rubric": "Разделить control plane и worker, назвать API server, etcd, scheduler, controllers, kubelet и runtime.",
-    "source": "https://kubernetes.io/docs/concepts/architecture/"
+    "source": "https://kubernetes.io/docs/concepts/architecture/",
+    "source_prompts": [
+      {
+        "number": 1,
+        "question": "Из чего состоит Kubernetes (архитектура)?"
+      },
+      {
+        "number": 2,
+        "question": "Что такое кластер Kubernetes?"
+      },
+      {
+        "number": 3,
+        "question": "Из чего состоит кластер и для чего?"
+      },
+      {
+        "number": 4,
+        "question": "Что такое master-ноды и worker-ноды?"
+      },
+      {
+        "number": 6,
+        "question": "Где хранится состояние кластера?"
+      },
+      {
+        "number": 11,
+        "question": "Расскажи, какие процессы запущены на worker-нодах?"
+      }
+    ]
   },
   {
     "id": "K8S-102",
@@ -1222,7 +1400,17 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Что дают два члена etcd? Можно ли иметь два API server с отдельным etcd из трёх?",
     "practice": "На тестовой схеме рассчитать кворум для 1, 2, 3 и 5 членов etcd.",
     "rubric": "Не смешивать число API server и quorum etcd; объяснить почему 2 члена не выдерживают потерю одного.",
-    "source": "https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/ha-topology/"
+    "source": "https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/ha-topology/",
+    "source_prompts": [
+      {
+        "number": 5,
+        "question": "Сколько master-нод в кластере должно быть и почему?"
+      },
+      {
+        "number": 7,
+        "question": "Что такое etcd?"
+      }
+    ]
   },
   {
     "id": "K8S-103",
@@ -1234,7 +1422,13 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Как проверить состояние kubelet и runtime? Что такое Node Lease?",
     "practice": "На локальном стенде: systemctl status kubelet; journalctl -u kubelet; crictl ps -a.",
     "rubric": "Назвать обязанности агента узла, CRI и обратную связь с API.",
-    "source": "https://kubernetes.io/docs/concepts/architecture/nodes/"
+    "source": "https://kubernetes.io/docs/concepts/architecture/nodes/",
+    "source_prompts": [
+      {
+        "number": 8,
+        "question": "Что за компонент Kubelet?"
+      }
+    ]
   },
   {
     "id": "K8S-104",
@@ -1246,7 +1440,17 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Почему нельзя ответить, что DaemonSet всегда обходит scheduler? Что такое mirror Pod?",
     "practice": "Сравнить обычный Deployment, DaemonSet и static Pod на учебной схеме; проверить nodeName.",
     "rubric": "Не путать создание Pod, назначение узла и запуск контейнера.",
-    "source": "https://kubernetes.io/docs/concepts/workloads/pods/static-pods/"
+    "source": "https://kubernetes.io/docs/concepts/workloads/pods/static-pods/",
+    "source_prompts": [
+      {
+        "number": 9,
+        "question": "Чем отличается Scheduler от controller-manager?"
+      },
+      {
+        "number": 10,
+        "question": "Для какой абстракции не нужен Kube-scheduler?"
+      }
+    ]
   },
   {
     "id": "K8S-105",
@@ -1258,7 +1462,13 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Как taint отличается от label? Какие риски несёт перегрузка API/etcd?",
     "practice": "На выделенном стенде проверить kubectl describe node и tolerations Pod, не снимать taint с production.",
     "rubric": "Объяснить разрешение, а не необходимость размещения, и риск общей ёмкости.",
-    "source": "https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/"
+    "source": "https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/",
+    "source_prompts": [
+      {
+        "number": 12,
+        "question": "Можно ли размещать на master-node свои поды?"
+      }
+    ]
   },
   {
     "id": "K8S-106",
@@ -1270,7 +1480,13 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Почему после init CoreDNS может быть Pending? Как безопасно обращаться с join token?",
     "practice": "На изолированных VM выполнить официальную процедуру для установленной версии, записать команды и результаты kubectl get nodes.",
     "rubric": "Знать порядок bootstrap, CNI, join и проверку; не выдавать теорию за личный опыт.",
-    "source": "https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/"
+    "source": "https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/",
+    "source_prompts": [
+      {
+        "number": 14,
+        "question": "Работали ли вы с kubeadm и как с помощью него развернуть кластер?"
+      }
+    ]
   },
   {
     "id": "K8S-107",
@@ -1282,7 +1498,29 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Почему два контейнера одного Pod общаются через localhost? Что изменится при пересоздании Pod?",
     "practice": "На учебном Pod проверить metadata.uid, status.podIP и связь контейнеров через localhost.",
     "rubric": "Различать Pod и container, общий network namespace и изменяемую идентичность.",
-    "source": "https://kubernetes.io/docs/concepts/workloads/pods/"
+    "source": "https://kubernetes.io/docs/concepts/workloads/pods/",
+    "source_prompts": [
+      {
+        "number": 15,
+        "question": "В чем разница между подом и контейнером?"
+      },
+      {
+        "number": 16,
+        "question": "Что такое pod, для чего он нужен?"
+      },
+      {
+        "number": 17,
+        "question": "Что такое под?"
+      },
+      {
+        "number": 21,
+        "question": "Что есть уникального в каждом поде?"
+      },
+      {
+        "number": 117,
+        "question": "Если мы запускаем приложение в контейнере, какой-то микросервис, чем будет отличаться под в данном случае?"
+      }
+    ]
   },
   {
     "id": "K8S-108",
@@ -1294,7 +1532,21 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Почему не помещать независимые frontend и database в один Pod? Все ли контейнеры должны работать постоянно?",
     "practice": "Сравнить Pod с init container и двумя app containers; изучить containerStatuses.",
     "rubric": "Объяснить единицу масштабирования, совместный lifecycle и отличия init/sidecar.",
-    "source": "https://kubernetes.io/docs/concepts/workloads/pods/"
+    "source": "https://kubernetes.io/docs/concepts/workloads/pods/",
+    "source_prompts": [
+      {
+        "number": 18,
+        "question": "Сколько контейнеров принято совать в под и почему?"
+      },
+      {
+        "number": 19,
+        "question": "Сколько может быть контейнеров внутри пода? Будут ли они работать на постоянке?"
+      },
+      {
+        "number": 20,
+        "question": "Какие случаи justify (оправдывают) несколько контейнеров в поде?"
+      }
+    ]
   },
   {
     "id": "K8S-109",
@@ -1306,7 +1558,37 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Что создаётся при изменении Pod template Deployment? Какой ресурс создаёт Job по расписанию?",
     "practice": "kubectl get deployment,rs,pod -n demo; проверить ownerReferences; сравнить с CronJob.",
     "rubric": "Назвать цепочки Deployment→ReplicaSet→Pod и CronJob→Job→Pod.",
-    "source": "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/"
+    "source": "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/",
+    "source_prompts": [
+      {
+        "number": 22,
+        "question": "Какие есть объекты, которые создают поды?"
+      },
+      {
+        "number": 23,
+        "question": "Какие ты знаешь ресурсы, которыми можно создать под?"
+      },
+      {
+        "number": 24,
+        "question": "Какой самый популярный ресурс для создания подов?"
+      },
+      {
+        "number": 25,
+        "question": "Какие есть сущности для управления подами?"
+      },
+      {
+        "number": 27,
+        "question": "Когда создаешь сущность Deployment, что у тебя происходит? Кого он за собой тащит?"
+      },
+      {
+        "number": 28,
+        "question": "Чем отличаются Deployment и ReplicaSet? Почему мы не используем ReplicaSet, если по сути Deployment просто повторяет его функционал?"
+      },
+      {
+        "number": 34,
+        "question": "Отличие ReplicaSet, Deployment, StatefulSet и DaemonSet?"
+      }
+    ]
   },
   {
     "id": "K8S-110",
@@ -1318,7 +1600,17 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Могут ли два Service иметь одинаковое имя? Почему нельзя полагаться только на namespace для security isolation?",
     "practice": "kubectl api-resources --namespaced=true; kubectl api-resources --namespaced=false.",
     "rubric": "Различать namespaced и cluster-scoped ресурсы; не обещать изоляцию по одному namespace.",
-    "source": "https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/"
+    "source": "https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/",
+    "source_prompts": [
+      {
+        "number": 37,
+        "question": "Что такое namespace, для чего нужен? И почему не складывают все в один namespace?"
+      },
+      {
+        "number": 38,
+        "question": "Что такое namespace?"
+      }
+    ]
   },
   {
     "id": "K8S-111",
@@ -1330,7 +1622,17 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Почему status обычно не задают вручную? Как проверить доступность API версии и поля?",
     "practice": "kubectl api-resources; kubectl api-versions; kubectl explain deployment.spec; server-side dry-run в учебном namespace.",
     "rubric": "Назвать поля и отличить API group/version от версии Kubernetes или приложения.",
-    "source": "https://kubernetes.io/docs/concepts/overview/working-with-objects/"
+    "source": "https://kubernetes.io/docs/concepts/overview/working-with-objects/",
+    "source_prompts": [
+      {
+        "number": 39,
+        "question": "Какие типы apiVersion существуют?"
+      },
+      {
+        "number": 41,
+        "question": "Какие есть ключи у yaml-деплоймента в самом верху?"
+      }
+    ]
   },
   {
     "id": "K8S-112",
@@ -1342,7 +1644,17 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Какие данные нельзя класть в Git? Как ротация влияет на env и volume?",
     "practice": "Создать только синтетические ConfigMap и Secret в локальном namespace; проверить ссылки envFrom и volume без вывода значения.",
     "rubric": "Назвать назначение, способы передачи и ограничения безопасности.",
-    "source": "https://kubernetes.io/docs/concepts/configuration/secret/"
+    "source": "https://kubernetes.io/docs/concepts/configuration/secret/",
+    "source_prompts": [
+      {
+        "number": 42,
+        "question": "Чем отличается Secret от ConfigMap?"
+      },
+      {
+        "number": 43,
+        "question": "Что такое секреты и ConfigMap, разница, где хранить секреты, какие данные в Secrets, как монтируются?"
+      }
+    ]
   },
   {
     "id": "K8S-113",
@@ -1354,7 +1666,13 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Чем Agent Injector отличается от CSI? Как избежать постоянного Vault token в образе?",
     "practice": "На изолированном Vault стенде описать role, policy и синтетический secret; проверить отказ чужой identity и ротацию.",
     "rubric": "Объяснить identity, доставку, TTL, ограничения и failover без вывода секретов.",
-    "source": "https://developer.hashicorp.com/vault/docs/deploy/kubernetes/comparisons"
+    "source": "https://developer.hashicorp.com/vault/docs/deploy/kubernetes/comparisons",
+    "source_prompts": [
+      {
+        "number": 44,
+        "question": "Хранение секретов в Kubernetes (Vault)."
+      }
+    ]
   },
   {
     "id": "K8S-114",
@@ -1366,7 +1684,29 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Можно ли приложению указать PV вместо PVC напрямую в Pod? Чем Filesystem отличается от Block?",
     "practice": "Проверить volumeMode и accessModes тестового PVC; сравнить volumeMounts и volumeDevices в документации.",
     "rubric": "Различать volume API, тип backend, режим доступа и жизненный цикл данных.",
-    "source": "https://kubernetes.io/docs/concepts/storage/persistent-volumes/"
+    "source": "https://kubernetes.io/docs/concepts/storage/persistent-volumes/",
+    "source_prompts": [
+      {
+        "number": 46,
+        "question": "Для Stateful-приложений нужен PVC или можно сразу PV?"
+      },
+      {
+        "number": 48,
+        "question": "Что такое Volume в кубере?"
+      },
+      {
+        "number": 49,
+        "question": "Был ли опыт организации хранилища для Kubernetes?"
+      },
+      {
+        "number": 50,
+        "question": "Типы файловых хранилищ в кубере."
+      },
+      {
+        "number": 51,
+        "question": "Чем отличается блочное хранилище от файлового?"
+      }
+    ]
   },
   {
     "id": "K8S-115",
@@ -1378,7 +1718,25 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Почему LoadBalancer может оставаться Pending на bare metal? Что отличается у ExternalName?",
     "practice": "На локальном кластере посмотреть kubectl get svc -o wide и проверить DNS для тестового ExternalName.",
     "rubric": "Назвать четыре типа, отличить headless и потребность в LB implementation.",
-    "source": "https://kubernetes.io/docs/concepts/services-networking/service/"
+    "source": "https://kubernetes.io/docs/concepts/services-networking/service/",
+    "source_prompts": [
+      {
+        "number": 53,
+        "question": "Виды сервисов в кубе?"
+      },
+      {
+        "number": 54,
+        "question": "Какие типы Kubernetes сервисов ты знаешь?"
+      },
+      {
+        "number": 55,
+        "question": "Четыре типа Сервисов в Kubernetes, какие есть, что дают? (ClusterIP, NodePort, LoadBalancer, ExternalName)."
+      },
+      {
+        "number": 59,
+        "question": "Варианты, как можно выкинуть приложения наружу?"
+      }
+    ]
   },
   {
     "id": "K8S-116",
@@ -1390,7 +1748,33 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Как установить контроллер в локальном стенде? Где завершается TLS? Почему 502 и 504 требуют разных проверок?",
     "practice": "Использовать учебный controller и Service; проверить curl с корректным Host, events и access/error logs.",
     "rubric": "Различать ресурс, controller и реальный путь трафика; не выдавать конкретную реализацию за универсальную.",
-    "source": "https://kubernetes.io/docs/concepts/services-networking/ingress/"
+    "source": "https://kubernetes.io/docs/concepts/services-networking/ingress/",
+    "source_prompts": [
+      {
+        "number": 60,
+        "question": "Если ты хочешь запустить трафик в Kubernetes извне, какие ты можешь использовать механизмы?"
+      },
+      {
+        "number": 61,
+        "question": "Что такое Ingress, NGINX и Traefik?"
+      },
+      {
+        "number": 62,
+        "question": "С какими Ingress приходилось работать?"
+      },
+      {
+        "number": 63,
+        "question": "Какие были проблемы в использовании Nginx и Traefik?"
+      },
+      {
+        "number": 64,
+        "question": "На твоем опыте, как был организован процесс отхода трафика на хост и как он попадал в Ingress?"
+      },
+      {
+        "number": 65,
+        "question": "Как был развернут Ingress Controller?"
+      }
+    ]
   },
   {
     "id": "K8S-117",
@@ -1402,7 +1786,17 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Почему равное число соединений не равно равной нагрузке? Чем L4 LB отличается от L7?",
     "practice": "В локальном тесте сравнить количество запросов и соединений на двух backend; проверить конфигурацию выбранного proxy.",
     "rubric": "Не обещать конкретный алгоритм для любого Service; объяснить критерии выбора.",
-    "source": "https://kubernetes.io/docs/reference/networking/virtual-ips/"
+    "source": "https://kubernetes.io/docs/reference/networking/virtual-ips/",
+    "source_prompts": [
+      {
+        "number": 68,
+        "question": "Какие алгоритмы балансировки вы знаете?"
+      },
+      {
+        "number": 69,
+        "question": "Какие LoadBalancer'ы знаешь, с какими работаешь?"
+      }
+    ]
   },
   {
     "id": "K8S-118",
@@ -1414,7 +1808,13 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Как обратиться к Service в другом namespace? Что поместить в values.yaml?",
     "practice": "Развернуть два учебных приложения, выполнить HTTP-запрос из первого к DNS имени второго.",
     "rubric": "Различать image, Pod, Service, DNS и способ доставки Helm.",
-    "source": "https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/"
+    "source": "https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/",
+    "source_prompts": [
+      {
+        "number": 70,
+        "question": "У нас получились 2 image, и мы их размещаем в Kubernetes, как эти два image взаимодействуют между собой, что им нужно для этого, без и с Helm-чартами?"
+      }
+    ]
   },
   {
     "id": "K8S-119",
@@ -1426,7 +1826,29 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Что произойдёт при достижении CPU и memory limits? Как подобрать requests без статистики?",
     "practice": "В тестовом namespace проверить requests/limits, события scheduling и container termination reason.",
     "rubric": "Отличать планирование, фактическое потребление и enforcement; не утверждать, что CPU limit вызывает OOM.",
-    "source": "https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/"
+    "source": "https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/",
+    "source_prompts": [
+      {
+        "number": 71,
+        "question": "Как ограничить ресурсы контейнеру?"
+      },
+      {
+        "number": 72,
+        "question": "Основные два типа ресурсов в манифесте?"
+      },
+      {
+        "number": 73,
+        "question": "Минусы `request` ограничения."
+      },
+      {
+        "number": 74,
+        "question": "Допустим, у нас `limit` и `request` разный, и в кластере ресурсов меньше, чем в лимите. Даст ли нам выложить pod в кластер?"
+      },
+      {
+        "number": 75,
+        "question": "Что произойдет, если приложение дойдет до лимита памяти для контейнера? Что произойдет, если дойдет до лимита CPU?"
+      }
+    ]
   },
   {
     "id": "K8S-120",
@@ -1438,7 +1860,13 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Можно ли гарантировать порядок только по QoS? Как отличить Evicted от OOMKilled?",
     "practice": "На учебном стенде сравнить requests, priorityClassName, node conditions и Pod status.",
     "rubric": "Не угадывать порядок без requests и priority; различать eviction и OOM.",
-    "source": "https://kubernetes.io/docs/concepts/scheduling-eviction/node-pressure-eviction/"
+    "source": "https://kubernetes.io/docs/concepts/scheduling-eviction/node-pressure-eviction/",
+    "source_prompts": [
+      {
+        "number": 77,
+        "question": "В сети три разных приложения, каждое из них потребляет 1000 memory, и на ноде начинает расти потребление памяти. В каком порядке к ним придет Kubernetes и начнет их рестартовывать?"
+      }
+    ]
   },
   {
     "id": "K8S-121",
@@ -1450,7 +1878,21 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Как ограничить NodePool и риск disruption? Почему автоскейлинг не исправляет ошибочную affinity?",
     "practice": "На локальной схеме проследить Pod Pending → требования к узлу → NodeClaim; для практики не подключать платный cloud.",
     "rubric": "Различить replicas, requests и nodes; назвать provider-specific ограничения.",
-    "source": "https://karpenter.sh/docs/concepts/nodeclaims/"
+    "source": "https://karpenter.sh/docs/concepts/nodeclaims/",
+    "source_prompts": [
+      {
+        "number": 79,
+        "question": "HPA и VPA."
+      },
+      {
+        "number": 80,
+        "question": "Использовался ли автоскейлинг, HPA/VPA?"
+      },
+      {
+        "number": 86,
+        "question": "Что такое Karpenter?"
+      }
+    ]
   },
   {
     "id": "K8S-122",
@@ -1462,7 +1904,25 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Чем scalability отличается от HA? Почему scale up не всегда лучше scale out?",
     "practice": "Составить capacity sheet на основе измеренного throughput, p99 и requests; сравнить два типа узлов.",
     "rubric": "Не придумывать точные ресурсы без данных, различать масштабирование и доступность.",
-    "source": "https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/"
+    "source": "https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/",
+    "source_prompts": [
+      {
+        "number": 82,
+        "question": "Что такое scaleability и high-availability?"
+      },
+      {
+        "number": 83,
+        "question": "Как определить размер одной ноды?"
+      },
+      {
+        "number": 84,
+        "question": "Как определить ресурс, который необходим одной ноде, не зная характеристик кластера?"
+      },
+      {
+        "number": 85,
+        "question": "Как первоначально оценить, не зная как приложение работает, нагрузкой размер ноды в Kubernetes (по памяти, по процессам и ресурсам)?"
+      }
+    ]
   },
   {
     "id": "K8S-123",
@@ -1474,7 +1934,13 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "На каком этапе появляются FailedScheduling, FailedMount и ImagePullBackOff? Чем Running отличается от Ready?",
     "practice": "На учебном Deployment проследить events, ownerReferences, nodeName, containerStatuses и EndpointSlice.",
     "rubric": "Объяснить последовательность API→контроллер→scheduler→kubelet→readiness без обещания строго синхронных операций.",
-    "source": "https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/"
+    "source": "https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/",
+    "source_prompts": [
+      {
+        "number": 87,
+        "question": "Как создается под, весь процесс?"
+      }
+    ]
   },
   {
     "id": "K8S-124",
@@ -1486,7 +1952,17 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Чем nodeAffinity отличается от podAntiAffinity? Что выбрать при дефиците capacity?",
     "practice": "На учебном кластере с двумя worker сравнить размещение и FailedScheduling при одном worker.",
     "rubric": "Назвать topologyKey, hard/soft constraint и компромисс доступности.",
-    "source": "https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/"
+    "source": "https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/",
+    "source_prompts": [
+      {
+        "number": 91,
+        "question": "Тебе нужно поднять контейнер в двух репликах, только чтобы они не встретились в одной и той же ноде (узле)."
+      },
+      {
+        "number": 92,
+        "question": "Что такое affinity и anti-affinity?"
+      }
+    ]
   },
   {
     "id": "K8S-125",
@@ -1498,7 +1974,21 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Почему liveness не должна зависеть от доступности общей БД? Как выбрать пороги?",
     "practice": "На тестовом Pod изменить readiness endpoint и отдельно вызвать liveness failure, сравнить restartCount и EndpointSlice.",
     "rubric": "Различать последствия всех трёх probes, не смешивать рестарт и исключение трафика.",
-    "source": "https://kubernetes.io/docs/concepts/configuration/liveness-readiness-startup-probes/"
+    "source": "https://kubernetes.io/docs/concepts/configuration/liveness-readiness-startup-probes/",
+    "source_prompts": [
+      {
+        "number": 93,
+        "question": "Какие типы проб ты знаешь?"
+      },
+      {
+        "number": 94,
+        "question": "Как работают пробы в Kubernetes?"
+      },
+      {
+        "number": 95,
+        "question": "Что произойдет, если под не пройдет одну из этих проб?"
+      }
+    ]
   },
   {
     "id": "K8S-126",
@@ -1510,7 +2000,13 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Почему нельзя бездумно удалить все Pod kube-system? Как определить компонент, управляющий Pod?",
     "practice": "kubectl get pods -n kube-system -o wide; проверить ownerReferences, events и логи конкретного компонента.",
     "rubric": "Объяснить назначение, различать системные workload и пользовательские приложения.",
-    "source": "https://kubernetes.io/docs/concepts/architecture/"
+    "source": "https://kubernetes.io/docs/concepts/architecture/",
+    "source_prompts": [
+      {
+        "number": 99,
+        "question": "Что такое system pods?"
+      }
+    ]
   },
   {
     "id": "K8S-127",
@@ -1522,7 +2018,25 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Чем helm template отличается от helm install? Почему values для dev и prod должны быть управляемыми?",
     "practice": "На локальном chart выполнить helm lint и helm template demo ./chart -f values.yaml.",
     "rubric": "Различать package, rendered manifests и установленный release.",
-    "source": "https://helm.sh/docs/intro/using_helm/"
+    "source": "https://helm.sh/docs/intro/using_helm/",
+    "source_prompts": [
+      {
+        "number": 100,
+        "question": "Что такое Helm? Для чего он нужен?"
+      },
+      {
+        "number": 101,
+        "question": "Что такое Helm Chart? Для чего?"
+      },
+      {
+        "number": 102,
+        "question": "Что дает нам Helm в Kuber, в чем его неоспоримый плюс?"
+      },
+      {
+        "number": 103,
+        "question": "Писал ли хелмчарты?"
+      }
+    ]
   },
   {
     "id": "K8S-128",
@@ -1534,7 +2048,13 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Чем helm history отличается от истории Deployment? Как проверить backend установленной версии Helm?",
     "practice": "helm history demo -n demo; helm list -n demo; проверить только metadata release Secrets.",
     "rubric": "Назвать default backend с оговоркой версии, риск секретов и отличия историй.",
-    "source": "https://helm.sh/docs/intro/using_helm/"
+    "source": "https://helm.sh/docs/intro/using_helm/",
+    "source_prompts": [
+      {
+        "number": 104,
+        "question": "Где Helm хранит данные о релизе?"
+      }
+    ]
   },
   {
     "id": "K8S-129",
@@ -1546,7 +2066,13 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Что делать при несовместимой БД? Как избежать повторного использования изменяемого image tag?",
     "practice": "На учебном release вызвать ошибку обновления и откатить к предыдущей revision; проверить HTTP и историю.",
     "rubric": "Отличать возврат manifest от восстановления данных, требовать проверку сервиса.",
-    "source": "https://helm.sh/docs/helm/helm_rollback/"
+    "source": "https://helm.sh/docs/helm/helm_rollback/",
+    "source_prompts": [
+      {
+        "number": 105,
+        "question": "У нас закатился Helm-релиз, и сами поды не работают, и нам нужно откатить на версию раньше. Как бы ты сделал?"
+      }
+    ]
   },
   {
     "id": "K8S-130",
@@ -1558,7 +2084,13 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Как проверить ownership? Почему аннотация helm.sh/resource-policy: keep меняет ожидания?",
     "practice": "В выделенном namespace отрендерить обе версии, проверить diff и upgrade, убедиться, что альтернативный маршрут работает.",
     "rubric": "Объяснить изменение desired state, влияние на трафик и правила удаления.",
-    "source": "https://helm.sh/docs/intro/using_helm/"
+    "source": "https://helm.sh/docs/intro/using_helm/",
+    "source_prompts": [
+      {
+        "number": 106,
+        "question": "Если мне нужно убрать что-то из деплоймента, и все запускалось через Helm, но мы отказались от Ingress. Твои действия, как ты будешь делать обновление?"
+      }
+    ]
   },
   {
     "id": "K8S-131",
@@ -1570,7 +2102,17 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Как избежать утечки Secret в dry-run? Когда нужен ручной approval?",
     "practice": "На локальном стенде подготовить helmfile template/diff и безопасный pipeline без production credentials.",
     "rubric": "Различать Helm, Helmfile, CI/CD и GitOps; предусмотреть безопасность и rollback.",
-    "source": "https://helmfile.readthedocs.io/en/stable/"
+    "source": "https://helmfile.readthedocs.io/en/stable/",
+    "source_prompts": [
+      {
+        "number": 107,
+        "question": "Как автоматически деплоить Helm?"
+      },
+      {
+        "number": 108,
+        "question": "Что такое Helmfile? Для чего?"
+      }
+    ]
   },
   {
     "id": "K8S-132",
@@ -1582,7 +2124,25 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Почему kubectl set image может конфликтовать с GitOps? Чем Recreate рискует для доступности?",
     "practice": "На учебном Deployment изменить image на контролируемую версию, проверить ReplicaSet и rollout history.",
     "rubric": "Назвать триггер Pod template и различать встроенные стратегии от схем доставки.",
-    "source": "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/"
+    "source": "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/",
+    "source_prompts": [
+      {
+        "number": 109,
+        "question": "Какие стратегии развертывания вы знаете?"
+      },
+      {
+        "number": 110,
+        "question": "Стратегии деплоя в Kubernetes."
+      },
+      {
+        "number": 111,
+        "question": "Что произойдет при изменении image? Как будут докатываться изменения?"
+      },
+      {
+        "number": 112,
+        "question": "Когда ты обновляешь image внутри Deployment, либо через kubectl, либо через свой деплоймент, когда ты меняешь image, что происходит? Можешь описать?"
+      }
+    ]
   },
   {
     "id": "K8S-133",
@@ -1594,7 +2154,21 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Как избежать изменения чужого namespace? Что проверить до и после deploy?",
     "practice": "В учебном context применить manifest или helm upgrade --install, затем проверить rollout status и запрос к сервису.",
     "rubric": "Не считать Helm обязательным для Kubernetes, указать конфигурацию, identity, сеть и проверку.",
-    "source": "https://kubernetes.io/docs/concepts/workloads/management/"
+    "source": "https://kubernetes.io/docs/concepts/workloads/management/",
+    "source_prompts": [
+      {
+        "number": 40,
+        "question": "Писал ли манифесты?"
+      },
+      {
+        "number": 114,
+        "question": "Как ты запустишь какое-нибудь приложение в кубере, с Helm и без Helm, только `kubectl`?"
+      },
+      {
+        "number": 115,
+        "question": "Что вообще опишешь при создании приложения?"
+      }
+    ]
   },
   {
     "id": "K8S-134",
@@ -1606,7 +2180,13 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Как доказать RPO/RTO? Что будет при потере узла с local PV?",
     "practice": "На локальной тестовой БД выполнить restore контрольных данных и измерить время; не подключать рабочую БД.",
     "rubric": "Различать запуск процесса и эксплуатацию stateful HA, учитывать данные и восстановление.",
-    "source": "https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/"
+    "source": "https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/",
+    "source_prompts": [
+      {
+        "number": 116,
+        "question": "Как развернуть PostgreSQL в Kubernetes?"
+      }
+    ]
   },
   {
     "id": "K8S-135",
@@ -1618,7 +2198,17 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Почему удаление пакета в следующем Docker layer не всегда уменьшает итоговый образ? Как проверить imageID?",
     "practice": "Сравнить размер и состав двух локально собранных образов, проверить запуск и health.",
     "rubric": "Объяснить registry/runtime cache, воспроизводимость и реальные измерения.",
-    "source": "https://kubernetes.io/docs/concepts/containers/images/"
+    "source": "https://kubernetes.io/docs/concepts/containers/images/",
+    "source_prompts": [
+      {
+        "number": 118,
+        "question": "Хранение образов в Kubernetes."
+      },
+      {
+        "number": 119,
+        "question": "Какие приемы знаешь, чтобы оптимизировать Image?"
+      }
+    ]
   },
   {
     "id": "K8S-136",
@@ -1630,7 +2220,17 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Как отличить 503 ingress от ошибки приложения? Что делать, если проблема только у одного клиента?",
     "practice": "На отдельном стенде испортить selector или readiness и собрать доказательства до исправления.",
     "rubric": "Показать последовательное исключение гипотез, безопасную mitigation и критерий восстановления.",
-    "source": "https://kubernetes.io/docs/tasks/debug/debug-application/debug-service/"
+    "source": "https://kubernetes.io/docs/tasks/debug/debug-application/debug-service/",
+    "source_prompts": [
+      {
+        "number": 120,
+        "question": "Базовый траблшутинг в Kubernetes."
+      },
+      {
+        "number": 121,
+        "question": "К вам подходит разраб и спрашивает, что его приложение недоступно. Что будешь делать?"
+      }
+    ]
   },
   {
     "id": "K8S-137",
@@ -1642,7 +2242,13 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Почему kube-state-metrics и metrics-server решают разные задачи? Как связать trace с Pod и версией релиза?",
     "practice": "На локальной инфраструктуре сравнить kubectl top, events и метрики приложения; составить SLO alert.",
     "rubric": "Различать resource metrics, состояние API объектов и прикладные SLI; не считать наличие Grafana готовым мониторингом.",
-    "source": "https://kubernetes.io/docs/tasks/debug/debug-cluster/resource-usage-monitoring/"
+    "source": "https://kubernetes.io/docs/tasks/debug/debug-cluster/resource-usage-monitoring/",
+    "source_prompts": [
+      {
+        "number": 122,
+        "question": "Observability."
+      }
+    ]
   },
   {
     "id": "K8S-138",
@@ -1654,6 +2260,16 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Как проверить доступ через kubectl auth can-i? Чем Role отличается от ServiceAccount?",
     "practice": "Создать учебный ServiceAccount с read-only RoleBinding и проверить разрешённые и запрещённые операции.",
     "rubric": "Различать authentication, authorization, identity человека и workload.",
-    "source": "https://kubernetes.io/docs/concepts/security/service-accounts/"
+    "source": "https://kubernetes.io/docs/concepts/security/service-accounts/",
+    "source_prompts": [
+      {
+        "number": 125,
+        "question": "Каким сервисом пользуешься для настройки безопасности и доступа к кластеру?"
+      },
+      {
+        "number": 126,
+        "question": "Что такое ServiceAccount в кубере, для чего?"
+      }
+    ]
   }
 ];
