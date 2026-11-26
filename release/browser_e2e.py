@@ -30,9 +30,19 @@ def main():
                 page.locator("#interview-pro-center textarea").fill("Synthetic E2E answer")
                 page.get_by_role("button",name="Показать разбор",exact=True).click()
                 expect(page.get_by_text("Подробный ответ",exact=True)).to_be_visible()
+                page.get_by_label("Самооценка").select_option("2")
+                page.get_by_label("Ошибка",exact=True).fill("synthetic gap")
+                page.get_by_role("button",name="Сохранить попытку локально").click()
+                expect(page.get_by_text("Сохранено ·",exact=False)).to_be_visible()
+                assert len(page.request.get("http://127.0.0.1:8080/api/v11/export").json()["events"])==1
                 page.locator('nav button[data-page="mock"]').click()
                 page.get_by_role("button",name="30 мин",exact=True).click()
                 expect(page.locator("#mock-center textarea")).to_be_visible()
+                page.get_by_role("button",name="Начать структурированное интервью").click()
+                page.get_by_label("Ответ структурированного интервью").fill("resumable synthetic answer")
+                page.reload(wait_until="domcontentloaded")
+                page.locator('nav button[data-page="mock"]').click()
+                expect(page.get_by_label("Ответ структурированного интервью")).to_have_value("resumable synthetic answer")
                 assert page.request.get("http://127.0.0.1:8080/api/version").json()["release"].startswith("Academy v11")
                 assert page.request.post("http://127.0.0.1:8080/api/test").status==403
                 assert page.request.get("http://127.0.0.1:8080/portal.py").status==404
