@@ -21,6 +21,29 @@ function quorum(n){
   return {required,tolerated:n-required};
 }
 function historyMatches(row,q){return matchText({module:row.module,kind:row.kind,verification:row.verification,attempt:row.attempt},q)}
+// One renderer for both the technology workspace and the reference library.
+function theoryChapters(guide, el, button, link, copyText){
+  const chapters=Array.isArray(guide.chapters)?guide.chapters:[];
+  const root=el("div",undefined,"theory-course");
+  root.append(el("h3","Учебные главы · "+chapters.length),el("p","Читай по порядку: основы → Senior → Lead. Команды — примеры для соответствующего локального стенда, не готовый скрипт; SQL и PromQL выполняются в своих клиентах. Вопросы предназначены для самопроверки.","dim"));
+  if(!chapters.length){root.append(el("p","Расширенные главы ещё не загружены.","dim"));return root;}
+  const levels={foundation:"Основы",senior:"Senior",lead:"Lead"};
+  for(const [index,c] of chapters.entries()){
+    const d=el("details",undefined,"theory-chapter");
+    d.open=index===0;
+    d.append(el("summary",String(index+1).padStart(2,"0")+" · "+c.title+" — "+(levels[c.level]||c.level)),
+      el("h4","Как это устроено"),el("p",c.explanation),
+      el("h4","Что важно в production"),el("p",c.production),
+      el("h4","Практический пример"),el("p",c.example),
+      el("h4","Примеры диагностики"),el("pre",c.commands),
+      button("Копировать пример",()=>copyText(c.commands)),
+      el("h4","Объясни самостоятельно"),el("p",c.question),
+      link("Официальная документация ↗",c.source));
+    root.append(d);
+  }
+  return root;
+}
+
 (() => {
 "use strict";
 const by=id=>document.getElementById(id);
@@ -33,9 +56,9 @@ let knowledge=[],incidents=[],history=null,active=null;
 document.querySelectorAll("[data-open-page]").forEach(b=>b.addEventListener("click",()=>page(b.dataset.openPage)));
 function renderKnowledge(){
   const rows=knowledge.filter(k=>matchText(k,by("knowledge-search").value));
-  txt("knowledge-count","Найдено: "+rows.length+" / "+knowledge.length);
+  txt("knowledge-count","Найдено: "+rows.length+" / "+knowledge.length+" направлений · "+rows.reduce((n,k)=>n+(k.chapters?.length||0),0)+" глав");
   by("knowledge-list").replaceChildren(...rows.map(k=>{
-    const d=el("details");d.append(el("summary",k.topic+" · "+k.title),el("p",k.level,"dim"),el("h3","Как это работает"),el("p",k.concept),el("h3","Диагностические команды"),el("pre",k.commands),button("Копировать команды",()=>copy(k.commands)),el("h3","Порядок диагностики"),el("p",k.diagnosis),el("h3","Типовые ошибки"),el("p",k.pitfalls),el("h3","Вопрос для самопроверки"),el("p",k.question),button("Разобрать с наставником",()=>copy("Академия: объясни тему "+k.topic+". Задай один вопрос уровня Lead: "+k.question)),el("p"),link("Официальная документация ↗",k.source));return d;
+    const d=el("details");d.append(el("summary",k.topic+" · "+k.title),el("p",k.level,"dim"),theoryChapters(k,el,button,link,copy),el("h3","Краткая памятка"),el("p",k.concept),el("h3","Диагностические команды"),el("pre",k.commands),button("Копировать команды",()=>copy(k.commands)),el("h3","Порядок диагностики"),el("p",k.diagnosis),el("h3","Типовые ошибки"),el("p",k.pitfalls),el("h3","Вопрос для самопроверки"),el("p",k.question),button("Разобрать с наставником",()=>copy("Академия: объясни тему "+k.topic+". Задай один вопрос уровня Lead: "+k.question)),el("p"),link("Официальная документация ↗",k.source));return d;
   }));
 }
 by("knowledge-search").addEventListener("input",renderKnowledge);
