@@ -84,6 +84,7 @@ function updateReading(){
  label.textContent=chapter?row.title+" · "+chapter.title:"Открой главу в каталоге технологий; здесь появится последняя выбранная.";
 }
 window.academyUpdateReading=updateReading;
+window.academyTopicRoutes=()=>rows.map(row=>({label:row.title,group:"Технологии / "+row.group,search:row.title+" "+row.id+" "+row.group+" "+row.mark,action:()=>{page("hub");openTopic(row)}}));
 by("cockpit-resume").addEventListener("click",()=>{
  const saved=readTheoryPosition();
  const row=rows.find(x=>x.guide?.id===saved?.guide&&x.guide.chapters?.some(c=>c.id===saved.chapter));
@@ -139,6 +140,7 @@ function openTopic(row){
    btn("Копировать запрос архитектурной защиты",()=>copy("Академия: проведи архитектурную защиту "+d.id+" по learning/design.json ветки academy/stable. Не раскрывай готовый ответ, задавай по одному вопросу, не меняй STATE."))
  ])):[el("p","Архитектурных упражнений пока нет.","dim")]);
  showTopicSection("theory");
+ if(k?.chapters?.length){const saved=readTheoryPosition();if(saved?.guide!==k.id||!k.chapters.some(c=>c.id===saved.chapter))saveTheoryPosition(k,k.chapters[0]);}
  by("hub-detail").scrollIntoView({behavior:"auto",block:"start"});
 }
 async function fetchArray(path){const r=await fetch(path,{cache:"no-store"});if(!r.ok)throw Error("HTTP "+r.status);const data=await r.json();if(!Array.isArray(data))throw Error("Invalid catalog");return data}
