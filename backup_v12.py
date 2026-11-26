@@ -98,6 +98,10 @@ def main():
     v.add_argument("--confirm-trusted-backup",action="store_true",required=True)
     v.add_argument("--apply",action="store_true")
     a=p.parse_args()
+    from learning_store import ROOT
+    destination=a.output if a.action=="backup" else a.destination
+    if destination.resolve().is_relative_to(ROOT) and not destination.resolve().is_relative_to(ROOT/".academy-data"):
+        p.error("Private database outputs must be outside checkout or under .academy-data")
     if a.action=="backup":
         from learning_store import Store
         Store().backup(a.output)

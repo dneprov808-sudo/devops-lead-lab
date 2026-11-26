@@ -1,6 +1,9 @@
 """Local release gate. --full requires real browser and Compose validation; no cloud."""
 import argparse, json, pathlib, subprocess, sys, time, os, tempfile, datetime as dt
-from gate_evidence import snapshot, run_check, classify, save_report
+if __package__:
+    from .gate_evidence import snapshot, run_check, classify, save_report
+else:
+    from gate_evidence import snapshot, run_check, classify, save_report
 root = pathlib.Path(__file__).resolve().parents[1]
 
 def commands(full=False,live_production=False,k8s_live=False,security=False):
@@ -32,8 +35,8 @@ def main():
     before=snapshot(root)
     if args.report and (args.report.resolve().is_relative_to(root) or args.report.exists() or not args.report.parent.is_dir()):
         parser.error("Report must be a new file outside the checkout, in an existing private directory")
-    if args.report and (before["commit"] is None or before["tracked_clean"] is not True):
-        parser.error("Evidence requires a clean tracked checkout at a known Git SHA")
+    if args.report and (before["commit"] is None or before["tracked_clean"] is not True or before["untracked_clean"] is not True):
+        parser.error("Evidence requires a clean checkout (including unignored untracked files) at a known Git SHA")
     rows=[]
     # Unit/E2E runs never inherit the user's real SQLite directory.
     with tempfile.TemporaryDirectory(prefix="academy-gate-") as tmp:
@@ -41,7 +44,7 @@ def main():
         for cmd in commands(args.full,args.live_production,args.k8s_live,args.security):
             rows.append(run_check(cmd,root,env))
     after=snapshot(root)
-    report={"schema_version":1,"created_at":dt.datetime.now(dt.timezone.utc).isoformat(),"profile":"full" if args.full else "core","commit":before["commit"],"tracked_clean":before["tracked_clean"],"same_clean_commit":before==after and before["commit"] is not None and before["tracked_clean"] is True,"python":sys.version.split()[0],"checks":rows,
+    report={"schema_version":1,"created_at":dt.datetime.now(dt.timezone.utc).isoformat(),"profile":"full" if args.full else "core","commit":before["commit"],"tracked_clean":before["tracked_clean"],"untracked_clean":before["untracked_clean"],"same_clean_commit":before==after and before["commit"] is not None and before["tracked_clean"] is True and before["untracked_clean"] is True,"python":sys.version.split()[0],"checks":rows,
                       "omitted":([] if args.full else ["real browser","Compose config"])+([] if args.live_production else ["live production light drill"])+([] if args.k8s_live else ["live Kubernetes verification"])+["HA failover drill"]+([] if args.security else ["vulnerability scanners"]),
                       "runtime_note":"Compose config is not a live service test"}
     report["status"]=classify(rows,report["same_clean_commit"],args.report is not None)

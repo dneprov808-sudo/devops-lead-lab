@@ -5,9 +5,10 @@ def snapshot(root):
     try:
         sha=subprocess.check_output(["git","rev-parse","--verify","HEAD"],cwd=root,text=True,stderr=subprocess.DEVNULL,timeout=10).strip()
         clean=subprocess.run(["git","diff","--quiet","HEAD","--"],cwd=root,stderr=subprocess.DEVNULL,timeout=20).returncode
-        return {"commit":sha if re.fullmatch(r"[a-f0-9]{40}",sha) else None,"tracked_clean":True if clean==0 else False if clean==1 else None}
+        untracked=subprocess.check_output(["git","ls-files","--others","--exclude-standard","-z"],cwd=root,stderr=subprocess.DEVNULL,timeout=20)
+        return {"untracked_clean":not bool(untracked),"commit":sha if re.fullmatch(r"[a-f0-9]{40}",sha) else None,"tracked_clean":True if clean==0 else False if clean==1 else None}
     except (OSError,subprocess.SubprocessError):
-        return {"commit":None,"tracked_clean":None}
+        return {"commit":None,"tracked_clean":None,"untracked_clean":None}
 
 def run_check(cmd,root,env,timeout=1300):
     started=time.monotonic()

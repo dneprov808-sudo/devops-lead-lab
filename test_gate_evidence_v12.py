@@ -33,5 +33,7 @@ class GateEvidence(unittest.TestCase):
             self.assertEqual(snap["commit"],git("rev-parse","HEAD"))
             self.assertIs(snap["tracked_clean"],True)
             (pathlib.Path(tmp)/"private.txt").write_text("private fixture")
+            self.assertIs(m.snapshot(tmp)["untracked_clean"],False)
+            (pathlib.Path(tmp)/"private.txt").unlink()
             self.assertEqual(m.snapshot(tmp),snap)
             p.write_text("b");self.assertIs(m.snapshot(tmp)["tracked_clean"],False)
