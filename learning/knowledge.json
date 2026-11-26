@@ -677,7 +677,42 @@
     "deep": {
       "internals": "Patroni использует DCS для координации лидерства, а PostgreSQL — потоковую репликацию. DCS не хранит сами пользовательские данные.",
       "production": "Перед failover оцени lag, состояние DCS и риск двух пишущих узлов. Асинхронная репликация допускает потерю записей."
-    }
+    },
+    "chapters": [
+      {
+        "id": "patroni-01",
+        "title": "Лидер PostgreSQL, DCS и кворум",
+        "level": "foundation",
+        "explanation": "Patroni управляет ролью экземпляров PostgreSQL, а DCS хранит распределённое состояние и лидерскую блокировку. PostgreSQL сам передаёт данные через streaming replication. etcd применяет Raft: большинство участников должно быть доступно для согласованной записи, а выбор лидера etcd не означает выбор primary PostgreSQL.",
+        "production": "Три участника etcd переносят отказ одного, пять — двух; два участника требуют обоих. DCS не содержит полную копию бизнес-таблиц. Проверяй отдельно DCS, PostgreSQL, Patroni REST API и клиентский маршрут.",
+        "example": "При потере одного etcd из трёх primary может продолжать работу; при потере большинства нельзя предполагать доступность записи.",
+        "commands": "patronictl list; etcdctl endpoint status --cluster -w table",
+        "question": "Почему три узла etcd не означают три копии PostgreSQL?",
+        "source": "https://patroni.readthedocs.io/en/latest/"
+      },
+      {
+        "id": "patroni-02",
+        "title": "Failover, switchover и защита от split brain",
+        "level": "senior",
+        "explanation": "Switchover — плановое переключение, failover — реакция на отказ. Patroni оценивает leader lock, пригодность кандидата и параметры репликации. Старый primary должен перестать принимать запись до появления нового; иначе две истории WAL могут разойтись. Fencing, watchdog и правильное управление доступом ограничивают этот риск.",
+        "production": "При потере DCS поведение зависит от режима и версии Patroni; в failsafe mode сохранение primary допустимо лишь при выполнении специальных условий связи с известными членами. Не форсируй promotion для восстановления зелёного статуса.",
+        "example": "После сетевой изоляции клиент всё ещё подключён к старому primary. Сверь роли всех узлов, состояние DCS и маршрут клиента перед восстановлением.",
+        "commands": "patronictl list; curl -fsS http://127.0.0.1:8008/patroni",
+        "question": "Как исключить два одновременно доступных writable primary?",
+        "source": "https://patroni.readthedocs.io/en/latest/dcs_failsafe_mode.html"
+      },
+      {
+        "id": "patroni-03",
+        "title": "Синхронная репликация и измеримое восстановление",
+        "level": "lead",
+        "explanation": "Асинхронная репликация уменьшает задержку commit, но допускает потерю подтверждённых транзакций. Синхронные режимы требуют подтверждения standby согласно настройкам PostgreSQL и Patroni. Strict mode может блокировать запись при отсутствии требуемого standby. Гарантии зависят от synchronous_commit, числа реплик и характера отказа.",
+        "production": "RTO измеряется от начала нарушения до восстановления выбранного SLI, RPO — по реально утраченным подтверждённым данным. Проверка ролей после failover не измеряет эти показатели. Сохраняй уникальные ID подтверждённых операций и таймлайн непрерывных probes.",
+        "example": "После переключения роли корректны, но часть заказов отсутствует. Сравни список подтверждённых операций с новым primary, отдельно отметь запросы с неизвестным исходом.",
+        "commands": "SELECT application_name,sync_state,flush_lsn,replay_lsn FROM pg_stat_replication;",
+        "question": "Как обосновать выбор между потерей части записей и временной недоступностью записи?",
+        "source": "https://patroni.readthedocs.io/en/latest/replication_modes.html"
+      }
+    ]
   },
   {
     "id": "redis",
@@ -707,7 +742,42 @@
     "deep": {
       "internals": "Команды работают с данными в памяти; RDB и AOF обеспечивают разные компромиссы сохранности. Eviction зависит от maxmemory-policy.",
       "production": "При росте нагрузки БД проверь hit rate, evicted_keys, TTL и массовое истечение ключей."
-    }
+    },
+    "chapters": [
+      {
+        "id": "redis-01",
+        "title": "Структуры данных, TTL и кеш",
+        "level": "foundation",
+        "explanation": "Redis хранит структуры данных в памяти: strings, hashes, sets, sorted sets, lists и streams. TTL ограничивает время жизни ключа, eviction освобождает память при достижении maxmemory согласно политике. Истечение TTL и вытеснение — разные причины исчезновения ключа.",
+        "production": "Cache-aside читает кеш, при miss получает данные из источника и записывает их в кеш. Инвалидация должна учитывать гонку между обновлением источника и заполнением кеша. Jitter TTL, single-flight и ограничение конкуренции снижают cache stampede.",
+        "example": "После истечения TTL у популярного ключа сотни запросов одновременно идут в БД. Ограничь число одновременных заполнений и измерь hit ratio и downstream latency.",
+        "commands": "redis-cli INFO memory; redis-cli INFO stats; redis-cli TTL academy:key",
+        "question": "Чем TTL отличается от eviction и как защитить БД при массовом cache miss?",
+        "source": "https://redis.io/docs/latest/reference/eviction/"
+      },
+      {
+        "id": "redis-02",
+        "title": "RDB, AOF и стоимость persistence",
+        "level": "senior",
+        "explanation": "RDB сохраняет снимки, AOF записывает операции изменения; режим fsync влияет на окно возможной потери данных и задержку записи. При сочетании механизмов recovery зависит от конфигурации. Fork и copy-on-write могут увеличить расход памяти при интенсивной записи во время фонового сохранения.",
+        "production": "Persistence не равна репликации и не заменяет внешнюю резервную копию. Следи за временем fork, статусом background save, ростом AOF, диском и памятью. RPO следует измерять тестовым восстановлением, а не только выбранной настройкой fsync.",
+        "example": "На записи latency растёт во время BGSAVE. Сравни CPU, память, fork time и дисковую нагрузку с расписанием сохранения.",
+        "commands": "redis-cli INFO persistence; redis-cli INFO memory; redis-cli INFO replication",
+        "question": "Почему RDB на диске не гарантирует восстановление последней подтверждённой операции?",
+        "source": "https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/"
+      },
+      {
+        "id": "redis-03",
+        "title": "Sentinel, Cluster и гарантии записи",
+        "level": "lead",
+        "explanation": "Sentinel наблюдает primary и replicas, согласует отказ и выбирает новый primary. Quorum для признания недоступности отличается от большинства Sentinel, необходимого для авторизации failover. Клиенты должны уметь обнаруживать новую роль. Redis Cluster дополнительно делит keyspace на hash slots и решает задачу горизонтального распределения.",
+        "production": "Обычная репликация Redis асинхронна; подтверждённая запись может быть потеряна при переключении. WAIT уменьшает риск, но не делает систему строго консистентной. Не используй кеш как единственный реестр финансовых операций без отдельного обоснования гарантий.",
+        "example": "Sentinel переключил primary, приложение продолжает использовать старый адрес. Проверь поддержку Sentinel клиентом, discovery, пул соединений и повторные операции.",
+        "commands": "redis-cli INFO replication; redis-cli -p 26379 SENTINEL CKQUORUM academy",
+        "question": "Когда нужен Sentinel, когда Cluster, а когда Redis вообще не подходит как источник истины?",
+        "source": "https://redis.io/docs/latest/management/sentinel/"
+      }
+    ]
   },
   {
     "id": "rabbitmq",
@@ -737,7 +807,42 @@
     "deep": {
       "internals": "Exchange маршрутизирует сообщения по bindings; очередь хранит их до доставки и подтверждения. Publisher confirms и consumer acknowledgements решают разные задачи.",
       "production": "При росте unacked проверь скорость обработки и prefetch. Повторная доставка требует идемпотентности."
-    }
+    },
+    "chapters": [
+      {
+        "id": "rabbitmq-01",
+        "title": "Exchange, binding, queue и routing",
+        "level": "foundation",
+        "explanation": "Publisher отправляет сообщение в exchange, который выбирает очереди по bindings. Direct сопоставляет routing key, topic использует шаблоны, fanout отправляет всем связанным очередям. Consumer получает сообщение из очереди, а не напрямую из exchange. Очередь удерживает сообщения до обработки согласно её настройкам.",
+        "production": "Durable queue переживает перезапуск в предусмотренных условиях; persistent message и publisher confirms решают дополнительные задачи надёжности. Если routing не нашёл подходящую очередь, сообщение может не попасть ни одному consumer; mandatory return позволяет обнаружить это в соответствующем режиме.",
+        "example": "Publisher получает успешное соединение, но очередь пуста. Проверь vhost, exchange, routing key, bindings и возвращённые unroutable сообщения.",
+        "commands": "rabbitmqctl list_exchanges name type; rabbitmqctl list_bindings; rabbitmqctl list_queues name messages",
+        "question": "Почему успешный publish не гарантирует, что сообщение попало в нужную очередь?",
+        "source": "https://www.rabbitmq.com/tutorials/amqp-concepts"
+      },
+      {
+        "id": "rabbitmq-02",
+        "title": "Consumer ack, prefetch и повторная доставка",
+        "level": "senior",
+        "explanation": "Consumer acknowledgement подтверждает брокеру завершение обработки; publisher confirm относится к публикации и не доказывает обработку потребителем. Manual ack после сохранения результата допускает повторную доставку при падении consumer до ack. Prefetch ограничивает число неподтверждённых доставок и помогает контролировать нагрузку.",
+        "production": "Безусловный requeue ошибочного сообщения может создать бесконечный цикл. Используй ограниченные повторные попытки, классификацию временных ошибок и DLQ с наблюдением. Идемпотентность определяется бизнес-операцией, а не флагом redelivered.",
+        "example": "Очередь ready почти пуста, unacked растёт. Проверь зависшие consumers, prefetch, downstream и время обработки.",
+        "commands": "rabbitmqctl list_queues name messages_ready messages_unacknowledged consumers",
+        "question": "Почему ack до записи в БД опасен и как избежать дублей при ack после записи?",
+        "source": "https://www.rabbitmq.com/docs/confirms"
+      },
+      {
+        "id": "rabbitmq-03",
+        "title": "Quorum queues и выбор архитектуры",
+        "level": "lead",
+        "explanation": "Quorum queue реплицирует данные с использованием Raft и требует большинства членов для согласованных операций. При трёх членах допускается отказ одного при наличии корректного размещения. Publisher confirm для quorum queue связан с принятием записи кворумом; это не гарантия при необратимой потере большинства.",
+        "production": "RabbitMQ удобен для маршрутизации задач и подтверждений отдельных сообщений; Kafka — для replay журнала и независимых групп чтения. Выбор определяется retention, ordering, throughput, routing и семантикой восстановления, а не популярностью технологии.",
+        "example": "Один узел потерян, очередь продолжает работу; после второго отказа операции блокируются. Сверь members, leader и failure domains до каких-либо действий.",
+        "commands": "rabbitmqctl cluster_status; rabbitmqctl list_queues name type messages",
+        "question": "Какие гарантии приложения остаются необходимыми даже при использовании quorum queue?",
+        "source": "https://www.rabbitmq.com/docs/quorum-queues"
+      }
+    ]
   },
   {
     "id": "proxy",
@@ -767,7 +872,42 @@
     "deep": {
       "internals": "Прокси поддерживает отдельные клиентские и upstream-соединения. Таймаут подключения отличается от ожидания данных.",
       "production": "Сопоставляй upstream timings с логами приложения, не увеличивай все таймауты одновременно."
-    }
+    },
+    "chapters": [
+      {
+        "id": "proxy-01",
+        "title": "Reverse proxy, балансировка L4 и L7",
+        "level": "foundation",
+        "explanation": "Reverse proxy принимает клиентское соединение и создаёт запрос к upstream. L4 балансирует транспортные соединения, L7 может учитывать HTTP host, path и заголовки. Round robin распределяет запросы по доступным backend, least connections ориентируется на активные соединения. Алгоритм не гарантирует равномерную загрузку при разной стоимости запросов.",
+        "production": "TLS termination переносит проверку внешнего TLS на proxy; соединение с backend может быть отдельно защищено TLS. Заголовки X-Forwarded-* нужно принимать только от доверенной цепочки proxy, иначе клиент способен подделать источник.",
+        "example": "Одна реплика перегружена длинными запросами при одинаковом числе запросов. Измерь active connections, upstream latency и распределение тяжёлых запросов.",
+        "commands": "nginx -t; ss -lntp; curl -I http://127.0.0.1:8080/",
+        "question": "Чем балансировка соединений отличается от балансировки HTTP-запросов?",
+        "source": "https://nginx.org/en/docs/http/ngx_http_upstream_module.html"
+      },
+      {
+        "id": "proxy-02",
+        "title": "Таймауты, буферизация и ошибки 502/504",
+        "level": "senior",
+        "explanation": "Connect timeout ограничивает установление upstream соединения, read timeout в Nginx относится к интервалу между чтениями, а не обязательно к полной длительности запроса. Buffering отделяет скорость backend от клиента, но требует памяти или временных файлов. 502 и 504 отражают разные классы проблем связи с upstream, конкретную причину уточняет журнал.",
+        "production": "Повышение timeout может скрыть насыщение и увеличить количество зависших запросов. Согласуй end-to-end deadline, connection pool и лимит параллелизма. Повторные запросы должны учитывать идемпотентность, бюджет времени и возможный уже выполненный side effect.",
+        "example": "Клиенты получают 504 через одинаковый интервал. Сопоставь upstream timings с журналами приложения и БД, проверь очереди и saturation.",
+        "commands": "nginx -t; curl -w '%{time_connect} %{time_starttransfer} %{time_total}\\n' -o /dev/null -sS http://127.0.0.1:8080/",
+        "question": "Почему увеличение proxy_read_timeout может усилить аварию?",
+        "source": "https://nginx.org/en/docs/http/ngx_http_proxy_module.html"
+      },
+      {
+        "id": "proxy-03",
+        "title": "Health checks, drain и безопасное переключение",
+        "level": "lead",
+        "explanation": "Пассивный health check реагирует на наблюдаемые ошибки, активный периодически проверяет backend. Проверка TCP порта не равна готовности обслуживать бизнес-запрос. Возможности активных проверок зависят от реализации и редакции proxy. Drain прекращает новые запросы и позволяет старым завершиться в пределах deadline.",
+        "production": "Для rollout нужны readiness, grace period, корректное завершение соединений, limits и измерение доли ошибок. Sticky sessions усложняют failover, если state не вынесен. Проверяй балансировщик как самостоятельный failure domain, не только backend.",
+        "example": "При удалении реплики из upstream часть клиентов получает ошибки из-за незавершённых запросов. Проверь момент исключения endpoint и завершение соединений.",
+        "commands": "ss -s; nginx -t; curl -fsS http://127.0.0.1:18112/health",
+        "question": "Как организовать переключение backend без потери активных операций?",
+        "source": "https://www.haproxy.com/documentation/haproxy-configuration-tutorials/reliability/health-checks/"
+      }
+    ]
   },
   {
     "id": "prom",
@@ -797,7 +937,42 @@
     "deep": {
       "internals": "Prometheus хранит ряды по имени и набору labels. Каждая новая комбинация labels увеличивает cardinality.",
       "production": "Не помещай request ID в labels; для счётчиков используй rate, для задержек анализируй histogram."
-    }
+    },
+    "chapters": [
+      {
+        "id": "prom-01",
+        "title": "Метрики, labels и модель хранения",
+        "level": "foundation",
+        "explanation": "Prometheus обычно опрашивает HTTP endpoints и записывает time series. Серия определяется именем метрики и набором labels. Counter растёт с возможным reset, gauge меняется в обе стороны, histogram распределяет наблюдения по buckets или native representation. Значения samples связаны со временем.",
+        "production": "Cardinality растёт при комбинации labels; user_id, request_id и произвольные URL способны создать огромное число серий. Для детальных идентификаторов подходят logs/traces. Сервисный мониторинг должен учитывать rate, errors, duration и saturation, а не только up.",
+        "example": "После добавления label с UUID расход памяти Prometheus вырос. Удали высококардинальную размерность из instrumentation и оцени число series и churn.",
+        "commands": "curl -fsS http://127.0.0.1:19111/-/ready",
+        "question": "Почему request_id не следует использовать как label метрики?",
+        "source": "https://prometheus.io/docs/practices/instrumentation/"
+      },
+      {
+        "id": "prom-02",
+        "title": "PromQL, rates и перцентили",
+        "level": "senior",
+        "explanation": "rate вычисляет среднюю скорость роста counter за окно с учётом reset. Сначала применяй rate к отдельным сериям, затем агрегируй; иначе reset отдельных экземпляров теряется. Classic histogram хранит накопительные buckets, count и sum. histogram_quantile оценивает перцентиль по распределению, а не усредняет p95 экземпляров.",
+        "production": "Для classic histograms агрегируй bucket rates с сохранением le. Перцентиль зависит от granularity buckets и количества наблюдений. Среднее скрывает tail latency; p99 требует достаточного трафика. Отсутствующая серия не всегда равна нулю.",
+        "example": "Два экземпляра имеют разный трафик: среднее их p95 не даёт p95 сервиса. Суммируй bucket rates и вычисли общий quantile.",
+        "commands": "sum(rate(http_requests_total[5m]))\nhistogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket[5m])))",
+        "question": "Почему нельзя просто усреднить p95 двух реплик?",
+        "source": "https://prometheus.io/docs/practices/histograms/"
+      },
+      {
+        "id": "prom-03",
+        "title": "Alerting, Grafana и наблюдаемость SLO",
+        "level": "lead",
+        "explanation": "Alert rule определяет условие и длительность, Alertmanager группирует уведомления, маршрутизирует и подавляет дубли. Dashboard помогает исследовать причину, алерт сообщает о требующем действия симптоме. Grafana визуализирует запросы к источникам, но сама панель не создаёт измеряемый SLI.",
+        "production": "Различай error ratio, latency SLI и availability. Для critical alert нужны owner, severity, runbook и actionable condition. No data следует обрабатывать отдельно; иначе потеря telemetry выглядит как здоровье. Проверяй саму цепочку мониторинга.",
+        "example": "Алерт CPU срабатывает каждую ночь во время штатного batch. Свяжи severity с пользовательским влиянием и saturation, оставив CPU как диагностический сигнал.",
+        "commands": "sum(rate(http_requests_total{status=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m]))",
+        "question": "Как отличить диагностическую метрику от алерта, требующего немедленного действия?",
+        "source": "https://prometheus.io/docs/practices/alerting/"
+      }
+    ]
   },
   {
     "id": "logs",
@@ -827,7 +1002,42 @@
     "deep": {
       "internals": "Trace состоит из spans, связанных контекстом. Sampling уменьшает объём, но может скрывать редкие события.",
       "production": "Коррелируй trace ID с логами и метриками; не записывай секреты и персональные данные."
-    }
+    },
+    "chapters": [
+      {
+        "id": "logs-01",
+        "title": "Структурированные логи и жизненный цикл",
+        "level": "foundation",
+        "explanation": "Лог — событие с timestamp, severity, service, message и атрибутами. Структурированный формат помогает фильтровать поля вместо хрупкого разбора текста. В распределённой системе часы могут расходиться; записывай время и timezone, не выводи порядок между сервисами только по timestamp.",
+        "production": "Логи должны иметь retention, ротацию, ограничения размера и правила удаления PII/секретов. Collector принимает, преобразует и отправляет данные; задержки и отказы доставки возможны. Не включай DEBUG для всех компонентов без оценки объёма.",
+        "example": "После релиза disk usage быстро растёт: проверь скорость логов, ротацию, открытые удалённые файлы и ошибки collector.",
+        "commands": "journalctl --since '-10 min' -p warning; df -h; lsof +L1",
+        "question": "Какие поля нужны для диагностики запроса без записи персональных данных?",
+        "source": "https://opentelemetry.io/docs/concepts/signals/logs/"
+      },
+      {
+        "id": "logs-02",
+        "title": "Traces, spans и распространение контекста",
+        "level": "senior",
+        "explanation": "Trace описывает путь одной операции через систему, span — отдельный участок с началом, длительностью, attributes и parent context. Trace context передаётся через границы HTTP/RPC или сообщений; при асинхронной обработке могут понадобиться links. Instrumentation должна извлекать и внедрять контекст, иначе цепочка разрывается.",
+        "production": "Sampling ограничивает объём trace. Head sampling принимает решение заранее, tail sampling — после наблюдения части или всего trace и требует дополнительных ресурсов. Пропущенный trace не доказывает отсутствие запроса; сопоставляй с метриками и логами.",
+        "example": "Пользовательский запрос медленный: waterfall показывает SQL span 900 мс из 1 с. Проверь план запроса и lock waits, не оптимизируй proxy первым.",
+        "commands": "curl -I http://127.0.0.1:8080/",
+        "question": "Как связать HTTP-запрос с асинхронной Kafka-обработкой и логом worker?",
+        "source": "https://opentelemetry.io/docs/concepts/context-propagation/"
+      },
+      {
+        "id": "logs-03",
+        "title": "OpenTelemetry Collector и отказоустойчивость телеметрии",
+        "level": "lead",
+        "explanation": "Collector объединяет receivers, processors и exporters в pipelines. Receivers принимают сигналы, processors фильтруют, batch или преобразуют их, exporters отправляют в backend. Отдельные agent/gateway уровни позволяют разделить локальный сбор и централизованную обработку.",
+        "production": "Очереди и retries не бесконечны: переполнение или недоступность backend приводит к потере telemetry. Сдерживай нагрузку memory limiter, контролируй dropped/export failed и собственную доступность collector. Настрой redaction и ограничение cardinality до внешней отправки.",
+        "example": "После сбоя backend приложение работает, но traces исчезли. Проверь очередь, ошибки exporter, лимиты и sampling, затем восстанови видимость.",
+        "commands": "docker compose ps -a; docker stats --no-stream",
+        "question": "Как спроектировать телеметрию так, чтобы её отказ не останавливал бизнес-сервис?",
+        "source": "https://opentelemetry.io/docs/collector/"
+      }
+    ]
   },
   {
     "id": "security",
@@ -857,7 +1067,42 @@
     "deep": {
       "internals": "Короткоживущие credentials ограничивают время использования украденного секрета. Least privilege ограничивает последствия.",
       "production": "При утечке сначала отзови credential, затем исследуй использование и устрани источник."
-    }
+    },
+    "chapters": [
+      {
+        "id": "security-01",
+        "title": "Identity, least privilege и секреты",
+        "level": "foundation",
+        "explanation": "Authentication отвечает на вопрос кто, authorization — что разрешено. RBAC связывает права с ролями; выдавай минимальные права конкретной workload и ограничивай область действия. Secret — данные, позволяющие получить доступ; их нельзя хранить открыто в репозитории, логах или образах.",
+        "production": "Шифрование транспорта защищает данные в пути, шифрование хранения — при соответствующей угрозе, но не отменяет права доступа к расшифрованным данным. Секреты в environment и аргументах могут быть доступны процессам или диагностике; выбирай способ доставки по threat model.",
+        "example": "Токен попал в Git: удаление файла не отзывает токен и не удаляет историю. Отзови/ротируй его, оцени доступ и следы использования.",
+        "commands": "git status --short; git log --oneline -5",
+        "question": "Чем authentication отличается от authorization и почему ротация важнее удаления файла?",
+        "source": "https://developer.hashicorp.com/vault/docs/concepts/policies"
+      },
+      {
+        "id": "security-02",
+        "title": "Vault, leases и ротация",
+        "level": "senior",
+        "explanation": "Vault проверяет identity через auth method, выдаёт token с policies и обращается к secrets engines. Dynamic secrets могут создавать временные credentials с lease, который нужно продлевать или отзывать. KV хранит значения, но не выдаёт для них полноценные leases как dynamic engine.",
+        "production": "Приложение должно корректно обновлять credentials до истечения срока, переживать временный отказ Vault и не логировать токены. Seal/unseal и backend HA решают разные задачи. Проверяй доступность, аудит, backup и процедуры восстановления ключей.",
+        "example": "После истечения lease пул БД продолжает использовать старые credentials. Проверь renew/re-auth, срок жизни соединений и способ обновления пула.",
+        "commands": "vault status; vault token lookup",
+        "question": "Как организовать ротацию пароля БД без остановки приложения?",
+        "source": "https://developer.hashicorp.com/vault/docs/concepts/lease"
+      },
+      {
+        "id": "security-03",
+        "title": "Supply chain, изоляция и управление уязвимостями",
+        "level": "lead",
+        "explanation": "Supply chain включает исходники, зависимости, build environment, registry и deployment. SBOM перечисляет компоненты, vulnerability scan сопоставляет их с известными проблемами, подпись связывает artifact с доверенным ключом или identity; ни один механизм не доказывает полную безопасность.",
+        "production": "Контейнер с non-root, минимальными capabilities, read-only filesystem и ограничениями уменьшает поверхность атаки, но разделяет ядро. Не давай runner доступ к production socket или секретам для непроверенного кода. Исключения из политики должны иметь обоснование, владельца и срок.",
+        "example": "Сканер нашёл критическую CVE в образе. Проверь применимость, экспозицию, доступность обновления и mitigations, зафиксируй решение и пересобери проверенный artifact.",
+        "commands": "docker image inspect IMAGE; docker history IMAGE",
+        "question": "Как сделать release gate полезным для управления риском, а не формальной проверкой CVE?",
+        "source": "https://docs.docker.com/build/building/best-practices/"
+      }
+    ]
   },
   {
     "id": "sre",
@@ -887,7 +1132,42 @@
     "deep": {
       "internals": "SLI измеряет пользовательский результат, SLO задаёт цель, burn rate показывает скорость расходования бюджета ошибок.",
       "production": "Алерт должен приводить к действию; связывай симптомы с пользовательским влиянием, а не только CPU."
-    }
+    },
+    "chapters": [
+      {
+        "id": "sre-01",
+        "title": "SLI, SLO, SLA и error budget",
+        "level": "foundation",
+        "explanation": "SLI — измеряемый показатель пользовательского результата; SLO — целевое значение за окно; SLA — договорное обязательство с последствиями. Availability можно считать долей успешных подходящих запросов, latency SLI — долей запросов быстрее порога. Определяй знаменатель и исключения до измерения.",
+        "production": "При SLO 99.9% за 30 дней допустима доля ошибок 0.1%. Для time-based SLI это 43.2 минуты при равномерном времени окна; для request-based SLI бюджет — число неуспешных запросов, перевод в минуты некорректен без допущений.",
+        "example": "Сервис доступен 100% по TCP, но 5% запросов возвращают 500. TCP up не является достаточным SLI.",
+        "commands": "sum(rate(http_requests_total{status=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m]))",
+        "question": "Как определить SLI для системы с асинхронными заявками?",
+        "source": "https://sre.google/workbook/alerting-on-slos/"
+      },
+      {
+        "id": "sre-02",
+        "title": "Burn rate, алерты и управление бюджетом",
+        "level": "senior",
+        "explanation": "Burn rate — отношение наблюдаемой доли плохих событий к допустимой доле. При SLO 99.9% и 1% ошибок burn rate равен 10. Multi-window alert сочетает короткое и длинное окно для реакции на быстрый расход бюджета и устойчивости к кратковременным выбросам.",
+        "production": "Выбирай пороги по скорости расхода бюджета, а не копированием чужих цифр. Политика error budget заранее определяет, когда замедлять релизы и направлять усилия на reliability. Для низкого трафика учитывай статистическую устойчивость и реальные последствия.",
+        "example": "После релиза burn rate резко растёт: останови дальнейший rollout, проверь пользовательское влияние, сравни версии и восстанови SLI.",
+        "commands": "sum(rate(http_requests_total{status=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m])) / 0.001",
+        "question": "Как реагировать на высокий burn rate, не останавливая релизы из-за одного случайного запроса?",
+        "source": "https://sre.google/workbook/alerting-on-slos/"
+      },
+      {
+        "id": "sre-03",
+        "title": "Incident command, mitigation и postmortem",
+        "level": "lead",
+        "explanation": "Во время аварии сначала определяют влияние, severity, ответственного за координацию и каналы коммуникации. Incident commander распределяет роли, фиксирует решения и не обязан лично выполнять диагностику. Mitigation снижает влияние, root cause investigation объясняет механизм после стабилизации.",
+        "production": "Таймлайн должен отделять наблюдения от гипотез. Postmortem описывает contributing factors, детектирование, реакцию, восстановление и действия с владельцами и сроками. Не своди причину к ошибке человека: изучи, какие барьеры не сработали.",
+        "example": "После релиза растёт latency, несколько команд одновременно меняют конфигурацию. Назначь владельца изменений, останови конкурирующие действия и введи контрольные точки SLI.",
+        "commands": "date -Is; git log -1 --oneline",
+        "question": "Как организовать incident response, чтобы восстановить сервис и не уничтожить доказательства?",
+        "source": "https://sre.google/sre-book/managing-incidents/"
+      }
+    ]
   },
   {
     "id": "dr",
@@ -917,7 +1197,42 @@
     "deep": {
       "internals": "Резервирование не заменяет backup: логическая ошибка может распространиться на реплики. RTO и RPO проверяются восстановлением.",
       "production": "Проводить restore в изолированной среде, измерять время и проверять целостность данных."
-    }
+    },
+    "chapters": [
+      {
+        "id": "dr-01",
+        "title": "Failure domains, HA и кворум",
+        "level": "foundation",
+        "explanation": "HA уменьшает влияние отказов, но не означает отсутствие простоев. Failure domain — группа ресурсов с общим риском: host, rack, сеть, зона, storage. Реплики в одном домене не защищают от его полной потери. Для majority quorum из N участников нужно floor(N/2)+1 голосов.",
+        "production": "Три узла допускают один отказ, пять — два, четыре также только один. Quorum защищает согласованность ценой доступности при разделении сети. Не путай количество запущенных процессов с работоспособным кворумом и доступностью клиентского пути.",
+        "example": "Три контейнера на одном WSL host проверяют отказ процесса, но не отказ физической машины. Это важное ограничение лаборатории.",
+        "commands": "docker compose ps -a; etcdctl endpoint status --cluster -w table",
+        "question": "Почему три реплики на одном хосте не дают HA при отказе хоста?",
+        "source": "https://etcd.io/docs/latest/faq/"
+      },
+      {
+        "id": "dr-02",
+        "title": "RPO, RTO, резервное копирование и restore",
+        "level": "senior",
+        "explanation": "RPO задаёт допустимую потерю данных, RTO — допустимое время восстановления услуги. Backup должен иметь независимое хранение, понятную схему retention и проверяемую целостность. Restore проверяет не только читаемость файлов, но и возможность поднять приложение и выполнить бизнес-проверки.",
+        "production": "Репликация повторяет логические ошибки, ransomware или удаление данных в зависимости от архитектуры. PITR позволяет восстановить состояние до события при наличии нужного base backup и WAL. Runbook включает зависимости, credentials, порядок восстановления и критерий завершения.",
+        "example": "Ночной backup существует, но восстановление занимает восемь часов при RTO два часа. Измерь этапы и оптимизируй ограничивающий ресурс, а не отчёт.",
+        "commands": "sha256sum BACKUP_FILE; df -h",
+        "question": "Почему успешный backup job не является доказательством соблюдения RTO?",
+        "source": "https://www.postgresql.org/docs/current/continuous-archiving.html"
+      },
+      {
+        "id": "dr-03",
+        "title": "Capacity planning и N+1",
+        "level": "lead",
+        "explanation": "Capacity планируют по измеренной производительности при целевом latency, а не по номинальным CPU. N+1 означает запас на отказ единицы мощности при заданном профиле нагрузки. Учитывай пики, неравномерность распределения, зависимости, рост и деградацию после отказа.",
+        "production": "При трёх одинаковых репликах по 500 RPS и входе 900 RPS после потери одной остаётся 1000 RPS номинальной ёмкости — лишь 100 RPS запаса. Если целевое насыщение 70%, двух реплик недостаточно для 900 RPS. Реальную границу устанавливает load test с latency и error ratio.",
+        "example": "Планируется удвоение трафика; БД ограничивает весь сервис независимо от числа API replicas. Проверь bottleneck, очередь и стоимость восстановления.",
+        "commands": "docker stats --no-stream; vmstat 1 5",
+        "question": "Как доказать достаточную ёмкость системы при отказе одного узла и пиковом трафике?",
+        "source": "https://sre.google/sre-book/service-level-objectives/"
+      }
+    ]
   },
   {
     "id": "lead",
@@ -947,6 +1262,41 @@
     "deep": {
       "internals": "ADR фиксирует контекст, альтернативы, решение и последствия. Golden path снижает повторяющиеся затраты команд.",
       "production": "Сравнивай решения по эксплуатационной сложности, риску и стоимости владения, а не по популярности."
-    }
+    },
+    "chapters": [
+      {
+        "id": "lead-01",
+        "title": "Платформа как продукт и golden path",
+        "level": "foundation",
+        "explanation": "Internal developer platform предоставляет командам стандартные способы build, deploy, observability, secrets и runtime. Golden path — рекомендуемый и поддерживаемый маршрут, который снижает когнитивную нагрузку. Self-service означает выполнение стандартных операций без ручной очереди, но в пределах guardrails.",
+        "production": "Измеряй время до первого безопасного deploy, adoption, частоту исключений, надёжность и обратную связь разработчиков. Не превращай платформу в обязательный набор инструментов без пользовательской задачи. Начинай с повторяющегося потока с ясным владельцем.",
+        "example": "Команды тратят дни на создание pipeline. Шаблон с проверенными defaults, документацией и поддержкой уменьшает ручную работу; измерь фактическое время onboarding.",
+        "commands": "git log --oneline -10",
+        "question": "Чем внутренняя платформа отличается от централизованной команды, которая выполняет заявки?",
+        "source": "https://tag-app-delivery.cncf.io/whitepapers/platforms/"
+      },
+      {
+        "id": "lead-02",
+        "title": "ADR, технический долг и приоритизация",
+        "level": "senior",
+        "explanation": "ADR фиксирует контекст, варианты, принятое решение, последствия и условия пересмотра. Он не должен быть оправданием уже выбранного инструмента. Сравни alternatives по требованиям, стоимости эксплуатации, безопасности, доступности и компетенциям команды.",
+        "production": "Технический долг оценивай через риск, повторяющиеся затраты и стоимость изменения. Backlog должен иметь проверяемый результат, owner, зависимости и критерии завершения. Приоритизация начинается с воздействия на пользователя и ограничений, а не числа новых технологий.",
+        "example": "Предложено заменить Jenkins на GitLab CI. Сначала измерь проблемы текущей доставки, выдели пилот, условия отката и критерии успеха.",
+        "commands": "git diff --stat; git log --oneline -10",
+        "question": "Как обосновать миграцию инструмента перед руководством, если текущая система работает?",
+        "source": "https://tag-app-delivery.cncf.io/whitepapers/platform-eng-maturity-model/"
+      },
+      {
+        "id": "lead-03",
+        "title": "Управление командой и инженерное качество",
+        "level": "lead",
+        "explanation": "Lead отвечает за результат команды, а не за выполнение всех задач лично. Делегирование требует ясного результата, срока, зависимостей, доступа и промежуточных точек. Ревью проверяет конкретные изменения и доказательства, обратная связь отделяет наблюдаемое поведение от оценок личности.",
+        "production": "Системные проблемы решай через стандарты, автоматизацию, mentoring и устранение блокеров. Для критичного изменения определяй decision owner, rollback, критерии go/no-go и коммуникацию. Не объявляй компетенцию освоенной по факту посещения курса или самооценке.",
+        "example": "Сотрудник не выполнил задачу: уточни согласованный результат, фактический прогресс, препятствия и следующий контрольный срок; оцени по наблюдаемым результатам.",
+        "commands": "git status --short; git log -1 --oneline",
+        "question": "Как повысить самостоятельность команды без превращения Lead в единственную точку принятия решений?",
+        "source": "https://sre.google/sre-book/managing-incidents/"
+      }
+    ]
   }
 ]
