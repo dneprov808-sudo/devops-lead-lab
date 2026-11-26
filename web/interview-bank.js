@@ -70,7 +70,21 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Что произойдёт при добавлении узла? Как исключить неподходящие узлы?",
     "practice": "kubectl get daemonset; сравнить DESIRED, CURRENT, READY; проверить labels и taints узлов.",
     "rubric": "Объяснить привязку к узлам, а не фиксированному числу реплик.",
-    "source": "https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/"
+    "source": "https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/",
+    "source_prompts": [
+      {
+        "number": 26,
+        "question": "Deployment и DaemonSet, две сущности кубера, в чем разница? Какая для чего в большей степени используется?"
+      },
+      {
+        "number": 29,
+        "question": "DaemonSet что это и его практическое использование? И есть ли реплики у DaemonSet?"
+      },
+      {
+        "number": 30,
+        "question": "Что такое DaemonSet, для чего используется?"
+      }
+    ]
   },
   {
     "id": "K8S-007",
@@ -82,7 +96,25 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Почему три реплики StatefulSet не создают репликацию БД? Как влияет podManagementPolicy?",
     "practice": "Проверить DNS, имена Pod и PVC, требования протокола репликации.",
     "rubric": "Не путать оркестрацию с консенсусом или репликацией приложения.",
-    "source": "https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/"
+    "source": "https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/",
+    "source_prompts": [
+      {
+        "number": 31,
+        "question": "StatefulSet в Kubernetes: что такое, зачем надо и его особенности?"
+      },
+      {
+        "number": 32,
+        "question": "Для какого приложения станешь использовать StatefulSet и почему? Почему делают StatefulSet, а не Deployment?"
+      },
+      {
+        "number": 33,
+        "question": "Чем отличается Deployment и StatefulSet?"
+      },
+      {
+        "number": 47,
+        "question": "Расскажи про разницу между PV, PVC и StatefulSet."
+      }
+    ]
   },
   {
     "id": "K8S-008",
@@ -94,7 +126,13 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Чем restartPolicy Never отличается от OnFailure для Job? Что делать с частично выполненной транзакцией?",
     "practice": "kubectl describe job; проверить conditions, failed/succeeded, logs созданных Pod.",
     "rubric": "Объяснить deadline, backoff и семантику побочных эффектов.",
-    "source": "https://kubernetes.io/docs/concepts/workloads/controllers/job/"
+    "source": "https://kubernetes.io/docs/concepts/workloads/controllers/job/",
+    "source_prompts": [
+      {
+        "number": 35,
+        "question": "Что такое Job?"
+      }
+    ]
   },
   {
     "id": "K8S-009",
@@ -106,7 +144,13 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Что будет с долгой задачей при Forbid? Зачем startingDeadlineSeconds?",
     "practice": "Проверить расписание, active Jobs, history limits и идемпотентность операций.",
     "rubric": "Назвать область действия concurrencyPolicy и ограничения гарантий планирования.",
-    "source": "https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/"
+    "source": "https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/",
+    "source_prompts": [
+      {
+        "number": 36,
+        "question": "Какой ресурс создает Job?"
+      }
+    ]
   },
   {
     "id": "K8S-010",
@@ -178,7 +222,13 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Может ли Guaranteed Pod быть evicted? Как QoS связан с memory OOM?",
     "practice": "kubectl get pod -o jsonpath='{.status.qosClass}'; проверить node conditions и reason termination.",
     "rubric": "Назвать условия классов и не смешивать eviction, OOM и preemption.",
-    "source": "https://kubernetes.io/docs/concepts/workloads/pods/pod-qos/"
+    "source": "https://kubernetes.io/docs/concepts/workloads/pods/pod-qos/",
+    "source_prompts": [
+      {
+        "number": 76,
+        "question": "Какие есть ограничения ресурсов в кубе (QoS)?"
+      }
+    ]
   },
   {
     "id": "K8S-016",
@@ -190,7 +240,17 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Чем NoSchedule отличается от NoExecute? Как запретить случайное размещение на обычных узлах?",
     "practice": "kubectl describe node; сравнить taints, tolerations, required nodeAffinity и events.",
     "rubric": "Объяснить разрешение против требования; различить эффекты taint.",
-    "source": "https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/"
+    "source": "https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/",
+    "source_prompts": [
+      {
+        "number": 13,
+        "question": "Что такое taint?"
+      },
+      {
+        "number": 90,
+        "question": "Можно ли как-нибудь сделать так, чтобы поды всегда на определенную ноду попадали?"
+      }
+    ]
   },
   {
     "id": "K8S-017",
@@ -250,7 +310,21 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Почему headless Service не заменяет discovery протокол БД? Как publishNotReadyAddresses меняет поведение?",
     "practice": "Проверить DNS A/AAAA и EndpointSlice; протестировать смену Pod IP.",
     "rubric": "Объяснить endpoint discovery и обязанности клиента.",
-    "source": "https://kubernetes.io/docs/concepts/services-networking/service/"
+    "source": "https://kubernetes.io/docs/concepts/services-networking/service/",
+    "source_prompts": [
+      {
+        "number": 56,
+        "question": "Сервис типа ClusterIP со значением `None` — это что за сервис? Что реализует эти сервисы в кубере?"
+      },
+      {
+        "number": 57,
+        "question": "Что такое Headless Service и для чего используется?"
+      },
+      {
+        "number": 58,
+        "question": "Что такое Headless Service?"
+      }
+    ]
   },
   {
     "id": "K8S-022",
@@ -274,7 +348,13 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Как доказать default-deny без остановки production? Почему нужна отдельная DNS policy?",
     "practice": "На учебном namespace проверить разрешённый и запрещённый TCP-запросы, labels и DNS.",
     "rubric": "Различать API и dataplane; объяснить additive allow и scope policy.",
-    "source": "https://kubernetes.io/docs/concepts/services-networking/network-policies/"
+    "source": "https://kubernetes.io/docs/concepts/services-networking/network-policies/",
+    "source_prompts": [
+      {
+        "number": 67,
+        "question": "Как можно ограничить сетевое взаимодействие между namespace?"
+      }
+    ]
   },
   {
     "id": "K8S-024",
@@ -310,7 +390,17 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Что означает Pending PVC? Где определены reclaimPolicy и volumeBindingMode?",
     "practice": "kubectl get pvc,pv,storageclass; kubectl describe pvc; проверить provisioner и events.",
     "rubric": "Разделять запрос, объект тома и правила provisioning.",
-    "source": "https://kubernetes.io/docs/concepts/storage/persistent-volumes/"
+    "source": "https://kubernetes.io/docs/concepts/storage/persistent-volumes/",
+    "source_prompts": [
+      {
+        "number": 45,
+        "question": "PV (PersistentVolume) и PVC (PersistentVolumeClaim): что это такое, что используется для stateful-приложений?"
+      },
+      {
+        "number": 52,
+        "question": "Что такое StorageClass?"
+      }
+    ]
   },
   {
     "id": "K8S-027",
@@ -466,7 +556,13 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Как учитывать длинные соединения? Когда остановить эксперимент при малой выборке?",
     "practice": "В изолированном стенде измерить долю запросов по версии и ошибки каждой группы.",
     "rubric": "Различать реплики и вес трафика, предусмотреть измерения и rollback.",
-    "source": "https://kubernetes.io/docs/concepts/workloads/management/"
+    "source": "https://kubernetes.io/docs/concepts/workloads/management/",
+    "source_prompts": [
+      {
+        "number": 113,
+        "question": "Расскажите, как бы вы настраивали канареечные релизы."
+      }
+    ]
   },
   {
     "id": "K8S-040",
@@ -538,7 +634,17 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Как отличить нехватку ресурсов от невозможной конфигурации? Что если Pod запрашивает 64 CPU, а самый большой узел имеет 32?",
     "practice": "Сопоставить scheduler events, допустимые node groups, allocatable и limits пула.",
     "rubric": "Отличать HPA и масштабирование узлов; не сводить любой Pending к capacity.",
-    "source": "https://kubernetes.io/docs/concepts/cluster-administration/node-autoscaling/"
+    "source": "https://kubernetes.io/docs/concepts/cluster-administration/node-autoscaling/",
+    "source_prompts": [
+      {
+        "number": 78,
+        "question": "Как бы вы реализовали проблему с нехваткой ресурсов в кластере?"
+      },
+      {
+        "number": 96,
+        "question": "Что если под находится в состоянии `Pending`?"
+      }
+    ]
   },
   {
     "id": "K8S-046",
@@ -586,7 +692,17 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Можно ли выбрать Pod по annotation обычным label selector? Почему уникальный request ID не стоит помещать в label метрик?",
     "practice": "kubectl get pods -l app=demo; сравнить labels и annotations в YAML объекта.",
     "rubric": "Различать выборку, метаданные и последствия изменения selector.",
-    "source": "https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/"
+    "source": "https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/",
+    "source_prompts": [
+      {
+        "number": 88,
+        "question": "Что такое `labels` и `selectors`?"
+      },
+      {
+        "number": 89,
+        "question": "Отличие `label` и `selector`?"
+      }
+    ]
   },
   {
     "id": "K8S-050",
@@ -598,7 +714,13 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Как безопасно удалить старую served version? Где проверять status.storedVersions?",
     "practice": "На тестовой CRD проверить served/storage, round-trip conversion и миграцию существующих объектов.",
     "rubric": "Различать served и storage, учитывать старые клиенты и потерю данных при преобразовании.",
-    "source": "https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definition-versioning/"
+    "source": "https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definition-versioning/",
+    "source_prompts": [
+      {
+        "number": 124,
+        "question": "CRD и операторы."
+      }
+    ]
   },
   {
     "id": "K8S-051",
@@ -610,7 +732,13 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Как избежать повторного создания внешней БД после таймаута API? Что должно храниться в status и finalizer?",
     "practice": "В учебном операторе прервать процесс между внешним действием и обновлением status; проверить отсутствие дублей после рестарта.",
     "rubric": "Объяснить crash consistency, idempotency key и reconciliation по наблюдаемому состоянию.",
-    "source": "https://kubernetes.io/docs/concepts/extend-kubernetes/operator/"
+    "source": "https://kubernetes.io/docs/concepts/extend-kubernetes/operator/",
+    "source_prompts": [
+      {
+        "number": 123,
+        "question": "Что такое оператор, для чего нужен?"
+      }
+    ]
   },
   {
     "id": "K8S-052",
@@ -622,7 +750,13 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Почему статус в kubectl get pods не всегда равен phase? Какие логи смотреть после рестарта?",
     "practice": "kubectl describe pod demo; kubectl logs demo -c app --previous; проверить waiting/terminated state.",
     "rubric": "Различить запуск и загрузку, выбирать правильный источник диагностики.",
-    "source": "https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/"
+    "source": "https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/",
+    "source_prompts": [
+      {
+        "number": 97,
+        "question": "Что если под находится в состоянии `CrashLoopBackOff`?"
+      }
+    ]
   },
   {
     "id": "K8S-053",
@@ -634,7 +768,13 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Как посмотреть предыдущий запуск init container? Что изменится для native sidecar?",
     "practice": "kubectl describe pod demo; kubectl logs demo -c init-db --previous; проверить initContainerStatuses.",
     "rubric": "Различать обычный init и restartable sidecar, опираться на статус конкретного контейнера.",
-    "source": "https://kubernetes.io/docs/concepts/workloads/pods/init-containers/"
+    "source": "https://kubernetes.io/docs/concepts/workloads/pods/init-containers/",
+    "source_prompts": [
+      {
+        "number": 98,
+        "question": "Что такое `init container`? Для чего он нужен?"
+      }
+    ]
   },
   {
     "id": "K8S-054",
@@ -1066,7 +1206,13 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Чем FailedCreatePodSandBox отличается от FailedMount? Почему Docker CLI может не показать контейнеры Kubernetes?",
     "practice": "На учебном узле проверить kubectl describe pod, crictl pods/ps и логи kubelet/CNI/CSI.",
     "rubric": "Различить три интерфейса и диагностировать конкретный этап lifecycle.",
-    "source": "https://kubernetes.io/docs/setup/production-environment/container-runtimes/"
+    "source": "https://kubernetes.io/docs/setup/production-environment/container-runtimes/",
+    "source_prompts": [
+      {
+        "number": 66,
+        "question": "Container Network Interface (CNI)."
+      }
+    ]
   },
   {
     "id": "K8S-090",
@@ -1174,7 +1320,13 @@ const INTERVIEW_PRO_BANK = [
     "follow_up": "Как меняется запас при одновременном rollout с maxSurge=2? Что если storage привязан к отказавшей зоне?",
     "practice": "Составить таблицу capacity по пулам и проверить размещение и нагрузку при симулированном отказе.",
     "rubric": "Рассчитать запас и учесть topology, время восстановления и неопределённость реальной нагрузки.",
-    "source": "https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/"
+    "source": "https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/",
+    "source_prompts": [
+      {
+        "number": 81,
+        "question": "Если у тебя high-availability приложение, как ты будешь реализовывать скейлинг приложений в кластере?"
+      }
+    ]
   },
   {
     "id": "K8S-099",
@@ -1199,5 +1351,925 @@ const INTERVIEW_PRO_BANK = [
     "practice": "Собрать release checklist, результаты нагрузочных и аварийных тестов, ADR и список рисков с владельцами.",
     "rubric": "Требовать объективные доказательства, различать pilot и production readiness.",
     "source": "https://kubernetes.io/docs/setup/production-environment/"
+  },
+  {
+    "id": "K8S-101",
+    "topic": "Kubernetes",
+    "section": "architecture",
+    "level": "middle",
+    "question": "Из каких компонентов состоит Kubernetes-кластер и как распределены их функции?",
+    "answer": "Control plane принимает решения и хранит состояние: API server обслуживает API, etcd хранит данные API, scheduler назначает узлы, controller-manager запускает контроллеры. На worker-узле kubelet управляет Pod через CRI runtime; сетевой плагин и реализация Service обеспечивают сеть. Размещение компонентов зависит от дистрибутива.",
+    "follow_up": "Чем worker отличается от control plane? Где хранится состояние?",
+    "practice": "kubectl get nodes -o wide; kubectl get pods -n kube-system; на учебном узле проверить службы kubelet и runtime.",
+    "rubric": "Разделить control plane и worker, назвать API server, etcd, scheduler, controllers, kubelet и runtime.",
+    "source": "https://kubernetes.io/docs/concepts/architecture/",
+    "source_prompts": [
+      {
+        "number": 1,
+        "question": "Из чего состоит Kubernetes (архитектура)?"
+      },
+      {
+        "number": 2,
+        "question": "Что такое кластер Kubernetes?"
+      },
+      {
+        "number": 3,
+        "question": "Из чего состоит кластер и для чего?"
+      },
+      {
+        "number": 4,
+        "question": "Что такое master-ноды и worker-ноды?"
+      },
+      {
+        "number": 6,
+        "question": "Где хранится состояние кластера?"
+      },
+      {
+        "number": 11,
+        "question": "Расскажи, какие процессы запущены на worker-нодах?"
+      }
+    ]
+  },
+  {
+    "id": "K8S-102",
+    "topic": "Kubernetes",
+    "section": "architecture",
+    "level": "middle",
+    "question": "Сколько control-plane узлов нужно для отказоустойчивого кластера и почему?",
+    "answer": "Один control-plane узел подходит для учебного стенда, но является точкой отказа. Типичный HA kubeadm с colocated etcd использует три узла: большинство из трёх составляет два, допускается потеря одного. Внешний etcd проектируется отдельно. Требуются независимые домены отказа и доступный endpoint API; нечётное число относится прежде всего к голосующим членам etcd. Etcd — распределённое key-value хранилище с консенсусом Raft, используемое Kubernetes для сохранения состояния API.",
+    "follow_up": "Что дают два члена etcd? Можно ли иметь два API server с отдельным etcd из трёх?",
+    "practice": "На тестовой схеме рассчитать кворум для 1, 2, 3 и 5 членов etcd.",
+    "rubric": "Не смешивать число API server и quorum etcd; объяснить почему 2 члена не выдерживают потерю одного.",
+    "source": "https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/ha-topology/",
+    "source_prompts": [
+      {
+        "number": 5,
+        "question": "Сколько master-нод в кластере должно быть и почему?"
+      },
+      {
+        "number": 7,
+        "question": "Что такое etcd?"
+      }
+    ]
+  },
+  {
+    "id": "K8S-103",
+    "topic": "Kubernetes",
+    "section": "architecture",
+    "level": "middle",
+    "question": "Что делает kubelet и как он взаимодействует с API server и container runtime?",
+    "answer": "Kubelet работает на узле и следит за назначенными ему Pod, поручает CRI runtime запуск контейнеров, организует необходимые mounts, проверки здоровья и сообщает status и heartbeat. Он не выбирает узлы для обычных Pod и не управляет числом реплик Deployment. При сбое kubelet контейнеры не обязательно прекращают работу немедленно.",
+    "follow_up": "Как проверить состояние kubelet и runtime? Что такое Node Lease?",
+    "practice": "На локальном стенде: systemctl status kubelet; journalctl -u kubelet; crictl ps -a.",
+    "rubric": "Назвать обязанности агента узла, CRI и обратную связь с API.",
+    "source": "https://kubernetes.io/docs/concepts/architecture/nodes/",
+    "source_prompts": [
+      {
+        "number": 8,
+        "question": "Что за компонент Kubelet?"
+      }
+    ]
+  },
+  {
+    "id": "K8S-104",
+    "topic": "Kubernetes",
+    "section": "architecture",
+    "level": "senior",
+    "question": "Чем scheduler отличается от controller-manager и какие Pod не требуют обычного scheduling?",
+    "answer": "Scheduler назначает ещё не привязанные Pod на подходящие узлы. Controller-manager запускает control loops, например поддержание числа реплик и обработку объектов Node. Static Pod запускается kubelet из локального manifest, а Pod с явно заданным spec.nodeName обходит обычный scheduler. DaemonSet в современных версиях обычно использует scheduler.",
+    "follow_up": "Почему нельзя ответить, что DaemonSet всегда обходит scheduler? Что такое mirror Pod?",
+    "practice": "Сравнить обычный Deployment, DaemonSet и static Pod на учебной схеме; проверить nodeName.",
+    "rubric": "Не путать создание Pod, назначение узла и запуск контейнера.",
+    "source": "https://kubernetes.io/docs/concepts/workloads/pods/static-pods/",
+    "source_prompts": [
+      {
+        "number": 9,
+        "question": "Чем отличается Scheduler от controller-manager?"
+      },
+      {
+        "number": 10,
+        "question": "Для какой абстракции не нужен Kube-scheduler?"
+      }
+    ]
+  },
+  {
+    "id": "K8S-105",
+    "topic": "Kubernetes",
+    "section": "architecture",
+    "level": "middle",
+    "question": "Можно ли запускать пользовательские Pod на control-plane узлах?",
+    "answer": "Технически можно, если условия размещения это допускают. kubeadm обычно добавляет taint node-role.kubernetes.io/control-plane:NoSchedule; подходящая toleration разрешает scheduling, но не заставляет выбрать этот узел. На production отделяют ресурсы control plane от пользовательской нагрузки; в одноузловом стенде допустима иная политика.",
+    "follow_up": "Как taint отличается от label? Какие риски несёт перегрузка API/etcd?",
+    "practice": "На выделенном стенде проверить kubectl describe node и tolerations Pod, не снимать taint с production.",
+    "rubric": "Объяснить разрешение, а не необходимость размещения, и риск общей ёмкости.",
+    "source": "https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/",
+    "source_prompts": [
+      {
+        "number": 12,
+        "question": "Можно ли размещать на master-node свои поды?"
+      }
+    ]
+  },
+  {
+    "id": "K8S-106",
+    "topic": "Kubernetes",
+    "section": "operations",
+    "level": "senior",
+    "question": "Как развернуть учебный кластер с помощью kubeadm?",
+    "answer": "Подготовить Linux-узлы, совместимые версии kubeadm/kubelet/kubectl и CRI runtime, настроить сеть, cgroups и требования ОС. Выполнить kubeadm init на control plane, настроить kubeconfig, установить совместимый CNI и присоединить worker через kubeadm join. Проверить Ready узлов, DNS и тестовый workload. Для HA отдельно подготовить endpoint API и топологию etcd.",
+    "follow_up": "Почему после init CoreDNS может быть Pending? Как безопасно обращаться с join token?",
+    "practice": "На изолированных VM выполнить официальную процедуру для установленной версии, записать команды и результаты kubectl get nodes.",
+    "rubric": "Знать порядок bootstrap, CNI, join и проверку; не выдавать теорию за личный опыт.",
+    "source": "https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/",
+    "source_prompts": [
+      {
+        "number": 14,
+        "question": "Работали ли вы с kubeadm и как с помощью него развернуть кластер?"
+      }
+    ]
+  },
+  {
+    "id": "K8S-107",
+    "topic": "Kubernetes",
+    "section": "workloads",
+    "level": "middle",
+    "question": "Что такое Pod и чем он отличается от контейнера?",
+    "answer": "Pod — минимальная единица размещения Kubernetes, включающая один или несколько совместно размещённых контейнеров. Они разделяют сетевой namespace, Pod IP и порты; могут разделять подключённые volumes. Контейнер — отдельный экземпляр выполнения образа с собственными процессами и настройками. У каждого объекта Pod есть UID, а имя и IP не являются постоянной идентичностью после пересоздания.",
+    "follow_up": "Почему два контейнера одного Pod общаются через localhost? Что изменится при пересоздании Pod?",
+    "practice": "На учебном Pod проверить metadata.uid, status.podIP и связь контейнеров через localhost.",
+    "rubric": "Различать Pod и container, общий network namespace и изменяемую идентичность.",
+    "source": "https://kubernetes.io/docs/concepts/workloads/pods/",
+    "source_prompts": [
+      {
+        "number": 15,
+        "question": "В чем разница между подом и контейнером?"
+      },
+      {
+        "number": 16,
+        "question": "Что такое pod, для чего он нужен?"
+      },
+      {
+        "number": 17,
+        "question": "Что такое под?"
+      },
+      {
+        "number": 21,
+        "question": "Что есть уникального в каждом поде?"
+      },
+      {
+        "number": 117,
+        "question": "Если мы запускаем приложение в контейнере, какой-то микросервис, чем будет отличаться под в данном случае?"
+      }
+    ]
+  },
+  {
+    "id": "K8S-108",
+    "topic": "Kubernetes",
+    "section": "workloads",
+    "level": "middle",
+    "question": "Сколько контейнеров стоит размещать в Pod и когда несколько оправданы?",
+    "answer": "Обычно один основной контейнер на Pod упрощает независимый rollout и scaling. Несколько оправданы при тесно связанном жизненном цикле, например вспомогательный proxy или агент с общим volume. Обычные init-контейнеры завершаются перед запуском приложения; native sidecar работает параллельно в поддерживаемых версиях. Универсального числа контейнеров нет: учитываются ресурсы и ограничения среды.",
+    "follow_up": "Почему не помещать независимые frontend и database в один Pod? Все ли контейнеры должны работать постоянно?",
+    "practice": "Сравнить Pod с init container и двумя app containers; изучить containerStatuses.",
+    "rubric": "Объяснить единицу масштабирования, совместный lifecycle и отличия init/sidecar.",
+    "source": "https://kubernetes.io/docs/concepts/workloads/pods/",
+    "source_prompts": [
+      {
+        "number": 18,
+        "question": "Сколько контейнеров принято совать в под и почему?"
+      },
+      {
+        "number": 19,
+        "question": "Сколько может быть контейнеров внутри пода? Будут ли они работать на постоянке?"
+      },
+      {
+        "number": 20,
+        "question": "Какие случаи justify (оправдывают) несколько контейнеров в поде?"
+      }
+    ]
+  },
+  {
+    "id": "K8S-109",
+    "topic": "Kubernetes",
+    "section": "workloads",
+    "level": "middle",
+    "question": "Какие ресурсы Kubernetes создают Pod и чем Deployment отличается от ReplicaSet?",
+    "answer": "ReplicaSet поддерживает заданное число подходящих Pod. Deployment управляет ReplicaSet и обновлениями шаблона, историей rollout и откатом. DaemonSet создаёт Pod на подходящих узлах, StatefulSet управляет устойчивой идентичностью, Job — выполнением до завершения, CronJob создаёт Job по расписанию. Обычный самостоятельный Pod не обеспечивает замену при удалении. Для обычных stateless-сервисов Deployment является распространённым выбором; не следует считать его единственно допустимым.",
+    "follow_up": "Что создаётся при изменении Pod template Deployment? Какой ресурс создаёт Job по расписанию?",
+    "practice": "kubectl get deployment,rs,pod -n demo; проверить ownerReferences; сравнить с CronJob.",
+    "rubric": "Назвать цепочки Deployment→ReplicaSet→Pod и CronJob→Job→Pod.",
+    "source": "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/",
+    "source_prompts": [
+      {
+        "number": 22,
+        "question": "Какие есть объекты, которые создают поды?"
+      },
+      {
+        "number": 23,
+        "question": "Какие ты знаешь ресурсы, которыми можно создать под?"
+      },
+      {
+        "number": 24,
+        "question": "Какой самый популярный ресурс для создания подов?"
+      },
+      {
+        "number": 25,
+        "question": "Какие есть сущности для управления подами?"
+      },
+      {
+        "number": 27,
+        "question": "Когда создаешь сущность Deployment, что у тебя происходит? Кого он за собой тащит?"
+      },
+      {
+        "number": 28,
+        "question": "Чем отличаются Deployment и ReplicaSet? Почему мы не используем ReplicaSet, если по сути Deployment просто повторяет его функционал?"
+      },
+      {
+        "number": 34,
+        "question": "Отличие ReplicaSet, Deployment, StatefulSet и DaemonSet?"
+      }
+    ]
+  },
+  {
+    "id": "K8S-110",
+    "topic": "Kubernetes",
+    "section": "workloads",
+    "level": "middle",
+    "question": "Что такое namespace и какие объекты не ограничены namespace?",
+    "answer": "Namespace группирует namespaced ресурсы, упрощает разделение команд, имён, прав и квот. Например, Deployment и Service имеют namespace, а Node, PersistentVolume, Namespace и ClusterRole являются cluster-scoped. Namespace сам по себе не запрещает сетевые соединения; нужны RBAC, NetworkPolicy и другие меры.",
+    "follow_up": "Могут ли два Service иметь одинаковое имя? Почему нельзя полагаться только на namespace для security isolation?",
+    "practice": "kubectl api-resources --namespaced=true; kubectl api-resources --namespaced=false.",
+    "rubric": "Различать namespaced и cluster-scoped ресурсы; не обещать изоляцию по одному namespace.",
+    "source": "https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/",
+    "source_prompts": [
+      {
+        "number": 37,
+        "question": "Что такое namespace, для чего нужен? И почему не складывают все в один namespace?"
+      },
+      {
+        "number": 38,
+        "question": "Что такое namespace?"
+      }
+    ]
+  },
+  {
+    "id": "K8S-111",
+    "topic": "Kubernetes",
+    "section": "api",
+    "level": "middle",
+    "question": "Из каких верхнеуровневых полей состоит YAML-манифест и что означает apiVersion?",
+    "answer": "Типичный декларативный объект имеет apiVersion, kind, metadata и spec; не у всех ресурсов есть spec, например ConfigMap использует data. apiVersion обозначает группу и версию API: v1 для core, apps/v1 для Deployment, batch/v1 для Job. Alpha и beta версии имеют иной уровень стабильности; выбирать нужно реально поддерживаемую API version.",
+    "follow_up": "Почему status обычно не задают вручную? Как проверить доступность API версии и поля?",
+    "practice": "kubectl api-resources; kubectl api-versions; kubectl explain deployment.spec; server-side dry-run в учебном namespace.",
+    "rubric": "Назвать поля и отличить API group/version от версии Kubernetes или приложения.",
+    "source": "https://kubernetes.io/docs/concepts/overview/working-with-objects/",
+    "source_prompts": [
+      {
+        "number": 39,
+        "question": "Какие типы apiVersion существуют?"
+      },
+      {
+        "number": 41,
+        "question": "Какие есть ключи у yaml-деплоймента в самом верху?"
+      }
+    ]
+  },
+  {
+    "id": "K8S-112",
+    "topic": "Kubernetes",
+    "section": "security",
+    "level": "middle",
+    "question": "Чем Secret отличается от ConfigMap и как передать их приложению?",
+    "answer": "ConfigMap предназначен для нечувствительных параметров, Secret — для конфиденциальных данных, например токенов и ключей. Оба могут передаваться через env или volume. Base64 в Secret — кодирование, а не шифрование; необходимы RBAC, шифрование at rest и контроль логов. Env не обновляется автоматически, а mounted файл требует поддержки перечитывания приложением.",
+    "follow_up": "Какие данные нельзя класть в Git? Как ротация влияет на env и volume?",
+    "practice": "Создать только синтетические ConfigMap и Secret в локальном namespace; проверить ссылки envFrom и volume без вывода значения.",
+    "rubric": "Назвать назначение, способы передачи и ограничения безопасности.",
+    "source": "https://kubernetes.io/docs/concepts/configuration/secret/",
+    "source_prompts": [
+      {
+        "number": 42,
+        "question": "Чем отличается Secret от ConfigMap?"
+      },
+      {
+        "number": 43,
+        "question": "Что такое секреты и ConfigMap, разница, где хранить секреты, какие данные в Secrets, как монтируются?"
+      }
+    ]
+  },
+  {
+    "id": "K8S-113",
+    "topic": "Kubernetes",
+    "section": "security",
+    "level": "senior",
+    "question": "Как интегрировать HashiCorp Vault с Kubernetes для выдачи секретов приложению?",
+    "answer": "Привязать workload identity к роли Vault с минимальными policy; Kubernetes auth проверяет ServiceAccount token по настройкам Vault. Приложение может получать секрет через Agent Injector, Secrets Store CSI provider либо оператор синхронизации — механизмы и сроки обновления различаются. Нужно определить TTL, ротацию, поведение при недоступности Vault и reload приложения; синхронизация в Kubernetes Secret снова создаёт копию в API.",
+    "follow_up": "Чем Agent Injector отличается от CSI? Как избежать постоянного Vault token в образе?",
+    "practice": "На изолированном Vault стенде описать role, policy и синтетический secret; проверить отказ чужой identity и ротацию.",
+    "rubric": "Объяснить identity, доставку, TTL, ограничения и failover без вывода секретов.",
+    "source": "https://developer.hashicorp.com/vault/docs/deploy/kubernetes/comparisons",
+    "source_prompts": [
+      {
+        "number": 44,
+        "question": "Хранение секретов в Kubernetes (Vault)."
+      }
+    ]
+  },
+  {
+    "id": "K8S-114",
+    "topic": "Kubernetes",
+    "section": "storage",
+    "level": "middle",
+    "question": "Что такое Volume и чем файловое хранилище отличается от блочного в Kubernetes?",
+    "answer": "Volume — доступное контейнерам хранилище, подключаемое к Pod. Файловый backend предоставляет дерево файлов через файловую систему, блочный — устройство блоков, поверх которого можно создать FS или использовать raw block при поддержке CSI и volumeMode: Block. Выбор зависит от access modes, latency, совместного доступа и требований приложения. PVC связывает workload с подходящим persistent volume. В Pod с persistent volume указывают persistentVolumeClaim.claimName, а не имя PV напрямую. Примеры файловых backend: NFS и CephFS; блочных: CSI-драйверы для Ceph RBD или локальных/сетевых дисков. Конкретные возможности проверяются у драйвера.",
+    "follow_up": "Можно ли приложению указать PV вместо PVC напрямую в Pod? Чем Filesystem отличается от Block?",
+    "practice": "Проверить volumeMode и accessModes тестового PVC; сравнить volumeMounts и volumeDevices в документации.",
+    "rubric": "Различать volume API, тип backend, режим доступа и жизненный цикл данных.",
+    "source": "https://kubernetes.io/docs/concepts/storage/persistent-volumes/",
+    "source_prompts": [
+      {
+        "number": 46,
+        "question": "Для Stateful-приложений нужен PVC или можно сразу PV?"
+      },
+      {
+        "number": 48,
+        "question": "Что такое Volume в кубере?"
+      },
+      {
+        "number": 49,
+        "question": "Был ли опыт организации хранилища для Kubernetes?"
+      },
+      {
+        "number": 50,
+        "question": "Типы файловых хранилищ в кубере."
+      },
+      {
+        "number": 51,
+        "question": "Чем отличается блочное хранилище от файлового?"
+      }
+    ]
+  },
+  {
+    "id": "K8S-115",
+    "topic": "Kubernetes",
+    "section": "network",
+    "level": "middle",
+    "question": "Какие четыре типа Service существуют и когда выбирать каждый?",
+    "answer": "ClusterIP предоставляет внутренний виртуальный адрес. NodePort публикует порт на узлах. LoadBalancer запрашивает реализацию внешнего балансировщика при наличии соответствующего контроллера. ExternalName возвращает DNS CNAME вместо обычного проксирования. Headless (clusterIP: None) — специальная конфигурация, а не пятый тип. Публикация снаружи требует маршрутизации и политики безопасности.",
+    "follow_up": "Почему LoadBalancer может оставаться Pending на bare metal? Что отличается у ExternalName?",
+    "practice": "На локальном кластере посмотреть kubectl get svc -o wide и проверить DNS для тестового ExternalName.",
+    "rubric": "Назвать четыре типа, отличить headless и потребность в LB implementation.",
+    "source": "https://kubernetes.io/docs/concepts/services-networking/service/",
+    "source_prompts": [
+      {
+        "number": 53,
+        "question": "Виды сервисов в кубе?"
+      },
+      {
+        "number": 54,
+        "question": "Какие типы Kubernetes сервисов ты знаешь?"
+      },
+      {
+        "number": 55,
+        "question": "Четыре типа Сервисов в Kubernetes, какие есть, что дают? (ClusterIP, NodePort, LoadBalancer, ExternalName)."
+      },
+      {
+        "number": 59,
+        "question": "Варианты, как можно выкинуть приложения наружу?"
+      }
+    ]
+  },
+  {
+    "id": "K8S-116",
+    "topic": "Kubernetes",
+    "section": "network",
+    "level": "senior",
+    "question": "Как провести внешний HTTP-трафик до Pod через Ingress controller?",
+    "answer": "Типичная цепочка: DNS → внешний LB или доступный адрес узла → Service контроллера → Ingress dataplane → backend Service/endpoint → приложение. Ingress задаёт Host/path/TLS, а NGINX или Traefik реализует их согласно своим настройкам. В зависимости от контроллера upstream может обращаться непосредственно к endpoint, а не через ClusterIP. Проверяй каждый переход отдельно.",
+    "follow_up": "Как установить контроллер в локальном стенде? Где завершается TLS? Почему 502 и 504 требуют разных проверок?",
+    "practice": "Использовать учебный controller и Service; проверить curl с корректным Host, events и access/error logs.",
+    "rubric": "Различать ресурс, controller и реальный путь трафика; не выдавать конкретную реализацию за универсальную.",
+    "source": "https://kubernetes.io/docs/concepts/services-networking/ingress/",
+    "source_prompts": [
+      {
+        "number": 60,
+        "question": "Если ты хочешь запустить трафик в Kubernetes извне, какие ты можешь использовать механизмы?"
+      },
+      {
+        "number": 61,
+        "question": "Что такое Ingress, NGINX и Traefik?"
+      },
+      {
+        "number": 62,
+        "question": "С какими Ingress приходилось работать?"
+      },
+      {
+        "number": 63,
+        "question": "Какие были проблемы в использовании Nginx и Traefik?"
+      },
+      {
+        "number": 64,
+        "question": "На твоем опыте, как был организован процесс отхода трафика на хост и как он попадал в Ingress?"
+      },
+      {
+        "number": 65,
+        "question": "Как был развернут Ingress Controller?"
+      }
+    ]
+  },
+  {
+    "id": "K8S-117",
+    "topic": "Kubernetes",
+    "section": "network",
+    "level": "senior",
+    "question": "Какие алгоритмы балансировки применяют и где их выбирают в Kubernetes?",
+    "answer": "Round robin распределяет выбор по кругу, least connections учитывает текущие соединения, weighted варианты задают относительный вес, hash помогает стабильному распределению по ключу. Kubernetes Service и L7 proxy имеют разные механизмы выбора, поэтому настройки зависят от dataplane. Keepalive, долгие соединения и NAT меняют распределение запросов; измерять надо нагрузку и latency по backend. Примеры L7/L4 proxy: NGINX, HAProxy, Envoy, Traefik; MetalLB реализует публикацию LoadBalancer Service в подходящих bare-metal сетях, а не заменяет HTTP reverse proxy.",
+    "follow_up": "Почему равное число соединений не равно равной нагрузке? Чем L4 LB отличается от L7?",
+    "practice": "В локальном тесте сравнить количество запросов и соединений на двух backend; проверить конфигурацию выбранного proxy.",
+    "rubric": "Не обещать конкретный алгоритм для любого Service; объяснить критерии выбора.",
+    "source": "https://kubernetes.io/docs/reference/networking/virtual-ips/",
+    "source_prompts": [
+      {
+        "number": 68,
+        "question": "Какие алгоритмы балансировки вы знаете?"
+      },
+      {
+        "number": 69,
+        "question": "Какие LoadBalancer'ы знаешь, с какими работаешь?"
+      }
+    ]
+  },
+  {
+    "id": "K8S-118",
+    "topic": "Kubernetes",
+    "section": "network",
+    "level": "middle",
+    "question": "Как два приложения из разных контейнерных образов взаимодействуют внутри Kubernetes, с Helm и без него?",
+    "answer": "Для независимо масштабируемых приложений создают отдельные Deployment и Service для принимающей стороны. Клиент обращается по DNS имени Service и нужному порту; NetworkPolicy должна разрешать соединение. В одном Pod можно использовать localhost, но тогда контейнеры имеют общий lifecycle. Helm лишь генерирует и доставляет манифесты, он не добавляет отдельный сетевой протокол.",
+    "follow_up": "Как обратиться к Service в другом namespace? Что поместить в values.yaml?",
+    "practice": "Развернуть два учебных приложения, выполнить HTTP-запрос из первого к DNS имени второго.",
+    "rubric": "Различать image, Pod, Service, DNS и способ доставки Helm.",
+    "source": "https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/",
+    "source_prompts": [
+      {
+        "number": 70,
+        "question": "У нас получились 2 image, и мы их размещаем в Kubernetes, как эти два image взаимодействуют между собой, что им нужно для этого, без и с Helm-чартами?"
+      }
+    ]
+  },
+  {
+    "id": "K8S-119",
+    "topic": "Kubernetes",
+    "section": "resources",
+    "level": "middle",
+    "question": "Как requests и limits влияют на размещение и исполнение, если limit больше свободной ёмкости узла?",
+    "answer": "Scheduler проверяет effective requests относительно allocatable и уже запрошенных ресурсов, а не резервирует сумму limits. Если requests помещаются и остальные условия выполнены, Pod может разместиться даже при limit выше доступной ёмкости. CPU limit вызывает throttling, memory limit при превышении может привести к OOM kill. Заниженные requests создают overcommit, завышенные ухудшают утилизацию.",
+    "follow_up": "Что произойдёт при достижении CPU и memory limits? Как подобрать requests без статистики?",
+    "practice": "В тестовом namespace проверить requests/limits, события scheduling и container termination reason.",
+    "rubric": "Отличать планирование, фактическое потребление и enforcement; не утверждать, что CPU limit вызывает OOM.",
+    "source": "https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/",
+    "source_prompts": [
+      {
+        "number": 71,
+        "question": "Как ограничить ресурсы контейнеру?"
+      },
+      {
+        "number": 72,
+        "question": "Основные два типа ресурсов в манифесте?"
+      },
+      {
+        "number": 73,
+        "question": "Минусы `request` ограничения."
+      },
+      {
+        "number": 74,
+        "question": "Допустим, у нас `limit` и `request` разный, и в кластере ресурсов меньше, чем в лимите. Даст ли нам выложить pod в кластер?"
+      },
+      {
+        "number": 75,
+        "question": "Что произойдет, если приложение дойдет до лимита памяти для контейнера? Что произойдет, если дойдет до лимита CPU?"
+      }
+    ]
+  },
+  {
+    "id": "K8S-120",
+    "topic": "Kubernetes",
+    "section": "resources",
+    "level": "senior",
+    "question": "Три Pod используют одинаково по 1 GiB, а на узле MemoryPressure. Как определяется порядок eviction?",
+    "answer": "Одного значения usage недостаточно. Kubelet учитывает, превышает ли Pod requests по дефицитному ресурсу, затем Priority, затем потребление относительно requests при сортировке кандидатов. QoS влияет косвенно через настройки requests; eviction узла не равен рестарту контейнера после cgroup OOM. Контроллер может создать замену выселенного Pod на другом узле.",
+    "follow_up": "Можно ли гарантировать порядок только по QoS? Как отличить Evicted от OOMKilled?",
+    "practice": "На учебном стенде сравнить requests, priorityClassName, node conditions и Pod status.",
+    "rubric": "Не угадывать порядок без requests и priority; различать eviction и OOM.",
+    "source": "https://kubernetes.io/docs/concepts/scheduling-eviction/node-pressure-eviction/",
+    "source_prompts": [
+      {
+        "number": 77,
+        "question": "В сети три разных приложения, каждое из них потребляет 1000 memory, и на ноде начинает расти потребление памяти. В каком порядке к ним придет Kubernetes и начнет их рестартовывать?"
+      }
+    ]
+  },
+  {
+    "id": "K8S-121",
+    "topic": "Kubernetes",
+    "section": "autoscaling",
+    "level": "senior",
+    "question": "Чем HPA, VPA и Karpenter отличаются по объекту масштабирования?",
+    "answer": "HPA меняет число реплик workload. VPA оценивает и может изменять requests контейнеров по поддерживаемой политике и версии. Karpenter управляет предоставлением и консолидацией узлов через поддерживаемый provider, ориентируясь на требования Pod и NodePool. NodeClaim представляет запрос на конкретную вычислительную ёмкость. Karpenter не заменяет HPA и не гарантирует устранение невозможных scheduling constraints.",
+    "follow_up": "Как ограничить NodePool и риск disruption? Почему автоскейлинг не исправляет ошибочную affinity?",
+    "practice": "На локальной схеме проследить Pod Pending → требования к узлу → NodeClaim; для практики не подключать платный cloud.",
+    "rubric": "Различить replicas, requests и nodes; назвать provider-specific ограничения.",
+    "source": "https://karpenter.sh/docs/concepts/nodeclaims/",
+    "source_prompts": [
+      {
+        "number": 79,
+        "question": "HPA и VPA."
+      },
+      {
+        "number": 80,
+        "question": "Использовался ли автоскейлинг, HPA/VPA?"
+      },
+      {
+        "number": 86,
+        "question": "Что такое Karpenter?"
+      }
+    ]
+  },
+  {
+    "id": "K8S-122",
+    "topic": "Kubernetes",
+    "section": "design",
+    "level": "lead",
+    "question": "Как определить размер узлов и начальную ёмкость кластера без статистики приложения?",
+    "answer": "Точный размер без измерений неизвестен. Начни с требований SLO и минимальной топологии, измерь CPU, память, I/O и throughput одной реплики на контролируемой нагрузке, оцени requests и число реплик. Вычти system reserve, DaemonSet и Pod overhead из ёмкости; заложи запас на отказ зоны/узла и rollout. Проверь load test, хвост latency и стоимость, затем пересматривай модель. Scalability — способность выдерживать рост нагрузки при добавлении ресурсов; HA — способность сохранять доступность при отказах. Они связаны, но не эквивалентны.",
+    "follow_up": "Чем scalability отличается от HA? Почему scale up не всегда лучше scale out?",
+    "practice": "Составить capacity sheet на основе измеренного throughput, p99 и requests; сравнить два типа узлов.",
+    "rubric": "Не придумывать точные ресурсы без данных, различать масштабирование и доступность.",
+    "source": "https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/",
+    "source_prompts": [
+      {
+        "number": 82,
+        "question": "Что такое scaleability и high-availability?"
+      },
+      {
+        "number": 83,
+        "question": "Как определить размер одной ноды?"
+      },
+      {
+        "number": 84,
+        "question": "Как определить ресурс, который необходим одной ноде, не зная характеристик кластера?"
+      },
+      {
+        "number": 85,
+        "question": "Как первоначально оценить, не зная как приложение работает, нагрузкой размер ноды в Kubernetes (по памяти, по процессам и ресурсам)?"
+      }
+    ]
+  },
+  {
+    "id": "K8S-123",
+    "topic": "Kubernetes",
+    "section": "workloads",
+    "level": "senior",
+    "question": "Опиши полный путь создания Pod от kubectl apply до готовности приложения.",
+    "answer": "API server выполняет authentication, authorization, admission и сохраняет объект. Контроллеры создают дочерние объекты для workload, scheduler привязывает обычный незапланированный Pod к узлу. Kubelet обнаруживает назначение, организует volumes, sandbox, сеть через runtime/CNI и запуск контейнеров. После инициализации и успешной readiness Pod становится подходящим backend при совпадении selector.",
+    "follow_up": "На каком этапе появляются FailedScheduling, FailedMount и ImagePullBackOff? Чем Running отличается от Ready?",
+    "practice": "На учебном Deployment проследить events, ownerReferences, nodeName, containerStatuses и EndpointSlice.",
+    "rubric": "Объяснить последовательность API→контроллер→scheduler→kubelet→readiness без обещания строго синхронных операций.",
+    "source": "https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/",
+    "source_prompts": [
+      {
+        "number": 87,
+        "question": "Как создается под, весь процесс?"
+      }
+    ]
+  },
+  {
+    "id": "K8S-124",
+    "topic": "Kubernetes",
+    "section": "scheduling",
+    "level": "middle",
+    "question": "Как обеспечить размещение двух реплик приложения на разных узлах?",
+    "answer": "Использовать requiredDuringSchedulingIgnoredDuringExecution podAntiAffinity с selector своих реплик и topologyKey kubernetes.io/hostname. Альтернатива — подходящие topologySpreadConstraints, если требования допускают их семантику. При одном подходящем узле вторая реплика останется Pending; предпочтительная anti-affinity не гарантирует разнесение.",
+    "follow_up": "Чем nodeAffinity отличается от podAntiAffinity? Что выбрать при дефиците capacity?",
+    "practice": "На учебном кластере с двумя worker сравнить размещение и FailedScheduling при одном worker.",
+    "rubric": "Назвать topologyKey, hard/soft constraint и компромисс доступности.",
+    "source": "https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/",
+    "source_prompts": [
+      {
+        "number": 91,
+        "question": "Тебе нужно поднять контейнер в двух репликах, только чтобы они не встретились в одной и той же ноде (узле)."
+      },
+      {
+        "number": 92,
+        "question": "Что такое affinity и anti-affinity?"
+      }
+    ]
+  },
+  {
+    "id": "K8S-125",
+    "topic": "Kubernetes",
+    "section": "workloads",
+    "level": "middle",
+    "question": "Какие три вида probes существуют и что происходит при их отказе?",
+    "answer": "Startup probe проверяет успешную инициализацию, до её успеха liveness и readiness не запускаются. Неудачная readiness делает Pod неподходящим для обычного Service-трафика, но сама не перезапускает контейнер. Исчерпание порога liveness или startup приводит к завершению контейнера с последующим действием restart policy. HTTP, TCP, exec и gRPC проверки имеют разные условия успеха.",
+    "follow_up": "Почему liveness не должна зависеть от доступности общей БД? Как выбрать пороги?",
+    "practice": "На тестовом Pod изменить readiness endpoint и отдельно вызвать liveness failure, сравнить restartCount и EndpointSlice.",
+    "rubric": "Различать последствия всех трёх probes, не смешивать рестарт и исключение трафика.",
+    "source": "https://kubernetes.io/docs/concepts/configuration/liveness-readiness-startup-probes/",
+    "source_prompts": [
+      {
+        "number": 93,
+        "question": "Какие типы проб ты знаешь?"
+      },
+      {
+        "number": 94,
+        "question": "Как работают пробы в Kubernetes?"
+      },
+      {
+        "number": 95,
+        "question": "Что произойдет, если под не пройдет одну из этих проб?"
+      }
+    ]
+  },
+  {
+    "id": "K8S-126",
+    "topic": "Kubernetes",
+    "section": "operations",
+    "level": "middle",
+    "question": "Что такое system Pods и что проверять при их отказе?",
+    "answer": "System Pods — разговорное обозначение инфраструктурных workload, часто в kube-system: DNS, сетевые агенты, контроллеры storage и компоненты control plane в некоторых дистрибутивах. Не все компоненты обязаны быть Pod, а namespace не определяет их поведение автоматически. Важно знать owner, размещение, health и влияние отказа на API, DNS, networking или storage.",
+    "follow_up": "Почему нельзя бездумно удалить все Pod kube-system? Как определить компонент, управляющий Pod?",
+    "practice": "kubectl get pods -n kube-system -o wide; проверить ownerReferences, events и логи конкретного компонента.",
+    "rubric": "Объяснить назначение, различать системные workload и пользовательские приложения.",
+    "source": "https://kubernetes.io/docs/concepts/architecture/",
+    "source_prompts": [
+      {
+        "number": 99,
+        "question": "Что такое system pods?"
+      }
+    ]
+  },
+  {
+    "id": "K8S-127",
+    "topic": "Kubernetes",
+    "section": "helm",
+    "level": "middle",
+    "question": "Что такое Helm, Chart и Release и зачем они нужны?",
+    "answer": "Helm управляет пакетами Kubernetes. Chart содержит метаданные, values, шаблоны и при необходимости зависимости; при установке шаблоны превращаются в Kubernetes manifests. Release — экземпляр установки chart с именем, namespace, values и историей revisions. Helm облегчает повторяемую доставку, но не гарантирует корректность YAML или здоровье приложения.",
+    "follow_up": "Чем helm template отличается от helm install? Почему values для dev и prod должны быть управляемыми?",
+    "practice": "На локальном chart выполнить helm lint и helm template demo ./chart -f values.yaml.",
+    "rubric": "Различать package, rendered manifests и установленный release.",
+    "source": "https://helm.sh/docs/intro/using_helm/",
+    "source_prompts": [
+      {
+        "number": 100,
+        "question": "Что такое Helm? Для чего он нужен?"
+      },
+      {
+        "number": 101,
+        "question": "Что такое Helm Chart? Для чего?"
+      },
+      {
+        "number": 102,
+        "question": "Что дает нам Helm в Kuber, в чем его неоспоримый плюс?"
+      },
+      {
+        "number": 103,
+        "question": "Писал ли хелмчарты?"
+      }
+    ]
+  },
+  {
+    "id": "K8S-128",
+    "topic": "Kubernetes",
+    "section": "helm",
+    "level": "senior",
+    "question": "Где Helm хранит данные о релизе и какие риски это создаёт?",
+    "answer": "В Helm 3 по умолчанию записи релизов хранятся в Kubernetes Secrets соответствующего namespace; возможны другие storage drivers. История содержит values и rendered manifests, поэтому чувствительные данные могут попасть в release metadata. Ограничивай RBAC, не передавай plaintext secrets в values, защищай резервные копии и не удаляй историю без плана.",
+    "follow_up": "Чем helm history отличается от истории Deployment? Как проверить backend установленной версии Helm?",
+    "practice": "helm history demo -n demo; helm list -n demo; проверить только metadata release Secrets.",
+    "rubric": "Назвать default backend с оговоркой версии, риск секретов и отличия историй.",
+    "source": "https://helm.sh/docs/intro/using_helm/",
+    "source_prompts": [
+      {
+        "number": 104,
+        "question": "Где Helm хранит данные о релизе?"
+      }
+    ]
+  },
+  {
+    "id": "K8S-129",
+    "topic": "Kubernetes",
+    "section": "helm",
+    "level": "senior",
+    "question": "Как откатить неработающий Helm release и проверить, что откат действительно успешен?",
+    "answer": "Определить release и namespace, исследовать helm status, helm history, Kubernetes events и причины отказа. Выбрать известную рабочую revision и выполнить helm rollback RELEASE REVISION с подходящими wait/timeout для установленной версии. Проверить rollout, readiness, пользовательские SLI и состояние данных. Helm rollback не отменяет внешние миграции и эффекты hooks.",
+    "follow_up": "Что делать при несовместимой БД? Как избежать повторного использования изменяемого image tag?",
+    "practice": "На учебном release вызвать ошибку обновления и откатить к предыдущей revision; проверить HTTP и историю.",
+    "rubric": "Отличать возврат manifest от восстановления данных, требовать проверку сервиса.",
+    "source": "https://helm.sh/docs/helm/helm_rollback/",
+    "source_prompts": [
+      {
+        "number": 105,
+        "question": "У нас закатился Helm-релиз, и сами поды не работают, и нам нужно откатить на версию раньше. Как бы ты сделал?"
+      }
+    ]
+  },
+  {
+    "id": "K8S-130",
+    "topic": "Kubernetes",
+    "section": "helm",
+    "level": "senior",
+    "question": "Как убрать Ingress из Helm release без случайного удаления других ресурсов?",
+    "answer": "Изменить chart или values так, чтобы ненужный Ingress не рендерился, проверить diff предыдущего и нового набора манифестов. Обычный upgrade удаляет ранее управляемый ресурс, отсутствующий в новой конфигурации, с учётом особенностей lifecycle, hooks и resource-policy. Предварительно обеспечить новый маршрут и проверить DNS/TLS. Не удалять вручную объект, пока Git/Chart остаётся источником истины.",
+    "follow_up": "Как проверить ownership? Почему аннотация helm.sh/resource-policy: keep меняет ожидания?",
+    "practice": "В выделенном namespace отрендерить обе версии, проверить diff и upgrade, убедиться, что альтернативный маршрут работает.",
+    "rubric": "Объяснить изменение desired state, влияние на трафик и правила удаления.",
+    "source": "https://helm.sh/docs/intro/using_helm/",
+    "source_prompts": [
+      {
+        "number": 106,
+        "question": "Если мне нужно убрать что-то из деплоймента, и все запускалось через Helm, но мы отказались от Ingress. Твои действия, как ты будешь делать обновление?"
+      }
+    ]
+  },
+  {
+    "id": "K8S-131",
+    "topic": "Kubernetes",
+    "section": "helm",
+    "level": "senior",
+    "question": "Как автоматизировать Helm-деплой через CI/CD и зачем нужен Helmfile?",
+    "answer": "CI проверяет chart через lint, template, schema/policy проверки и тесты; фиксирует версии chart и digest образов. CD выполняет контролируемый upgrade/install с отдельными credentials, ограничением параллелизма, wait/timeout и проверкой SLI. Helmfile декларативно описывает набор releases, окружения, values и зависимости, но не является постоянно работающим reconciler как GitOps controller. Проверяй flags по версии Helm.",
+    "follow_up": "Как избежать утечки Secret в dry-run? Когда нужен ручной approval?",
+    "practice": "На локальном стенде подготовить helmfile template/diff и безопасный pipeline без production credentials.",
+    "rubric": "Различать Helm, Helmfile, CI/CD и GitOps; предусмотреть безопасность и rollback.",
+    "source": "https://helmfile.readthedocs.io/en/stable/",
+    "source_prompts": [
+      {
+        "number": 107,
+        "question": "Как автоматически деплоить Helm?"
+      },
+      {
+        "number": 108,
+        "question": "Что такое Helmfile? Для чего?"
+      }
+    ]
+  },
+  {
+    "id": "K8S-132",
+    "topic": "Kubernetes",
+    "section": "delivery",
+    "level": "middle",
+    "question": "Какие стратегии развёртывания Kubernetes поддерживает и что происходит при смене image в Deployment?",
+    "answer": "Deployment поддерживает RollingUpdate и Recreate. Изменение image в spec.template приводит к новому Pod template и ReplicaSet, который масштабируется согласно стратегии; старый ReplicaSet уменьшается. Blue-green и canary требуют дополнительных workload и управления трафиком. Изменение тега в registry без изменения шаблона не инициирует новый rollout.",
+    "follow_up": "Почему kubectl set image может конфликтовать с GitOps? Чем Recreate рискует для доступности?",
+    "practice": "На учебном Deployment изменить image на контролируемую версию, проверить ReplicaSet и rollout history.",
+    "rubric": "Назвать триггер Pod template и различать встроенные стратегии от схем доставки.",
+    "source": "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/",
+    "source_prompts": [
+      {
+        "number": 109,
+        "question": "Какие стратегии развертывания вы знаете?"
+      },
+      {
+        "number": 110,
+        "question": "Стратегии деплоя в Kubernetes."
+      },
+      {
+        "number": 111,
+        "question": "Что произойдет при изменении image? Как будут докатываться изменения?"
+      },
+      {
+        "number": 112,
+        "question": "Когда ты обновляешь image внутри Deployment, либо через kubectl, либо через свой деплоймент, когда ты меняешь image, что происходит? Можешь описать?"
+      }
+    ]
+  },
+  {
+    "id": "K8S-133",
+    "topic": "Kubernetes",
+    "section": "delivery",
+    "level": "senior",
+    "question": "Какие манифесты нужны для запуска микросервиса с kubectl и с Helm?",
+    "answer": "Обычно задают Deployment с image digest, resources и probes, Service для стабильного доступа, ConfigMap/Secret references, ServiceAccount и NetworkPolicy. При необходимости добавляют Ingress/Gateway, HPA, PDB и PVC. Через kubectl применяют проверенные manifests; Helm упаковывает те же ресурсы как chart с values. Проверки готовности и доступности обязательны в обоих случаях.",
+    "follow_up": "Как избежать изменения чужого namespace? Что проверить до и после deploy?",
+    "practice": "В учебном context применить manifest или helm upgrade --install, затем проверить rollout status и запрос к сервису.",
+    "rubric": "Не считать Helm обязательным для Kubernetes, указать конфигурацию, identity, сеть и проверку.",
+    "source": "https://kubernetes.io/docs/concepts/workloads/management/",
+    "source_prompts": [
+      {
+        "number": 40,
+        "question": "Писал ли манифесты?"
+      },
+      {
+        "number": 114,
+        "question": "Как ты запустишь какое-нибудь приложение в кубере, с Helm и без Helm, только `kubectl`?"
+      },
+      {
+        "number": 115,
+        "question": "Что вообще опишешь при создании приложения?"
+      }
+    ]
+  },
+  {
+    "id": "K8S-134",
+    "topic": "Kubernetes",
+    "section": "storage",
+    "level": "lead",
+    "question": "Как развернуть PostgreSQL в Kubernetes и чем production отличается от учебного StatefulSet?",
+    "answer": "Для учебного экземпляра нужны StatefulSet или иной подходящий workload, PVC, Service, Secret references и корректные probes. Production требует осознанного выбора оператора или внешней БД, репликации, leader-aware routing, fencing, backup и WAL/PITR, контролируемого обновления и независимых failure domains. Несколько реплик StatefulSet сами по себе не создают PostgreSQL replication.",
+    "follow_up": "Как доказать RPO/RTO? Что будет при потере узла с local PV?",
+    "practice": "На локальной тестовой БД выполнить restore контрольных данных и измерить время; не подключать рабочую БД.",
+    "rubric": "Различать запуск процесса и эксплуатацию stateful HA, учитывать данные и восстановление.",
+    "source": "https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/",
+    "source_prompts": [
+      {
+        "number": 116,
+        "question": "Как развернуть PostgreSQL в Kubernetes?"
+      }
+    ]
+  },
+  {
+    "id": "K8S-135",
+    "topic": "Kubernetes",
+    "section": "delivery",
+    "level": "senior",
+    "question": "Где хранятся container images и как оптимизировать их для Kubernetes?",
+    "answer": "Образы публикуются в registry и кешируются runtime на узлах. Kubernetes хранит ссылку на образ, а не его слои в etcd. Multi-stage build, минимальная подходящая base image, исключение build dependencies, правильный .dockerignore и стабильные layers уменьшают размер и время доставки. Фиксируй digest, проверяй архитектуру, non-root и supply chain; минимальный размер не заменяет безопасность.",
+    "follow_up": "Почему удаление пакета в следующем Docker layer не всегда уменьшает итоговый образ? Как проверить imageID?",
+    "practice": "Сравнить размер и состав двух локально собранных образов, проверить запуск и health.",
+    "rubric": "Объяснить registry/runtime cache, воспроизводимость и реальные измерения.",
+    "source": "https://kubernetes.io/docs/concepts/containers/images/",
+    "source_prompts": [
+      {
+        "number": 118,
+        "question": "Хранение образов в Kubernetes."
+      },
+      {
+        "number": 119,
+        "question": "Какие приемы знаешь, чтобы оптимизировать Image?"
+      }
+    ]
+  },
+  {
+    "id": "K8S-136",
+    "topic": "Kubernetes",
+    "section": "troubleshooting",
+    "level": "senior",
+    "question": "Разработчик сообщает, что приложение недоступно. Как построить базовый troubleshooting от симптома к причине?",
+    "answer": "Уточнить масштаб, время начала, URL и код ошибки, проверить пользовательский SLI и последние изменения. Затем проверить внешний endpoint, Service/EndpointSlice, Pod readiness, events, logs и зависимости. Сравнить прямой запрос к backend с запросом через Service/Ingress; при необходимости проверить DNS, policy и capacity. Сначала ограничить impact обратимым действием, затем подтвердить recovery и RCA.",
+    "follow_up": "Как отличить 503 ingress от ошибки приложения? Что делать, если проблема только у одного клиента?",
+    "practice": "На отдельном стенде испортить selector или readiness и собрать доказательства до исправления.",
+    "rubric": "Показать последовательное исключение гипотез, безопасную mitigation и критерий восстановления.",
+    "source": "https://kubernetes.io/docs/tasks/debug/debug-application/debug-service/",
+    "source_prompts": [
+      {
+        "number": 120,
+        "question": "Базовый траблшутинг в Kubernetes."
+      },
+      {
+        "number": 121,
+        "question": "К вам подходит разраб и спрашивает, что его приложение недоступно. Что будешь делать?"
+      }
+    ]
+  },
+  {
+    "id": "K8S-137",
+    "topic": "Kubernetes",
+    "section": "operations",
+    "level": "senior",
+    "question": "Как организовать observability Kubernetes и какие сигналы нужны для диагностики?",
+    "answer": "Нужны метрики workload и узлов, события и логи компонентов, распределённые traces для прикладных цепочек. Metrics Server предоставляет resource metrics для autoscaling и kubectl top, но не заменяет долговременный мониторинг. Отдельно измеряй availability/latency/error rate, saturation, API/etcd, очередь scheduler и состояние controllers; настраивай actionable alerts и retention.",
+    "follow_up": "Почему kube-state-metrics и metrics-server решают разные задачи? Как связать trace с Pod и версией релиза?",
+    "practice": "На локальной инфраструктуре сравнить kubectl top, events и метрики приложения; составить SLO alert.",
+    "rubric": "Различать resource metrics, состояние API объектов и прикладные SLI; не считать наличие Grafana готовым мониторингом.",
+    "source": "https://kubernetes.io/docs/tasks/debug/debug-cluster/resource-usage-monitoring/",
+    "source_prompts": [
+      {
+        "number": 122,
+        "question": "Observability."
+      }
+    ]
+  },
+  {
+    "id": "K8S-138",
+    "topic": "Kubernetes",
+    "section": "security",
+    "level": "middle",
+    "question": "Что такое ServiceAccount и как организовать безопасный доступ к Kubernetes API?",
+    "answer": "ServiceAccount представляет identity workload в namespace. Права на API выдаются через RBAC, а authentication подтверждает identity; современные Pod обычно получают ограниченный по времени projected token при включённом automount. Для людей используют отдельный механизм authentication, например OIDC, и персональные права. Не использовать общий admin kubeconfig или один token для всех приложений.",
+    "follow_up": "Как проверить доступ через kubectl auth can-i? Чем Role отличается от ServiceAccount?",
+    "practice": "Создать учебный ServiceAccount с read-only RoleBinding и проверить разрешённые и запрещённые операции.",
+    "rubric": "Различать authentication, authorization, identity человека и workload.",
+    "source": "https://kubernetes.io/docs/concepts/security/service-accounts/",
+    "source_prompts": [
+      {
+        "number": 125,
+        "question": "Каким сервисом пользуешься для настройки безопасности и доступа к кластеру?"
+      },
+      {
+        "number": 126,
+        "question": "Что такое ServiceAccount в кубере, для чего?"
+      }
+    ]
   }
 ];

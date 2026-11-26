@@ -3,7 +3,7 @@ import fs from 'node:fs';
 const read=path=>fs.readFileSync(new URL(path,import.meta.url),'utf8');
 const source=read('./web/interview-bank.js')+'\n'+read('./web/interview-pro.js')+'\n'+read('./web/mock.js');
 const {bank,normalize,validate,filter,pool,plan,exportResult}=new Function(source+';return {bank:INTERVIEW_PRO_BANK,normalize:proNormalize,validate:proValidate,filter:proFilter,pool:proMockPool,plan:mockPlan,exportResult:mockExport}')();
-assert.ok(bank.length>=35 && bank.length<=700);
+assert.ok(bank.length>=35 && bank.length<=738);
 assert.ok(validate(bank));
 assert.equal(new Set(bank.map(q=>q.id)).size,bank.length);
 assert.ok(bank.every(q=>q.answer.length>=100 && q.practice.length>=20 && q.rubric.length>=20));
