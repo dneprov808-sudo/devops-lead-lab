@@ -21,27 +21,69 @@ function quorum(n){
   return {required,tolerated:n-required};
 }
 function historyMatches(row,q){return matchText({module:row.module,kind:row.kind,verification:row.verification,attempt:row.attempt},q)}
-// One renderer for both the technology workspace and the reference library.
+// Reading position is a UI preference, not a learning result or competency.
+const READING_KEY="academy-ui-reading-v12";
+function readTheoryPosition(){
+  try{
+    const p=JSON.parse(localStorage.getItem(READING_KEY)||"null");
+    return p&&typeof p.guide==="string"&&typeof p.chapter==="string"?p:null;
+  }catch{return null}
+}
+function saveTheoryPosition(guide,c){
+  try{localStorage.setItem(READING_KEY,JSON.stringify({guide:guide.id,chapter:c.id}));}catch{}
+  if(typeof window!=="undefined")window.academyUpdateReading?.();
+}
+// One reader for the technology workspace and reference library.
 function theoryChapters(guide, el, button, link, copyText){
   const chapters=Array.isArray(guide.chapters)?guide.chapters:[];
-  const root=el("div",undefined,"theory-course");
-  root.append(el("h3","Учебные главы · "+chapters.length),el("p","Начни с первых трёх обзорных глав, затем переходи к углублённым разделам. Уровень указан рядом с названием. Команды — примеры для соответствующего локального стенда, не готовый скрипт; SQL и PromQL выполняются в своих клиентах. Вопросы предназначены для самопроверки.","dim"));
+  const root=el("div",undefined,"theory-course cockpit-reader");
+  root.append(el("h3","Учебные главы · "+chapters.length),el("p","Выбери главу слева. Последняя выбранная глава запоминается на этом устройстве; это не отметка об освоении. Команды — примеры для изолированного локального стенда, SQL и PromQL выполняются в своих клиентах.","dim reader-intro"));
   if(!chapters.length){root.append(el("p","Расширенные главы ещё не загружены.","dim"));return root;}
   const levels={foundation:"Основы",senior:"Senior",lead:"Lead"};
+  const rail=el("div",undefined,"reader-rail");
+  rail.append(el("strong","Содержание"));
+  const list=el("div",undefined,"reader-chapter-list");
+  rail.append(list);
+  const body=el("div",undefined,"reader-body"),toc=el("div",undefined,"reader-toc");
+  const controls=el("div",undefined,"reader-controls"),position=el("span",undefined,"reader-position");
+  const panels=[],buttons=[],outline=[];
+  let selected=0;
+  const select=(index,remember=false,focus=false)=>{
+    if(!Number.isInteger(index)||index<0||index>=chapters.length)return;
+    selected=index;
+    for(let i=0;i<panels.length;i++){
+      panels[i].hidden=i!==index;panels[i].open=i===index;
+      buttons[i].setAttribute?.("aria-pressed",String(i===index));
+    }
+    position.textContent=(index+1)+" / "+chapters.length+" · "+(levels[chapters[index].level]||chapters[index].level);
+    prev.disabled=index===0;next.disabled=index===chapters.length-1;
+    toc.replaceChildren?.(el("strong","В этой главе"),...outline[index].map(([name,heading])=>button(name,()=>{heading.scrollIntoView?.({block:"start"});heading.focus?.({preventScroll:true})})));
+    if(remember)saveTheoryPosition(guide,chapters[index]);
+    if(focus){panels[index].children[0]?.scrollIntoView?.({block:"start"});panels[index].children[0]?.focus?.({preventScroll:true})}
+  };
+  const prev=button("← Предыдущая",()=>select(selected-1,true,true));
+  const next=button("Следующая →",()=>select(selected+1,true,true));
+  controls.append(prev,position,next);
   for(const [index,c] of chapters.entries()){
+    const label=String(index+1).padStart(2,"0")+" · "+c.title;
+    const b=button(label+" — "+(levels[c.level]||c.level),()=>select(index,true,true));
+    buttons.push(b);list.append(b);
     const d=el("details",undefined,"theory-chapter");
-    d.open=index===0;
-    d.append(el("summary",String(index+1).padStart(2,"0")+" · "+c.title+" — "+(levels[c.level]||c.level)),
-      el("h4","Как это устроено"),el("p",c.explanation),
-      el("h4","Что важно в production"),el("p",c.production),
-      el("h4","Практический пример"),el("p",c.example),
-      ...(c.snippet?[el("h4","Разбор кода и конфигурации · "+c.snippet.language),el("pre",c.snippet.code,"theory-snippet"),el("p",c.snippet.notes,"theory-notes")]:[]),
-      el("h4","Примеры диагностики"),el("pre",c.commands),
-      button("Копировать пример",()=>copyText(c.commands)),
-      el("h4","Объясни самостоятельно"),el("p",c.question),
-      link("Официальная документация ↗",c.source));
-    root.append(d);
+    const headings=[];
+    const add=(name,...nodes)=>{const h=el("h4",name);h.setAttribute?.("tabindex","-1");headings.push([name,h]);d.append(h,...nodes)};
+    d.append(el("summary",label+" — "+(levels[c.level]||c.level)));
+    add("Как это устроено",el("p",c.explanation));
+    add("Что важно в production",el("p",c.production));
+    add("Практический пример",el("p",c.example));
+    if(c.snippet)add("Разбор кода и конфигурации · "+c.snippet.language,el("pre",c.snippet.code,"theory-snippet"),button("Копировать код",()=>copyText(c.snippet.code)),el("p",c.snippet.notes,"theory-notes"));
+    add("Примеры диагностики",el("pre",c.commands),button("Копировать пример",()=>copyText(c.commands)));
+    add("Объясни самостоятельно",el("p",c.question),link("Официальная документация ↗",c.source));
+    panels.push(d);outline.push(headings);body.append(d);
   }
+  body.append(controls);root.append(rail,body,toc);
+  const saved=readTheoryPosition();
+  const index=saved?.guide===guide.id?chapters.findIndex(c=>c.id===saved.chapter):-1;
+  select(index<0?0:index);
   return root;
 }
 
