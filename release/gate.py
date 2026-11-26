@@ -13,6 +13,8 @@ def commands(full=False,live_production=False,k8s_live=False,security=False):
             cmds += [["docker","compose","-f",str(p.relative_to(root)),"--profile","*","config","--quiet"]]
         if (root/"production_v11/compose.ha.yaml").exists():
             cmds += [["docker","compose","-f","production_v11/compose.yaml","-f","production_v11/compose.ha.yaml","--profile","ha","config","--quiet"]]
+        if (root/"production_v11/compose.v12.yaml").exists():
+            cmds += [["docker","compose","-p","academy-v12-ha","-f","production_v11/compose.yaml","-f","production_v11/compose.ha.yaml","-f","production_v11/compose.v12.yaml","--profile","ha","config","--quiet"]]
     if live_production: cmds += [[sys.executable,"production_v11/smoke.py"]]
     if k8s_live: cmds += [[sys.executable,"v11-labs/k8s/verify.py"]]
     if security: cmds += [[sys.executable,"release/security_v12.py"]]
