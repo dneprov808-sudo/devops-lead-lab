@@ -1,0 +1,6 @@
+[Unit]
+Description=Academy synthetic fixture
+[Service]
+Type=simple
+ExecStart=/nonexistent/academy-command
+Restart=on-failure

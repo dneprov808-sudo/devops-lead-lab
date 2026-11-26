@@ -1,0 +1,140 @@
+# Use only with base + HA overlays in a NEW project academy-v12-ha.
+x-env: &env
+  PGHOST: pg1,pg2
+  PGPASSWORD: academy-local-only
+  KAFKA_BOOTSTRAP: kafka:9092,kafka2:9092,kafka3:9092
+  REDIS_MODE: sentinel
+  ACADEMY_PROFILE: v12-ha
+services:
+  kafka:
+    environment:
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093,2@kafka2:9093,3@kafka3:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+      KAFKA_UNCLEAN_LEADER_ELECTION_ENABLE: "false"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      KAFKA_HEAP_OPTS: -Xms256m -Xmx512m
+  kafka2:
+    image: apache/kafka:4.1.2
+    mem_limit: 1g
+    volumes: ["kafka2-data:/var/lib/kafka/data"]
+    environment:
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+      KAFKA_NODE_ID: 2
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka2:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093,2@kafka2:9093,3@kafka3:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+      KAFKA_UNCLEAN_LEADER_ELECTION_ENABLE: "false"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      KAFKA_HEAP_OPTS: -Xms256m -Xmx512m
+  kafka3:
+    image: apache/kafka:4.1.2
+    mem_limit: 1g
+    volumes: ["kafka3-data:/var/lib/kafka/data"]
+    environment:
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+      KAFKA_NODE_ID: 3
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka3:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093,2@kafka2:9093,3@kafka3:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+      KAFKA_UNCLEAN_LEADER_ELECTION_ENABLE: "false"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      KAFKA_HEAP_OPTS: -Xms256m -Xmx512m
+
+  init:
+    environment: *env
+  api:
+    environment: *env
+  api2:
+    build: .
+    environment: *env
+    mem_limit: 192m
+    security_opt: ["no-new-privileges:true"]
+    command: ["api"]
+    depends_on:
+      init: {condition: service_completed_successfully}
+    restart: unless-stopped
+  publisher:
+    environment: *env
+    depends_on:
+      kafka2: {condition: service_started}
+      kafka3: {condition: service_started}
+  worker:
+    environment: *env
+    depends_on:
+      kafka2: {condition: service_started}
+      kafka3: {condition: service_started}
+  redis:
+    command: ["redis-server","--maxmemory","32mb","--maxmemory-policy","allkeys-lru"]
+  redis2:
+    image: redis:7
+    command: ["redis-server","--replicaof","redis","6379","--maxmemory","32mb","--maxmemory-policy","allkeys-lru"]
+    mem_limit: 128m
+    depends_on: [redis]
+  redis3:
+    image: redis:7
+    command: ["redis-server","--replicaof","redis","6379","--maxmemory","32mb","--maxmemory-policy","allkeys-lru"]
+    mem_limit: 128m
+    depends_on: [redis]
+  sentinel1:
+    image: redis:7
+    command: ["sh","-c","cp /config/sentinel.conf /tmp/sentinel.conf && exec redis-server /tmp/sentinel.conf --sentinel"]
+    volumes: ["./sentinel-v12.conf:/config/sentinel.conf:ro"]
+    mem_limit: 64m
+    depends_on: [redis,redis2,redis3]
+  sentinel2:
+    image: redis:7
+    command: ["sh","-c","cp /config/sentinel.conf /tmp/sentinel.conf && exec redis-server /tmp/sentinel.conf --sentinel"]
+    volumes: ["./sentinel-v12.conf:/config/sentinel.conf:ro"]
+    mem_limit: 64m
+    depends_on: [redis,redis2,redis3]
+  sentinel3:
+    image: redis:7
+    command: ["sh","-c","cp /config/sentinel.conf /tmp/sentinel.conf && exec redis-server /tmp/sentinel.conf --sentinel"]
+    volumes: ["./sentinel-v12.conf:/config/sentinel.conf:ro"]
+    mem_limit: 64m
+    depends_on: [redis,redis2,redis3]
+  lb:
+    image: nginx:1.28-alpine
+    volumes: ["./nginx-v12.conf:/etc/nginx/conf.d/default.conf:ro"]
+    ports: ["127.0.0.1:18112:8080"]
+    mem_limit: 64m
+    depends_on: [api,api2]
+volumes:
+  kafka2-data:
+  kafka3-data:

@@ -2,7 +2,7 @@ import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-RELEASE = "Academy v11-dev"
+RELEASE = "Academy v12-dev"
 
 def version():
     def read(*args):

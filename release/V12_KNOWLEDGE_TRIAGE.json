@@ -1,0 +1,28 @@
+{
+  "questions": 738,
+  "unique_sources": 460,
+  "exact_answer_matches": [],
+  "phrase_candidates": [],
+  "short_answer_triage": [
+    "DOCKER-013",
+    "DOCKER-014",
+    "KAFKA-001",
+    "REDIS-012",
+    "REDIS-015",
+    "REDIS-016",
+    "REDIS-019",
+    "HELM-001",
+    "HELM-002",
+    "HELM-008",
+    "HELM-011",
+    "HELM-024",
+    "SRE-001",
+    "SRE-002",
+    "SRE-018",
+    "SYS-002",
+    "SYS-003"
+  ],
+  "pending_review": 738,
+  "errors": [],
+  "limitations": "All records checked mechanically; phrase similarity is not semantic verification. Technical review and URL reachability separate."
+}

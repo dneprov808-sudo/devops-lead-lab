@@ -1,3 +1,17 @@
+function careerV12(events,topics,assessment,today,days=30){
+ const cutoff=new Date(Date.parse(today+"T00:00:00Z")-days*86400000).toISOString().slice(0,10);
+ const latest=new Map();
+ for(const e of events.filter(e=>e.kind==="vacancy").sort((a,b)=>a.data.observed.localeCompare(b.data.observed)||a.created_at.localeCompare(b.created_at))){
+  const v=e.data;
+  const m=v.source.match(/^https:\/\/([^/?#]+)([^?#]*)/i);if(!m)continue;
+  const key="https://"+m[1].toLowerCase()+m[2].replace(/\/$/,"");
+  latest.set(key,v);
+ }
+ const rows=[...latest.values()].filter(v=>v.observed>=cutoff&&v.observed<=today);
+ const median=a=>{a.sort((x,y)=>x-y);return a.length?(a[(a.length-1)>>1]+a[a.length>>1])/2:null};
+ const salary={};for(const basis of ["gross","net","unknown"]){const v=rows.filter(x=>x.basis===basis&&Number.isFinite(x.salary_min)&&Number.isFinite(x.salary_max));salary[basis]={completeRanges:v.length,medianLower:median(v.map(x=>x.salary_min)),medianUpper:median(v.map(x=>x.salary_max))}}
+ return {sample:rows.length,stale:latest.size-rows.length,days,salary,topics:topics.map(t=>{const v=assessment.topics?.[t];return {topic:t,mentions:rows.filter(x=>x.topics.includes(t)).length,total:rows.length,reviewed:v?.count||0,average:v?.average??null,gap:v?.count?(v.average<3?"reviewed_gap":"more_evidence_needed"):"not_assessed"}}).sort((a,b)=>b.mentions-a.mentions||a.topic.localeCompare(b.topic))};
+}
 function v11Capacity(rps,per,util,zones,gb,mbps){
  const values=[rps,per,util,zones,gb,mbps];
  if(!values.every(Number.isSafeInteger)||rps<1||rps>1e9||per<1||per>1e7||util<1||util>100||zones<2||zones>20||gb<1||gb>1e7||mbps<1||mbps>1e6)throw Error("Invalid assumptions");
@@ -32,7 +46,11 @@ if(typeof document!=="undefined"){
   button(career,"Шаблон вакансии",()=>{form.value=JSON.stringify({title:"",company:"",source:"https://",observed:new Date().toISOString().slice(0,10),salary_min:null,salary_max:null,basis:"unknown",topics:["Kubernetes"]},null,2)});
   button(career,"Шаблон подтверждения опыта",()=>{form.value=JSON.stringify({title:"",topic:"Kubernetes",impact:"",evidence:"",commit:null},null,2)});
   async function render(){
-   try{const {events}=await AcademyStudy.request("/api/v11/career");summary.replaceChildren();
+   try{const [{events},assessment]=await Promise.all([AcademyStudy.request("/api/v11/career"),AcademyStudy.request("/api/v12/assessment")]);summary.replaceChildren();
+    const current=careerV12(events,topics,assessment,new Date().toISOString().slice(0,10));
+    add("h3","Career Intelligence · последние 30 дней по дате наблюдения",summary);add("p","Уникальных свежих вакансий: "+current.sample+"; устаревших: "+current.stale+". Это локальная выборка, не статистика всего рынка.",summary);
+    for(const [basis,s] of Object.entries(current.salary))add("p",basis+" · полных вилок "+s.completeRanges+" · медиана нижней/верхней границы "+(s.medianLower??"нет")+" / "+(s.medianUpper??"нет"),summary);
+    for(const x of current.topics.filter(x=>x.mentions))add("p",x.topic+" · "+x.mentions+"/"+x.total+" · проверенных ответов "+x.reviewed+" · "+x.gap,summary);
     add("h3","Матрица требований по введённым вакансиям",summary);
     for(const x of v11Market(events,topics))add("p",x.topic+" · "+x.mentions+"/"+x.total,summary);
     add("h3","Источники и зарплаты",summary);

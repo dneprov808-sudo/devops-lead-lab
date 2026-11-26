@@ -1,0 +1,6 @@
+---
+- name: Render synthetic config
+  ansible.builtin.copy:
+    dest: "{{ academy_work }}/service.conf"
+    content: "mode=starter\n"
+    mode: "0644"

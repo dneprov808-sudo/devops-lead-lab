@@ -1,0 +1,35 @@
+# Copy to dedicated test project's root CI config or choose custom CI config path.
+# No real deployment or secrets. Manually register dedicated disposable runner tagged academy-local.
+stages: [build, test, security, promote]
+default:
+  tags: [academy-local]
+build:
+  stage: build
+  script:
+    - python3 v12-labs/cicd/pipeline.py build v12-labs/cicd/source.json bundle
+  artifacts:
+    paths: [bundle/]
+    expire_in: 1 day
+test:
+  stage: test
+  needs: [{job: build, artifacts: true}]
+  script:
+    - python3 -m unittest test_pipeline_v12 -v
+    - python3 v12-labs/cicd/pipeline.py verify bundle
+security:
+  stage: security
+  needs: [{job: build, artifacts: true}, {job: test, artifacts: false}]
+  script:
+    - python3 release/security_v12.py
+    - python3 v12-labs/cicd/pipeline.py verify bundle
+promote:
+  stage: promote
+  when: manual
+  allow_failure: false
+  needs: [{job: build, artifacts: true}, {job: security, artifacts: false}]
+  script:
+    - test -n "$REVIEWED_SHA256"
+    - python3 v12-labs/cicd/pipeline.py promote bundle promoted-bundle "$REVIEWED_SHA256"
+  artifacts:
+    paths: [promoted-bundle/]
+    expire_in: 1 day

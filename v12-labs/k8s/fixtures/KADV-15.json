@@ -1,0 +1,38 @@
+{
+  "apiVersion": "v1",
+  "kind": "List",
+  "items": [
+    {
+      "apiVersion": "batch/v1",
+      "kind": "CronJob",
+      "metadata": {
+        "name": "cron",
+        "namespace": "academy-v12-k15"
+      },
+      "spec": {
+        "schedule": "*/5 * * * *",
+        "suspend": true,
+        "jobTemplate": {
+          "spec": {
+            "template": {
+              "spec": {
+                "restartPolicy": "Never",
+                "automountServiceAccountToken": false,
+                "containers": [
+                  {
+                    "name": "task",
+                    "image": "busybox:1.36.1",
+                    "command": [
+                      "echo",
+                      "academy"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

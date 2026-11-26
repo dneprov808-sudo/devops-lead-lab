@@ -26,7 +26,7 @@ function v11MockPlan(profile,bank,random=Math.random){
 }
 function v11MockDraftValid(s,bank){
  if(!s||!V11_PROFILES[s.profile]||!Array.isArray(s.ids)||!Array.isArray(s.answers)||s.ids.length!==V11_PROFILES[s.profile].size||new Set(s.ids).size!==s.ids.length||s.answers.length!==s.ids.length||!s.answers.every(x=>typeof x==="string"&&x.length<=12000))return false;
- const map=new Map(bank.map(q=>[q.id,q]));return s.ids.every(id=>map.has(id))&&Number.isFinite(s.started)&&Number.isInteger(s.index)&&s.index>=0&&s.index<s.ids.length&&typeof s.finished==="boolean";
+ const map=new Map(bank.map(q=>[q.id,q])),p=V11_PROFILES[s.profile],selected=s.ids.map(id=>map.get(id));return selected.every(q=>q&&(!p.topics.length||p.topics.includes(q.topic)))&&selected.filter(q=>q.level==="lead").length>=p.lead&&p.must.every(topic=>selected.some(q=>q.topic===topic))&&Number.isFinite(s.started)&&s.started>=0&&s.started<=Date.now()+300000&&Number.isInteger(s.index)&&s.index>=0&&s.index<s.ids.length&&typeof s.finished==="boolean";
 }
 if(typeof document!=="undefined"){
  const root=document.getElementById("v11-mock");

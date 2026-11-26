@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const read=p=>fs.readFileSync(new URL(p,import.meta.url),'utf8');
+const plan=new Function(read('./web/study-v11.js')+';return studyPlanV12')();
+const bank=[{id:'A-1',topic:'Linux',level:'lead'},{id:'B-1',topic:'Kubernetes',level:'senior'},{id:'C-1',topic:'Linux',level:'senior'}];
+const r=plan(bank,[{question_id:'A-1',score:4,due:'2030-01-01'}],[{question_id:'A-1',score:1,due:'2025-01-01'}],'2026-01-01',12);
+assert.equal(r[0].id,'A-1');assert.equal(r.reduce((n,q)=>n+q.minutes,0),12);
+assert.equal(plan(bank,[],[],'2026-01-01',4).length,0);
+const market=new Function(read('./web/tools-v11.js')+';return careerV12')();
+const make=(source,observed,basis,min,max)=>({kind:'vacancy',created_at:observed,data:{source,observed,basis,salary_min:min,salary_max:max,topics:['Linux']}});
+const m=market([make('https://hh.ru/vacancy/1','2026-01-10','gross',100,200),make('https://hh.ru/vacancy/1?x=1','2026-01-11','gross',200,300),make('https://hh.ru/vacancy/2','2025-01-01','net',100,200)],['Linux'],{topics:{}},'2026-01-20');
+assert.equal(m.sample,1);assert.equal(m.stale,1);assert.equal(m.salary.gross.medianLower,200);assert.equal(m.salary.net.completeRanges,0);assert.equal(m.topics[0].gap,'not_assessed');
+console.log('v12 adaptive and market contracts PASS');

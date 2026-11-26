@@ -2,7 +2,7 @@ import {canonical,parseIssue} from "./bus.mjs";
 
 function planConsumer(issues,snapshot,verified={},options={}) {
   const {complete=false,finalStateBlob=null,channel="live"}=options;
-  const out={mode:"dry-run",status:"BLOCKED",revision:snapshot?.revision??null,state_blob:snapshot?.state_blob??null,journal:[],proposals:[],writes:0};
+  const out={mode:"dry-run",status:"BLOCKED",channel,control_commit:snapshot?.control_commit??null,task_id:snapshot?.task_id??null,task_status:snapshot?.task_status??null,revision:snapshot?.revision??null,state_blob:snapshot?.state_blob??null,journal:[],proposals:[],writes:0};
   const sha=x=>typeof x==="string"&&/^[a-f0-9]{40}$/.test(x);
   const states=["assigned","in_progress","awaiting_review","revision_required","awaiting_exam","completed","blocked","deferred"];
   const ids=x=>Array.isArray(x)&&x.every(s=>typeof s==="string"&&s.length>0);
