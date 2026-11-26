@@ -1,0 +1,2 @@
+# Interview Pro — Leadership
+36 additions, total 738/738. All 702 earlier entries preserved. 67 pre-write JS assertions with read/assert adapters. Google SRE team lifecycle, collaboration, workload/overload, incident management, CNCF platform maturity and DORA leadership/culture references consulted; individual links not exhaustively checked. Cases are synthetic; they are not evidence of the student's competence. Native Node, full gate, browser, semantic review and live exercises pending.
