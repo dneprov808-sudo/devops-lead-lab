@@ -50,3 +50,25 @@ Native Python 3.13.5: **18/18 tests PASS** on exact source/test blobs, manually 
 JS contract adapter: draft 20/20, mock 253/253, syntax compilation of bank + mock + drafts. Not native JS/browser evidence. Security scanner CLI returned 125 (Trivy absent): BLOCKED, not vulnerability-free. Live Docker/K8s/HA, full native gate, Playwright, actual migration and all earlier outstanding acceptance still pending. Test evidence measures verifier behavior, not infrastructure RTO/RPO or authenticated reviewer identity. Decisions preserve previous binding format; no canonical grade update. SQLite implementation references official Python 3.13 sqlite3 and SQLite PRAGMA docs.
 
 Handoff: Code Reviewer / Release Engineer, ACADEMY-V12-HARDEN-01, targeted fixes and synthetic regression complete; next owner Release Engineer for full local gate on clean checkout, then Lab Engineer for live HA/K8s and migration on a private copy. Keep PR draft pending acceptance.
+
+
+## Hardening round — ACADEMY-V12-HARDEN-02
+
+Base 1f7c292; targeted fixes through 9fb37c0. Preflight: stable bf6e54e, canonical STATE revision 1 LAB-001 assigned; PR #33 open draft, other open PRs untouched, no open issues.
+
+- ae358ce: strict live Consumer/Queue integration, control commit and task binding, test-mode rejection, unresolved review/blocker routing, inconsistent proposals blocked; CLI requires second-read finalControlCommit and hashes exact input bytes. No authenticated remote read or actual transition.
+- 90e3f88: local gate temporary SQLite directory, create-only JSON evidence, explicit commit and before/after cleanliness, PASS/FAIL/BLOCKED exit codes. Report does not contain captured logs or answer payloads.
+- 6a0d6a5: DB-only verifier no longer reads or writes Redis; statistics read in a single SQL statement. External DB/cache/Kafka clients stubbed in tests.
+- 9fb37c0: evidence report additionally requires no unignored untracked files; ignored files/dependencies remain trusted environment. Backup CLI refuses private output in checkout except ignored .academy-data. Report/gate module import supports both script and module invocation.
+
+Native Python 3.13.5, 8/8 targeted tests PASS, exact Git blob hashes checked:
+- release/gate_evidence.py 8a030a868a0652f5044371a4949ba60e4e45735a; test_gate_evidence_v12.py fa8bc901afff9898bb4db783d50be2186b162061 (4 tests).
+- production_v11/app.py bad13db6c9bc59109ccb8129fa1db3ead56dc736; test_production_read_v12.py 63ad6548c73616cb86e52e0d980712861b7b8c90 (4 tests).
+- Previous round native 18/18 rerun on preserved local source copies, not full regression.
+- Queue/Consumer integration: 21 pure contract assertions passed; existing Consumer 25/25 passed with adapter. Native queue CLI subprocess tests included but not run. Gate CLI entire repository not executed; backup CLI output path guard inspected, not tested end to end.
+
+References: https://docs.python.org/3.13/library/subprocess.html ; https://docs.docker.com/reference/cli/docker/compose/config ; https://playwright.dev/python/docs/browser-contexts .
+
+Remaining blockers: direct Git clone DNS failure, Docker absent; Chromium and Playwright exist locally but full exact checkout unavailable, so real Academy E2E not executed. Native full gate, security scanner execution, HA/K8s and other live labs, image digests, actual migration, independent knowledge review and local model/market validation still pending. Keep PR draft; no canonical grade, STATE, original LAB-001, interview bank or schedule changes.
+
+Handoff: Release Engineer / Code Reviewer, ACADEMY-V12-HARDEN-02, targeted tests passed, candidate not release-ready; next Release Engineer to run full gate on dedicated local clean checkout, then Lab Engineer to verify live HA/K8s. No auto merge or paid services.
