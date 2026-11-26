@@ -38,6 +38,28 @@ function studyPlan(bank,reviews,today,minutes=60){
  }
  return selected;
 }
+function studyPlanV12(bank,selfReviews,reviewed,today,minutes=60){
+ const self=new Map(selfReviews.map(r=>[r.question_id,r])),expert=new Map(reviewed.map(r=>[r.question_id,r]));
+ const topics=new Map();
+ for(const r of reviewed){const q=bank.find(q=>q.id===r.question_id);if(q){const a=topics.get(q.topic)||[];a.push(r.score);topics.set(q.topic,a)}}
+ const queue=bank.map(q=>{
+  const review=expert.get(q.id)||self.get(q.id),known=expert.has(q.id),weak=topics.get(q.topic)||[];
+  const weakness=weak.length?4-weak.reduce((a,b)=>a+b,0)/weak.length:1.5;
+  const tier=review?(review.due<=today?(known?0:1):4):2;
+  return {id:q.id,topic:q.topic,minutes:q.level==="lead"?7:5,tier,known,weakness,score:review?.score??-1,due:review?.due||"",reason:known?"operator_reviewed_local":review?"self_reported":"not_assessed"};
+ }).filter(x=>x.tier<4);
+ queue.sort((a,b)=>a.tier-b.tier||(a.tier===2?b.weakness-a.weakness:a.score-b.score)||a.due.localeCompare(b.due)||a.id.localeCompare(b.id));
+ const result=[],used=new Map();let remaining=Math.max(0,Math.min(180,Number(minutes)||0));
+ while(queue.length){
+  const tier=queue[0].tier;
+  const eligible=queue.filter(q=>q.tier===tier&&q.minutes<=remaining);
+  if(!eligible.length){for(let i=queue.length-1;i>=0;i--)if(queue[i].tier===tier)queue.splice(i,1);continue}
+  const best=eligible.reduce((a,b)=>(used.get(b.topic)||0)<(used.get(a.topic)||0)?b:a);
+  result.push(best);remaining-=best.minutes;used.set(best.topic,(used.get(best.topic)||0)+1);queue.splice(queue.indexOf(best),1);
+ }
+ return result;
+}
+
 if(typeof document!=="undefined"){
  const root=document.getElementById("v11-study");
  if(root){
@@ -59,9 +81,9 @@ if(typeof document!=="undefined"){
     add("p",d.events+" записей · "+d.legacy_results+" прежних результатов · "+d.mock_sessions+" mock · "+d.review_proposals+" предложений оценки. Канонический grade не меняется.",panel);
     const today=new Intl.DateTimeFormat("sv-SE",{timeZone:"Europe/Moscow",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
     const reviewed=new Map(d.self_reviews.map(x=>[x.question_id,x]));for(const x of assessment.reviewed_questions)reviewed.set(x.question_id,x);
-    const plan=studyPlan(INTERVIEW_PRO_BANK,[...reviewed.values()],today,Number(minutes.value));
-    add("h3","План на сегодня: "+plan.length+" вопросов",panel);
-    for(const q of plan)button(panel,q.id+" · "+q.topic,()=>window.academyOpenPro([q.id]));
+    const plan=studyPlanV12(INTERVIEW_PRO_BANK,d.self_reviews,assessment.reviewed_questions,today,Number(minutes.value));
+    add("h3","План на сегодня: "+plan.length+" вопросов · "+plan.reduce((n,q)=>n+q.minutes,0)+" мин",panel);
+    for(const q of plan)button(panel,q.id+" · "+q.topic+" · "+q.minutes+" мин · "+q.reason,()=>window.academyOpenPro([q.id]));
     add("h3","Независимо рассмотренные локальные доказательства",panel);for(const [topic,v] of Object.entries(assessment.topics))add("p",topic+" · "+v.count+" вопросов · "+v.average+" / 4",panel);for(const exam of assessment.exams)add("p",exam.profile+" · "+exam.reviewed+"/"+exam.expected+" · "+exam.status,panel);add("p","Конфликты оценок: "+assessment.conflicts+"; canonical STATE не изменён.",panel);
     add("h3","Матрица локальных доказательств",panel);
     for(const topic of [...new Set(INTERVIEW_PRO_BANK.map(q=>q.topic))]){
