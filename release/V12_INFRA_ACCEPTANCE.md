@@ -87,3 +87,55 @@ Handoff: Lab Engineer -> Release Engineer, ACADEMY-V12-HARDEN-03 increment 1.
 Status: implementation and fixture checks complete; runtime acceptance BLOCKED.
 Next: verify real collectors on dedicated lab, integrate evidence with guarded
 failover and domain-specific K8s acceptance. Preserve earlier outstanding gates.
+
+## Increment 2 — control-plane snapshot
+
+Run the new read-only probe before a fault and after full recovery, alongside
+the earlier topology probe:
+
+```bash
+python -m unittest -v test_topology_v12 test_quorum_v12
+python production_v11/quorum_v12.py --confirm-local-lab
+```
+
+| Check | Steady-state acceptance |
+| --- | --- |
+| KRaft | Expected cluster ID and exactly voters 1/2/3, elected leader in that set, nonnegative leader epoch and high watermark, max follower lag zero |
+| etcd | Exactly three expected endpoint responses with distinct member IDs, shared positive cluster ID and term, unanimous nonzero leader in observed members, no learners/errors, positive applied index not beyond Raft index |
+| Patroni | Two running nodes in expected scope; one primary HTTP 200 with leader lock and one eligible replica HTTP 200; opposite health endpoints return 503 |
+
+Kafka metadata quorum CLI and etcd endpoint status are executed within the
+dedicated Compose project. Patroni GET requests use fixed service names in the
+API container with no proxies or redirects. Every subprocess has a 40-second
+timeout; the probe requires the local default socket and verified v12 profile.
+It never changes membership, switches leaders or injects failures.
+
+The snapshot is sequential, not atomic. Zero Kafka follower lag is a deliberately
+strict baseline, not a service SLO; etcd status alone does not prove linearizable
+read availability, exact configured membership or cross-node log equality.
+Patroni endpoint checks do not measure WAL lag, fencing or failover duration.
+A nonzero command exit or parse failure is BLOCKED; a parsed predicate mismatch
+is FAIL. Any FAIL dominates BLOCKED. Do not use these snapshots alone to certify HA.
+
+Author evidence: Python 3.13.5, 5/5 new native tests passed on local copies with
+published blob SHA equality:
+- production_v11/quorum_v12.py 410bf3e6d60b33bcb078f91eab5867457b230e44
+- test_quorum_v12.py 0f376ace130c4eda7650656b24b89669fecbc35f
+
+Coverage: healthy/degraded fixtures, duplicate voters, foreign cluster, 64-bit
+etcd IDs without precision loss, divergent leaders/terms, invalid applied index,
+Patroni role/lock mismatch, failure precedence, error redaction, fixed command
+and remote Docker/profile guards. Real CLI returned 125 with Docker absent.
+Direct clone again failed DNS. Earlier 4/4 topology tests are prior-round
+evidence, not a combined rerun. No live collector or failover acceptance claimed.
+
+Official references:
+- https://kafka.apache.org/41/operations/kraft/
+- https://etcd.io/docs/v3.5/tutorials/how-to-check-cluster-status/
+- https://patroni.readthedocs.io/en/latest/rest_api.html
+
+Handoff: Lab Engineer -> Release Engineer, ACADEMY-V12-HARDEN-03 increment 2.
+Implementation and native fixtures complete; live verification BLOCKED.
+Next: integrate topology and control-plane snapshots into the guarded failover
+workflow, with explicit time budgets and separate recovery/availability evidence.
+Do not change canonical STATE, student solutions, or assessment status.
