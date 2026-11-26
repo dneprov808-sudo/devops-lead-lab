@@ -1,0 +1,2 @@
+# Interview Pro — SRE & Incident Management
+35 new questions, total 627/738. All 592 previous records preserved. 67 JS assertions before commit with read/assert adapters. Google SRE books consulted for SLO implementation, burn-rate alerts, error budget policy, incident management, postmortems, cascading failures and on-call. Other links are study references not individually verified. Native Node, full gate, browser, semantic review and real incident exercises pending.
