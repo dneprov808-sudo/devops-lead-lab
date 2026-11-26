@@ -32,7 +32,7 @@ def binding(con, proposal_id):
         if len(answers)!=1: raise ValueError("Review question mismatch")
         answer=answers[0]
     else: raise ValueError("Review attempt mismatch")
-    if not answer.strip(): raise ValueError("Blank response cannot be approved")
+    if not answer.strip() and p["data"]["score"]!=0: raise ValueError("Blank response can only receive zero")
     return p,a,digest({"proposal":p,"attempt":a})
 
 def decide(store, proposal_id, expected_hash, decision, operator, review_ref):
@@ -85,7 +85,7 @@ def report(store):
             ids=[x["question_id"] for x in v["responses"]]
             required={"entry":(18,2,{"Linux","Networking","Docker","Kubernetes","Terraform","Ansible","CI/CD & GitOps","SRE & Incident Management"}),"lead":(18,6,{"Kubernetes","Leadership","System Design & Platform Engineering","SRE & Incident Management","CI/CD & GitOps","DevSecOps"}),"full":(36,10,{q.get("topic") for q in store.bank.values()})}[profile]
             count,lead,mandatory=required
-            valid=len(ids)==len(set(ids))==count and sum(store.bank.get(q,{}).get("level")=="lead" for q in ids)>=lead and mandatory<={store.bank.get(q,{}).get("topic") for q in ids}
+            valid=v["minutes"]==(180 if profile=="full" else 90) and len(ids)==len(set(ids))==count and sum(store.bank.get(q,{}).get("level")=="lead" for q in ids)>=lead and mandatory<={store.bank.get(q,{}).get("topic") for q in ids}
             scores=[accepted[(e["id"],q)]["score"] for q in ids if (e["id"],q) in accepted]
             status="invalid_profile" if not valid else "awaiting_review" if len(scores)!=count else "reviewed_pass_candidate" if min(scores)>=2 and sum(scores)>=3*count else "reviewed_revision_required"
             exams.append({"id":e["id"],"profile":profile,"reviewed":len(scores),"expected":count,"status":status})

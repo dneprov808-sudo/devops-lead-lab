@@ -1,5 +1,7 @@
 # Academy — начало работы
 
+Для кандидата Academy v12-dev: [локальная приёмка](release/V12_START.md), [delivery ledger](release/V12_DELIVERY.md). До ручного merge v12 остаётся кандидатом.
+
 Для кандидата Academy v11-dev: [локальный запуск и проверка](release/V11_START.md), [delivery ledger](release/V11_DELIVERY.md). До ручного merge v11 остаётся кандидатом.
 
 # Academy Unified — начало работы
