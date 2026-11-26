@@ -19,3 +19,12 @@ assert.deepEqual(api.readBookmarks("bad",["A"]),[]);
 assert.equal(api.configExplanation("unknown",0),null);
 for(const [topic,url,params] of api.CONFIG_LESSONS)for(const [i,[key,description]] of params.entries())assert.equal(api.configExplanation(topic,i),description);
 assert.equal(api.INTERVIEW_MODES.length,3);
+
+const ready=new Function(readFileSync(new URL("./web/engineering.js",import.meta.url),"utf8")+";return troubleshootingReady")();
+assert.equal(ready("hypothesis","action","verification"),true);
+assert.equal(ready("hypothesis"," ","verification"),false);
+assert.equal(ready(null,"action","verification"),false);
+const knowledge=JSON.parse(readFileSync(new URL("./learning/knowledge.json",import.meta.url),"utf8"));
+assert.equal(knowledge.length,20);
+assert.ok(knowledge.every(x=>x.deep?.internals&&x.deep?.production));
+console.log("Configuration, route, troubleshooting and theory checks passed");
