@@ -1,0 +1,765 @@
+[
+  {
+    "id": "KADV-01",
+    "namespace": "academy-v12-k01",
+    "title": "Resource requests и scheduling",
+    "task": "Приложение не размещается. Найди причину и восстанови Pod с согласованным budget: 50m/32Mi requests, 200m/128Mi limits.",
+    "prerequisites": "kind",
+    "fixture": "fixtures/KADV-01.json",
+    "checks": [
+      {
+        "type": "field",
+        "resource": "deployment",
+        "name": "app",
+        "path": [
+          "status",
+          "availableReplicas"
+        ],
+        "value": 1
+      },
+      {
+        "type": "field",
+        "resource": "deployment",
+        "name": "app",
+        "path": [
+          "spec",
+          "template",
+          "spec",
+          "containers",
+          0,
+          "resources",
+          "requests",
+          "cpu"
+        ],
+        "value": "50m"
+      },
+      {
+        "type": "field",
+        "resource": "deployment",
+        "name": "app",
+        "path": [
+          "spec",
+          "template",
+          "spec",
+          "containers",
+          0,
+          "resources",
+          "limits",
+          "memory"
+        ],
+        "value": "128Mi"
+      }
+    ]
+  },
+  {
+    "id": "KADV-02",
+    "namespace": "academy-v12-k02",
+    "title": "Readiness и endpoints",
+    "task": "Pod работает, но не готов. Восстанови readiness HTTP и доступность через Service.",
+    "prerequisites": "kind",
+    "fixture": "fixtures/KADV-02.json",
+    "checks": [
+      {
+        "type": "field",
+        "resource": "deployment",
+        "name": "app",
+        "path": [
+          "status",
+          "availableReplicas"
+        ],
+        "value": 1
+      },
+      {
+        "type": "exec",
+        "pod": "probe",
+        "argv": [
+          "wget",
+          "-qO-",
+          "-T",
+          "5",
+          "http://app"
+        ],
+        "contains": "Welcome to nginx",
+        "exit": 0
+      }
+    ]
+  },
+  {
+    "id": "KADV-03",
+    "namespace": "academy-v12-k03",
+    "title": "Service selector",
+    "task": "Deployment доступен внутри Pod, но Service не маршрутизирует трафик. Восстанови правильное сопоставление.",
+    "prerequisites": "kind",
+    "fixture": "fixtures/KADV-03.json",
+    "checks": [
+      {
+        "type": "field",
+        "resource": "deployment",
+        "name": "app",
+        "path": [
+          "status",
+          "availableReplicas"
+        ],
+        "value": 1
+      },
+      {
+        "type": "exec",
+        "pod": "probe",
+        "argv": [
+          "wget",
+          "-qO-",
+          "-T",
+          "5",
+          "http://app"
+        ],
+        "contains": "Welcome to nginx",
+        "exit": 0
+      }
+    ]
+  },
+  {
+    "id": "KADV-04",
+    "namespace": "academy-v12-k04",
+    "title": "DNS и service discovery",
+    "task": "Проверить DNS внутри namespace: short name, FQDN и HTTP. Исправить имя Service, не редактируя CoreDNS.",
+    "prerequisites": "kind",
+    "fixture": "fixtures/KADV-04.json",
+    "checks": [
+      {
+        "type": "exec",
+        "pod": "probe",
+        "argv": [
+          "nslookup",
+          "app"
+        ],
+        "contains": "app",
+        "exit": 0
+      },
+      {
+        "type": "exec",
+        "pod": "probe",
+        "argv": [
+          "wget",
+          "-qO-",
+          "-T",
+          "5",
+          "http://app"
+        ],
+        "contains": "Welcome to nginx",
+        "exit": 0
+      }
+    ]
+  },
+  {
+    "id": "KADV-05",
+    "namespace": "academy-v12-k05",
+    "title": "CNI NetworkPolicy",
+    "task": "Разрешить HTTP только Pod с label access=allowed, запретить остальные. Подтвердить трафиком, не только YAML.",
+    "prerequisites": "CNI with actual NetworkPolicy enforcement (Calico/Cilium or equivalent; default kind networking may not enforce)",
+    "fixture": "fixtures/KADV-05.json",
+    "checks": [
+      {
+        "type": "exec",
+        "pod": "allowed",
+        "argv": [
+          "wget",
+          "-qO-",
+          "-T",
+          "3",
+          "http://app"
+        ],
+        "contains": "Welcome to nginx",
+        "exit": 0
+      },
+      {
+        "type": "exec",
+        "pod": "denied",
+        "argv": [
+          "wget",
+          "-qO-",
+          "-T",
+          "3",
+          "http://app"
+        ],
+        "contains": "",
+        "nonzero": true
+      }
+    ]
+  },
+  {
+    "id": "KADV-06",
+    "namespace": "academy-v12-k06",
+    "title": "ServiceAccount и RBAC",
+    "task": "Выдать service account reader только get ConfigMaps; запретить get Secrets и создание Deployments.",
+    "prerequisites": "kind with local admin access",
+    "fixture": "fixtures/KADV-06.json",
+    "checks": [
+      {
+        "type": "auth",
+        "verb": "get",
+        "resource": "configmaps",
+        "allowed": true
+      },
+      {
+        "type": "auth",
+        "verb": "get",
+        "resource": "secrets",
+        "allowed": false
+      },
+      {
+        "type": "auth",
+        "verb": "create",
+        "resource": "deployments",
+        "allowed": false
+      }
+    ]
+  },
+  {
+    "id": "KADV-07",
+    "namespace": "academy-v12-k07",
+    "title": "ResourceQuota и LimitRange",
+    "task": "Настроить quota CPU requests 500m, memory requests 256Mi и ограничить число Pods четырьмя; создать LimitRange с default requests. Проверить workload.",
+    "prerequisites": "kind",
+    "fixture": "fixtures/KADV-07.json",
+    "checks": [
+      {
+        "type": "field",
+        "resource": "resourcequota",
+        "name": "budget",
+        "path": [
+          "spec",
+          "hard",
+          "pods"
+        ],
+        "value": "4"
+      },
+      {
+        "type": "field",
+        "resource": "resourcequota",
+        "name": "budget",
+        "path": [
+          "spec",
+          "hard",
+          "requests.cpu"
+        ],
+        "value": "500m"
+      },
+      {
+        "type": "field",
+        "resource": "resourcequota",
+        "name": "budget",
+        "path": [
+          "spec",
+          "hard",
+          "requests.memory"
+        ],
+        "value": "256Mi"
+      },
+      {
+        "type": "exists",
+        "resource": "limitrange",
+        "name": "defaults"
+      },
+      {
+        "type": "field",
+        "resource": "deployment",
+        "name": "app",
+        "path": [
+          "status",
+          "availableReplicas"
+        ],
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "KADV-08",
+    "namespace": "academy-v12-k08",
+    "title": "HPA и metrics API",
+    "task": "Настроить HPA 1–3 реплики, CPU 60%, добиться получения реальных метрик, не только создания HPA.",
+    "prerequisites": "metrics-server working in dedicated cluster",
+    "fixture": "fixtures/KADV-08.json",
+    "checks": [
+      {
+        "type": "field",
+        "resource": "hpa",
+        "name": "app",
+        "path": [
+          "spec",
+          "metrics",
+          0,
+          "resource",
+          "target",
+          "averageUtilization"
+        ],
+        "value": 60
+      },
+      {
+        "type": "condition",
+        "resource": "hpa",
+        "name": "app",
+        "condition": "ScalingActive",
+        "status": "True"
+      },
+      {
+        "type": "present",
+        "resource": "hpa",
+        "name": "app",
+        "path": [
+          "status",
+          "currentMetrics",
+          0,
+          "resource",
+          "current",
+          "averageUtilization"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "KADV-09",
+    "namespace": "academy-v12-k09",
+    "title": "Node affinity",
+    "task": "Pod не проходит node selector. Подбери существующую метку Linux, сохрани требование Linux и добейся назначения.",
+    "prerequisites": "kind",
+    "fixture": "fixtures/KADV-09.json",
+    "checks": [
+      {
+        "type": "field",
+        "resource": "deployment",
+        "name": "app",
+        "path": [
+          "status",
+          "availableReplicas"
+        ],
+        "value": 1
+      },
+      {
+        "type": "field",
+        "resource": "deployment",
+        "name": "app",
+        "path": [
+          "spec",
+          "template",
+          "spec",
+          "nodeSelector",
+          "kubernetes.io/os"
+        ],
+        "value": "linux"
+      }
+    ]
+  },
+  {
+    "id": "KADV-10",
+    "namespace": "academy-v12-k10",
+    "title": "Pod anti-affinity",
+    "task": "Разместить 2 реплики на разных worker/eligible nodes с required anti-affinity. Не менять labels узлов ради теста.",
+    "prerequisites": "at least 2 schedulable nodes",
+    "fixture": "fixtures/KADV-10.json",
+    "checks": [
+      {
+        "type": "field",
+        "resource": "deployment",
+        "name": "app",
+        "path": [
+          "status",
+          "availableReplicas"
+        ],
+        "value": 2
+      },
+      {
+        "type": "distinct_nodes",
+        "selector": "app=v12-app",
+        "count": 2
+      },
+      {
+        "type": "present",
+        "resource": "deployment",
+        "name": "app",
+        "path": [
+          "spec",
+          "template",
+          "spec",
+          "affinity",
+          "podAntiAffinity",
+          "requiredDuringSchedulingIgnoredDuringExecution",
+          0
+        ]
+      }
+    ]
+  },
+  {
+    "id": "KADV-11",
+    "namespace": "academy-v12-k11",
+    "title": "Dynamic PVC provisioning",
+    "task": "PVC остаётся Pending. Используй существующий local storage class, докажи Bound и чтение маркера.",
+    "prerequisites": "default dynamic provisioner",
+    "fixture": "fixtures/KADV-11.json",
+    "checks": [
+      {
+        "type": "field",
+        "resource": "pvc",
+        "name": "data",
+        "path": [
+          "status",
+          "phase"
+        ],
+        "value": "Bound"
+      },
+      {
+        "type": "exec",
+        "pod": "data-probe",
+        "argv": [
+          "cat",
+          "/data/marker"
+        ],
+        "contains": "academy-v12",
+        "exit": 0
+      }
+    ]
+  },
+  {
+    "id": "KADV-12",
+    "namespace": "academy-v12-k12",
+    "title": "CSI volume contract",
+    "task": "Подключить реальный CSI provisioner в выделенном кластере, выбрать StorageClass, проверить PV spec.csi и marker. Не выдавать local-path за CSI.",
+    "prerequisites": "working CSI driver and storage class already installed",
+    "fixture": "fixtures/KADV-12.json",
+    "checks": [
+      {
+        "type": "field",
+        "resource": "pvc",
+        "name": "data",
+        "path": [
+          "status",
+          "phase"
+        ],
+        "value": "Bound"
+      },
+      {
+        "type": "csi",
+        "claim": "data"
+      },
+      {
+        "type": "exec",
+        "pod": "data-probe",
+        "argv": [
+          "cat",
+          "/data/marker"
+        ],
+        "contains": "academy-v12",
+        "exit": 0
+      }
+    ]
+  },
+  {
+    "id": "KADV-13",
+    "namespace": "academy-v12-k13",
+    "title": "StatefulSet stable identity",
+    "task": "Создать headless Service для StatefulSet из двух реплик; проверить стабильные DNS-имена и readiness.",
+    "prerequisites": "kind",
+    "fixture": "fixtures/KADV-13.json",
+    "checks": [
+      {
+        "type": "field",
+        "resource": "service",
+        "name": "stateful",
+        "path": [
+          "spec",
+          "clusterIP"
+        ],
+        "value": "None"
+      },
+      {
+        "type": "field",
+        "resource": "statefulset",
+        "name": "stateful",
+        "path": [
+          "status",
+          "readyReplicas"
+        ],
+        "value": 2
+      },
+      {
+        "type": "exec",
+        "pod": "probe",
+        "argv": [
+          "nslookup",
+          "stateful-0.stateful"
+        ],
+        "contains": "stateful",
+        "exit": 0
+      },
+      {
+        "type": "exec",
+        "pod": "probe",
+        "argv": [
+          "nslookup",
+          "stateful-1.stateful"
+        ],
+        "contains": "stateful",
+        "exit": 0
+      }
+    ]
+  },
+  {
+    "id": "KADV-14",
+    "namespace": "academy-v12-k14",
+    "title": "Job failure and completion",
+    "task": "Job не завершается успешно. Создай исправленный Job с тем же именем в выделенном namespace; покажи завершение, не подменяя status.",
+    "prerequisites": "kind",
+    "fixture": "fixtures/KADV-14.json",
+    "checks": [
+      {
+        "type": "field",
+        "resource": "job",
+        "name": "task",
+        "path": [
+          "status",
+          "succeeded"
+        ],
+        "value": 1
+      },
+      {
+        "type": "condition",
+        "resource": "job",
+        "name": "task",
+        "condition": "Complete",
+        "status": "True"
+      }
+    ]
+  },
+  {
+    "id": "KADV-15",
+    "namespace": "academy-v12-k15",
+    "title": "CronJob lifecycle",
+    "task": "Настроить CronJob в suspend=true для безопасной паузы, лимиты истории 2/1 и Forbid concurrency. Вручную выполнить тестовый Job из шаблона с именем cron-proof.",
+    "prerequisites": "kind",
+    "fixture": "fixtures/KADV-15.json",
+    "checks": [
+      {
+        "type": "field",
+        "resource": "cronjob",
+        "name": "cron",
+        "path": [
+          "spec",
+          "suspend"
+        ],
+        "value": true
+      },
+      {
+        "type": "field",
+        "resource": "cronjob",
+        "name": "cron",
+        "path": [
+          "spec",
+          "concurrencyPolicy"
+        ],
+        "value": "Forbid"
+      },
+      {
+        "type": "field",
+        "resource": "cronjob",
+        "name": "cron",
+        "path": [
+          "spec",
+          "successfulJobsHistoryLimit"
+        ],
+        "value": 2
+      },
+      {
+        "type": "field",
+        "resource": "cronjob",
+        "name": "cron",
+        "path": [
+          "spec",
+          "failedJobsHistoryLimit"
+        ],
+        "value": 1
+      },
+      {
+        "type": "field",
+        "resource": "job",
+        "name": "cron-proof",
+        "path": [
+          "status",
+          "succeeded"
+        ],
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "KADV-16",
+    "namespace": "academy-v12-k16",
+    "title": "PodDisruptionBudget",
+    "task": "Создать 3 доступных replicas и PDB minAvailable=2. Проверить allowed disruptions при стабильном состоянии; не выполнять drain на чужих узлах.",
+    "prerequisites": "kind",
+    "fixture": "fixtures/KADV-16.json",
+    "checks": [
+      {
+        "type": "field",
+        "resource": "deployment",
+        "name": "app",
+        "path": [
+          "status",
+          "availableReplicas"
+        ],
+        "value": 3
+      },
+      {
+        "type": "field",
+        "resource": "pdb",
+        "name": "app",
+        "path": [
+          "spec",
+          "minAvailable"
+        ],
+        "value": 2
+      },
+      {
+        "type": "field",
+        "resource": "pdb",
+        "name": "app",
+        "path": [
+          "status",
+          "disruptionsAllowed"
+        ],
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "KADV-17",
+    "namespace": "academy-v12-k17",
+    "title": "SecurityContext",
+    "task": "Запустить непривилегированный workload: non-root UID 10001, no privilege escalation, drop ALL, seccomp RuntimeDefault. Проверить реальный UID.",
+    "prerequisites": "kind",
+    "fixture": "fixtures/KADV-17.json",
+    "checks": [
+      {
+        "type": "field",
+        "resource": "pod",
+        "name": "secure",
+        "path": [
+          "spec",
+          "securityContext",
+          "runAsNonRoot"
+        ],
+        "value": true
+      },
+      {
+        "type": "field",
+        "resource": "pod",
+        "name": "secure",
+        "path": [
+          "spec",
+          "securityContext",
+          "seccompProfile",
+          "type"
+        ],
+        "value": "RuntimeDefault"
+      },
+      {
+        "type": "field",
+        "resource": "pod",
+        "name": "secure",
+        "path": [
+          "spec",
+          "containers",
+          0,
+          "securityContext",
+          "allowPrivilegeEscalation"
+        ],
+        "value": false
+      },
+      {
+        "type": "field",
+        "resource": "pod",
+        "name": "secure",
+        "path": [
+          "spec",
+          "containers",
+          0,
+          "securityContext",
+          "capabilities",
+          "drop"
+        ],
+        "value": [
+          "ALL"
+        ]
+      },
+      {
+        "type": "exec",
+        "pod": "secure",
+        "argv": [
+          "id",
+          "-u"
+        ],
+        "contains": "10001",
+        "exit": 0
+      }
+    ]
+  },
+  {
+    "id": "KADV-18",
+    "namespace": "academy-v12-k18",
+    "title": "Helm values и release contract",
+    "task": "Использовать существующий v11 chart, установить отдельный release academy-v12, задать replicas=3. Проверь release deployed и реальное число endpoints.",
+    "prerequisites": "Helm 3 and v11 chart",
+    "fixture": "fixtures/KADV-18.json",
+    "checks": [
+      {
+        "type": "helm",
+        "name": "academy-v12"
+      },
+      {
+        "type": "field",
+        "resource": "deployment",
+        "name": "academy-v11-api",
+        "path": [
+          "status",
+          "availableReplicas"
+        ],
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": "KADV-19",
+    "namespace": "academy-v12-k19",
+    "title": "Argo CD manual sync",
+    "task": "Использовать выделенный Argo CD с read-only доступом к репозиторию, создать Application academy-v12-lab для v11 chart в namespace лаборатории, manual sync, без automated prune. Подтвердить Synced/Healthy.",
+    "prerequisites": "Argo CD installed in local cluster, read-only private repo access",
+    "fixture": "fixtures/KADV-19.json",
+    "checks": [
+      {
+        "type": "argo",
+        "name": "academy-v12-lab"
+      },
+      {
+        "type": "field",
+        "resource": "deployment",
+        "name": "academy-v11-api",
+        "path": [
+          "status",
+          "availableReplicas"
+        ],
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": "KADV-20",
+    "namespace": "academy-v12-k20",
+    "title": "etcd control-plane health",
+    "task": "Только read-only проверка etcd в выделенном kind: endpoint health и member list. Объяснить quorum одного узла и ограничения. Не менять/удалять etcd данные.",
+    "prerequisites": "kind control-plane with etcdctl",
+    "fixture": "fixtures/KADV-20.json",
+    "checks": [
+      {
+        "type": "etcd_health"
+      }
+    ]
+  }
+]
