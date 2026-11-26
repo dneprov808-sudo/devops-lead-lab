@@ -558,8 +558,8 @@
         "source": "https://docs.ansible.com/projects/ansible/latest/collections/ansible/builtin/template_module.html",
         "snippet": {
           "language": "yaml",
-          "code": "- name: Render sudoers fragment in disposable VM\n  ansible.builtin.template:\n    src: demo.j2\n    dest: /etc/sudoers.d/academy-demo\n    mode: '0440'\n    validate: 'visudo -cf %s'",
-          "notes": "Учебный фрагмент иллюстрирует validate на конфигурации sudoers; не исполняй его без выделенной VM, привилегий и проверки содержания. %s подставляет временный файл, а не целевой путь."
+          "code": "- name: Render synthetic JSON in the lab\n  ansible.builtin.template:\n    src: demo.json.j2\n    dest: /tmp/academy-demo.json\n    mode: '0600'\n    validate: 'python3 -m json.tool %s'",
+          "notes": "Пример для отдельной учебной VM: %s подставляет временный файл на managed host, Python проверяет JSON до замены назначения. Шаблон должен существовать, python3 — быть установлен на цели. Это проверка синтаксиса, не бизнес-схемы."
         }
       },
       {
