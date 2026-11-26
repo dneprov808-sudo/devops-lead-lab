@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const source=fs.readFileSync(new URL('./web/accelerator.js',import.meta.url),'utf8');
+const {questions,route,validate}=new Function(source+';return {questions:ACC_QUESTIONS,route:accRoute,validate:accValidate}')();
+assert.equal(questions.length,24);
+assert.equal(new Set(questions.map(q=>q[0])).size,24);
+assert.ok(questions.every(q=>q.length===4&&q.every(s=>typeof s==='string'&&s.trim())));
+for(const invalid of [null,[],{k8s:5},{k8s:-1},{k8s:1.5},{k8s:true},{unknown:0}])assert.equal(validate(invalid),false);
+assert.ok(validate({k8s:0,linux:4}));
+assert.equal(route({k8s:0,linux:4}).at(-1).topic,'linux');
+assert.equal(route({k8s:0,linux:4}).filter(x=>x.score===null).length,22);
+console.log('Accelerator contract PASS');
