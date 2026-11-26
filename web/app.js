@@ -31,7 +31,22 @@ async function api(path,post=false){
   if(!r.ok)throw Error(data.error||"Request blocked");
   return data;
 }
-function page(id){document.querySelectorAll(".page").forEach(n=>n.hidden=n.id!==id);document.querySelectorAll("nav button").forEach(n=>n.classList.toggle("active",n.dataset.page===id));if(id==="review")renderReview()}
+function page(id){
+  const target=document.getElementById(id);
+  if(!target||!target.classList.contains("page"))return;
+  document.querySelectorAll(".page").forEach(n=>n.hidden=n!==target);
+  document.querySelectorAll("nav button").forEach(n=>{
+    const active=n.dataset.page===id;
+    n.classList.toggle("active",active);
+    if(active){
+      n.setAttribute("aria-current","page");
+      const group=n.closest("details");
+      if(group)group.open=true;
+    }else n.removeAttribute("aria-current");
+  });
+  if(id==="review")renderReview();
+  window.scrollTo(0,0);
+}
 document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>page(b.dataset.page)));
 async function copy(value){try{await navigator.clipboard.writeText(value);alertMsg("Скопировано. Вставь в терминал или ChatGPT.")}catch{alertMsg("Копирование недоступно. Выдели вручную: "+value)}}
 document.querySelectorAll(".prompt").forEach(b=>b.addEventListener("click",()=>copy(b.dataset.prompt)));
