@@ -362,3 +362,73 @@ main{max-width:1536px;padding:20px clamp(22px,3vw,48px) 36px}
 .theory-chapter>pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:320px}
 .theory-chapter>a{display:inline-block;margin-top:5px;font-size:13px}
 @media(max-width:800px){.theory-chapter{padding:14px}.theory-chapter>p{line-height:1.7}}
+
+/* Learning Cockpit: distinct editorial reader, action-oriented home, guided operations.
+   Existing design tokens remain the source of truth for both themes. */
+.cockpit-skip{position:fixed;top:8px;left:8px;z-index:40;transform:translateY(-150%);background:var(--panel);color:var(--accent);padding:12px;border:2px solid var(--accent);border-radius:8px}
+.cockpit-skip:focus{transform:translateY(0)}
+.cockpit-search-trigger{display:flex;align-items:center;gap:12px;min-width:164px;justify-content:space-between}
+.cockpit-search-trigger kbd{font:11px ui-monospace,monospace;background:var(--surface-raised);border:1px solid var(--border);border-radius:4px;padding:3px 5px}
+#cockpit-search{width:min(640px,calc(100% - 28px));max-height:85dvh;border:1px solid var(--border);border-radius:16px;background:var(--panel);color:var(--text);padding:22px;box-shadow:0 24px 90px #0004;overflow:auto}
+#cockpit-search::backdrop{background:#101827a8}
+.cockpit-dialog-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:16px}
+.cockpit-dialog-head h2{font-size:19px;margin:0}
+#cockpit-search label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
+#cockpit-search-input{width:100%}
+#cockpit-search-status{font-size:12px;margin:12px 0}
+#cockpit-search-results{display:grid;gap:5px;max-height:48dvh;overflow:auto;padding:3px}
+.cockpit-result{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0 10px;text-align:left;padding:11px 13px}
+.cockpit-result strong{font-size:13px;grid-column:1;overflow-wrap:anywhere}
+.cockpit-result small{grid-column:1;color:var(--muted)}
+.cockpit-result-arrow{grid-column:2;grid-row:1/3;align-self:center;color:var(--accent)}
+.cockpit-hero{position:relative;display:grid;grid-template-columns:minmax(0,1.5fr) minmax(170px,1fr);gap:24px;align-items:center;padding:clamp(22px,3vw,38px);margin:0 0 14px;border-radius:16px;overflow:hidden;background:radial-gradient(circle at 95% 0,#28566a 0,transparent 60%),linear-gradient(125deg,#152a3a,#193647);color:#f4f7fb;border:1px solid #345063}
+.cockpit-hero .eyebrow{color:#a6e7d7;letter-spacing:.1em}
+.cockpit-hero h2{font-size:clamp(25px,3vw,37px);letter-spacing:-.04em;line-height:1.15;margin:12px 0;color:#f4f7fb}
+.cockpit-hero p{color:#c8dae4;max-width:62ch;line-height:1.65;margin:0 0 18px}
+.cockpit-hero-actions{display:flex;flex-wrap:wrap;gap:8px}
+.cockpit-hero-actions button{background:#a6e7d7;color:#15343b;border:1px solid #a6e7d7}
+.cockpit-hero-actions .secondary{background:transparent;color:#f4f7fb;border-color:#81a3b3}
+.cockpit-hero-actions .secondary:hover:not(:disabled){background:#315367}
+.cockpit-hero-diagram{width:100%;color:#a6e7d7;max-height:180px}
+.cockpit-resume{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 20px;border:1px solid var(--border);border-radius:12px;background:var(--panel);margin-bottom:18px}
+.cockpit-resume p{font-size:13px;margin:4px 0 0;overflow-wrap:anywhere}
+.cockpit-resume button{flex:none}
+#home .wb-dashboard{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)}
+#home .wb-mission{border-top:0;border-left:4px solid var(--accent)}
+#home .wb-flow{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+#home .wb-flow span{padding:8px 6px;font-size:11px;text-align:center}
+#home .wb-area-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+#home .wb-area{display:flex;flex-direction:column;align-items:start;gap:9px;padding:16px}
+#home .wb-area p{flex:1}
+#home .wb-area button{margin-top:auto}
+#hub-detail{overflow:visible}
+.cockpit-reader{display:grid;grid-template-columns:minmax(160px,220px) minmax(0,1fr) minmax(130px,170px);align-items:start;gap:14px 22px}
+.cockpit-reader>h3,.cockpit-reader>.reader-intro{grid-column:1/-1;margin:0}
+.reader-rail,.reader-toc{min-width:0;position:sticky;top:calc(var(--topbar) + 18px);max-height:calc(100dvh - var(--topbar) - 38px);overflow:auto;padding:3px 3px 8px;scrollbar-width:thin}
+.reader-rail>strong,.reader-toc>strong{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:12px}
+.reader-chapter-list,.reader-toc{display:flex;flex-direction:column;gap:5px}
+.reader-chapter-list button,.reader-toc button{width:100%;text-align:left;white-space:normal;min-height:34px;font-size:12px;line-height:1.45;padding:9px;border:1px solid transparent;background:transparent;color:var(--muted);overflow-wrap:anywhere}
+.reader-chapter-list button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);border-color:var(--accent-border);font-weight:700}
+.reader-body{min-width:0}
+.cockpit-reader .theory-chapter{margin:0;padding:0;border:0;box-shadow:none;background:transparent!important}
+.cockpit-reader .theory-chapter>summary{list-style:none;font-size:clamp(20px,2vw,27px);line-height:1.35;padding:0 0 14px;color:var(--text);font-weight:740;letter-spacing:-.025em;cursor:default}
+.cockpit-reader .theory-chapter>summary::-webkit-details-marker{display:none}
+.cockpit-reader .theory-chapter>p{font-size:15px;line-height:1.85;max-width:75ch}
+.cockpit-reader .theory-chapter>h4{margin:24px 0 10px;font-size:16px;scroll-margin-top:calc(var(--topbar) + 22px)}
+.cockpit-reader .theory-chapter>pre{font-size:12px;white-space:pre;overflow:auto;overflow-wrap:normal}
+.cockpit-reader .theory-chapter>.theory-notes{font-size:13px;color:var(--muted);border-left:2px solid var(--accent);padding-left:12px}
+.reader-controls,.cockpit-step-controls{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid var(--border);padding-top:16px;margin-top:22px}
+.reader-position{color:var(--muted);font:12px ui-monospace,monospace}
+.cockpit-topic-path{padding:18px;border:1px solid var(--accent-border);border-radius:10px;background:var(--accent-soft);margin:24px 0}
+.cockpit-topic-path p{margin:6px 0}
+.cockpit-runbook-bar{border:1px solid var(--border);background:var(--surface-raised);padding:15px;border-radius:10px;margin-top:18px}
+.cockpit-runbook-note{font-size:12px;color:var(--muted);margin:0 0 12px}
+.cockpit-steps{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.cockpit-steps button{flex:1 1 145px;text-align:left;font-size:12px;min-height:44px;overflow-wrap:anywhere}
+.cockpit-steps button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);border-color:var(--accent-border);font-weight:700}
+.cockpit-step-controls{margin:0 0 20px}
+.reader-body [hidden],.deploy-command[hidden],.theory-chapter[hidden]{display:none!important}
+@media(max-width:1400px){.cockpit-reader{grid-template-columns:minmax(145px,195px) minmax(0,1fr)}.reader-toc{grid-column:2;position:static;max-height:none;display:none}}
+@media(max-width:1150px){#home .wb-dashboard{grid-template-columns:1fr}#home .wb-area-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:800px){.cockpit-search-trigger{min-width:0}.cockpit-hero{grid-template-columns:1fr;gap:8px}.cockpit-hero-diagram{max-height:100px;max-width:260px}.cockpit-hero-actions button{min-height:42px}.cockpit-resume{flex-wrap:wrap;padding:14px}.cockpit-resume button{flex:1 1 auto}.cockpit-reader{grid-template-columns:minmax(0,1fr);gap:16px}.reader-rail{position:static;max-height:210px;overflow:auto;border-bottom:1px solid var(--border)}.reader-body{grid-column:1}.cockpit-reader .theory-chapter>p{font-size:14px}.cockpit-reader .theory-chapter>summary{font-size:22px}.reader-controls{justify-content:space-between}.reader-controls button{font-size:12px;padding:8px}.cockpit-step-controls button{font-size:12px}.cockpit-steps button{flex-basis:100%}#home .wb-flow{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:450px){#home .wb-area-grid{grid-template-columns:1fr}.cockpit-hero-actions button{width:100%}.cockpit-hero-diagram{display:none}.reader-controls .reader-position{order:3;width:100%;text-align:center}}
