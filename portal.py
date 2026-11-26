@@ -15,6 +15,7 @@ import threading
 import uuid
 import practice_results
 import practice_history
+from production.status import read_status
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import yaml
@@ -41,6 +42,7 @@ STATIC = {"/": ("index.html", "text/html; charset=utf-8"),
           "/learning.css": ("learning.css", "text/css; charset=utf-8"),
           "/hub.js": ("hub.js", "text/javascript; charset=utf-8"),
           "/hub.css": ("hub.css", "text/css; charset=utf-8"),
+          "/production.js": ("production.js", "text/javascript; charset=utf-8"),
           "/engineering.js": ("engineering.js", "text/javascript; charset=utf-8"),
           "/unified.js": ("unified.js", "text/javascript; charset=utf-8")}
 
@@ -212,8 +214,10 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_data(200, kind, (WEB / name).read_bytes())
             if self.path == "/api/hub":
                 return self.reply(json.loads((ROOT / "learning/hub.json").read_text(encoding="utf-8")))
+            if self.path == "/api/production/status":
+                return self.reply(read_status())
             if self.path == "/api/version":
-                return self.reply({"release": "Interactive Engineering v7", "branch": "academy/stable"})
+                return self.reply({"release": "Production Engineering v8", "branch": "academy/stable"})
             if self.path == "/api/session":
                 return self.reply({"csrf": KEY})
             if self.path == "/api/state":
