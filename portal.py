@@ -15,6 +15,8 @@ import threading
 import uuid
 import practice_results
 import practice_history
+import learning_store
+import sqlite3
 from production.status import read_status
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -217,6 +219,10 @@ class Handler(BaseHTTPRequestHandler):
             if self.path in STATIC:
                 name, kind = STATIC[self.path]
                 return self.send_data(200, kind, (WEB / name).read_bytes())
+            if self.path == "/api/v11/export":
+                return self.reply(learning_store.Store().export())
+            if self.path == "/api/v11/summary":
+                return self.reply(learning_store.Store().summary())
             if self.path == "/api/hub":
                 return self.reply(json.loads((ROOT / "learning/hub.json").read_text(encoding="utf-8")))
             if self.path == "/api/production/status":
@@ -241,11 +247,25 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply(practice_history.read_history(git, command, academy.ORIGINS,
                     practice_results.normalize, catalog(), ROOT))
             return self.reply({"error": "Not found"}, 404)
-        except (OSError, ValueError, KeyError, TypeError, AttributeError, yaml.YAMLError):
+        except (OSError, ValueError, KeyError, TypeError, AttributeError, yaml.YAMLError, sqlite3.Error):
             return self.reply({"status": "blocked", "error": "Read failed; check Git/gh access and canonical data."}, 503)
     def do_POST(self):
         if not allowed(self.headers, mutate=True):
             return self.reply({"error": "Forbidden"}, 403)
+        if self.path in ("/api/v11/event", "/api/v11/import"):
+            try:
+                if self.headers.get_content_type()!="application/json" or self.headers.get("Transfer-Encoding"):
+                    raise ValueError("Expected bounded JSON")
+                length=int(self.headers.get("Content-Length","0"))
+                if not 1<=length<=learning_store.MAX_BODY:
+                    raise ValueError("Invalid body size")
+                self.connection.settimeout(10)
+                payload=json.loads(self.rfile.read(length))
+                store=learning_store.Store()
+                result=store.add(payload) if self.path.endswith("/event") else store.import_data(payload)
+                return self.reply(result)
+            except (OSError,ValueError,TypeError,KeyError,OverflowError,sqlite3.Error):
+                return self.reply({"error":"Invalid local record, conflict or storage unavailable"},400)
         if self.path == "/api/practice-save":
             if not SAVE_LOCK.acquire(blocking=False):
                 return self.reply({"error": "Save already in progress; keep the same attempt"}, 409)
