@@ -21,6 +21,7 @@ class ReleaseContract(unittest.TestCase):
             self.assertEqual(artifact.read_bytes(),src.read_bytes())
             src.write_bytes(b'v2')
             self.assertNotEqual(run('build',src,artifact).returncode,0)
+            self.assertEqual(artifact.read_bytes(),b'v1\x00\n')
             self.assertEqual(run('verify',artifact,digest).returncode,0)
             artifact.write_bytes(b'tampered')
             self.assertNotEqual(run('verify',artifact,digest).returncode,0)
