@@ -1,0 +1,2 @@
+# Interview Pro — PostgreSQL & Patroni
+35 additions (PG-001..035), total 547/738. Preserves all 512 records. 67 pre-write JS assertions with read/assert adapters. Official PostgreSQL 17 documentation for vacuum, PITR, rewind, locks and Patroni docs for watchdog, dynamic configuration and replication modes consulted. Other per-question links are study references not individually checked. Actual databases, native Node, full gate, browser and semantic review pending.

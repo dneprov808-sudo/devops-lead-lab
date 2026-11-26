@@ -1,0 +1,2 @@
+# Interview Pro — Observability
+40 additions (OBS-001..040), total 482/738. Sections {"prometheus":16,"grafana":7,"zabbix":12,"telemetry":5}. Preserves all 442 earlier records. 71 pre-write JS assertions with read/assert adapters. Official documentation retrieved for Prometheus functions, histograms and alerts; Grafana No Data, provisioning and troubleshooting; Zabbix 7.0 triggers, dependencies and preprocessing. Other links are study references not individually verified. Native Node, full gate, real systems, semantic review and browser pending. No STATE or lab changes.
