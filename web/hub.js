@@ -62,12 +62,28 @@ function updateGrid(){
  }
  if(!matched.length)by("hub-grid").append(el("p","По запросу ничего не найдено. Измени поиск или направление.","dim"));
 }
+function showTopicSection(id){
+ const index=sections.findIndex(s=>s[0]===id);
+ if(index<0)return;
+ const buttons=by("hub-detail-nav").children;
+ const panels=by("hub-detail-body").children;
+ for(let i=0;i<sections.length;i++){
+   panels[i].hidden=i!==index;
+   buttons[i].setAttribute("aria-pressed",String(i===index));
+ }
+}
+function closeTopic(){
+ by("hub-detail").hidden=true;
+ by("hub-catalog").hidden=false;
+ chosen=null;
+}
 function openTopic(row){
  chosen=row;
+ by("hub-catalog").hidden=true;
  by("hub-detail").hidden=false;
  by("hub-detail-meta").textContent=row.group+" / "+row.mark;
  by("hub-detail-title").textContent=row.title;
- by("hub-detail-nav").replaceChildren(...sections.map(([id,name])=>btn(name,()=>by("hub-section-"+id).scrollIntoView({behavior:"smooth",block:"start"}))));
+ by("hub-detail-nav").replaceChildren(...sections.map(([id,name])=>btn(name,()=>showTopicSection(id))));
  const target=by("hub-detail-body");target.replaceChildren();
  const section=(id,title,children)=>{const d=block(title,children);d.id="hub-section-"+id;target.append(d)};
  const k=row.guide;
@@ -101,7 +117,8 @@ function openTopic(row){
    el("p",d.scope,"dim"),el("h4","Требования"),list(d.requirements),el("h4","Артефакты"),list(d.deliverables),el("h4","Критерии защиты"),list(d.rubric),
    btn("Копировать запрос архитектурной защиты",()=>copy("Академия: проведи архитектурную защиту "+d.id+" по learning/design.json ветки academy/stable. Не раскрывай готовый ответ, задавай по одному вопросу, не меняй STATE."))
  ])):[el("p","Архитектурных упражнений пока нет.","dim")]);
- by("hub-detail").scrollIntoView({behavior:"smooth",block:"start"});
+ showTopicSection("theory");
+ by("hub-detail").scrollIntoView({behavior:"auto",block:"start"});
 }
 async function fetchArray(path){const r=await fetch(path,{cache:"no-store"});if(!r.ok)throw Error("HTTP "+r.status);const data=await r.json();if(!Array.isArray(data))throw Error("Invalid catalog");return data}
 async function load(){
@@ -121,13 +138,13 @@ async function load(){
    updateGrid();
    const c=hubCounts(rows),missing=results.flatMap((r,i)=>r.status==="rejected"?[urls[i]]:[]);
    by("hub-status").textContent=(missing.length?"Частичная загрузка · отсутствует "+missing.join(", ")+" · ":"Готово · ")+c.topics+" технологий · "+c.guides+" справочников · "+c.labs+" практик · "+(c.proQuestions?c.proQuestions+" вопросов Pro + "+c.questions+" legacy":c.questions+" уникальных вопросов")+" · "+c.cases+" инцидентов · "+c.designs+" архитектурных кейсов";
-   if(chosen){const next=rows.find(x=>x.id===chosen.id);if(next){chosen=next;by("hub-detail").hidden=true;chosen=null;}}
- }catch(e){rows=[];by("hub-grid").replaceChildren();by("hub-detail").hidden=true;chosen=null;by("hub-status").textContent="BLOCKED: "+e.message+" Проверь /api/version и перезапусти python3 portal.py."}
+   if(chosen)closeTopic();
+ }catch(e){rows=[];by("hub-grid").replaceChildren();closeTopic();by("hub-status").textContent="BLOCKED: "+e.message+" Проверь /api/version и перезапусти python3 portal.py."}
  finally{if(generation===loadGeneration)by("hub-reload").disabled=false}
 }
 by("hub-search").addEventListener("input",updateGrid);
 by("hub-group").addEventListener("change",updateGrid);
 by("hub-reload").addEventListener("click",load);
-by("hub-close").addEventListener("click",()=>{by("hub-detail").hidden=true;chosen=null;by("hub-grid").scrollIntoView({behavior:"smooth",block:"start"})});
+by("hub-close").addEventListener("click",()=>{closeTopic();by("hub-grid").scrollIntoView({behavior:"auto",block:"start"})});
 load();
 })();

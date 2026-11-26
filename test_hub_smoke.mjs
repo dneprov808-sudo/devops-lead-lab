@@ -24,13 +24,19 @@ async function smokeHub(js,html,bank,data){
  const checks=[["render 20 technology cards",grid.children.length===20]];
  const kafka=grid.children[0];await findButton(kafka,"Открыть материалы →").click();
  checks.push(["Kafka detail rendered",ids.get("hub-detail-title").textContent==="Kafka"&&body.children.length===5]);
+ checks.push(["catalog hidden, theory visible",ids.get("hub-catalog").hidden===true&&body.children[0].hidden===false&&body.children.slice(1).every(n=>n.hidden)]);
+ await ids.get("hub-detail-nav").children[1].click();
+ checks.push(["practice tab isolated",body.children[1].hidden===false&&body.children.filter(n=>!n.hidden).length===1]);
  checks.push(["Kafka task and question text rendered",walk(body).some(n=>n.textContent.includes("PR-KAFKA-03"))&&walk(body).some(n=>n.textContent.includes("INC-KAFKA-01"))]);
  await findButton(body,"Выполнить и сохранить результат").click();checks.push(["practice click opens exact module",calledPractice==="PR-KAFKA-01"]);
  await findButton(body,"Запустить тренажёр: Kafka").click();checks.push(["interview click opens exact topic",calledTopic==="Kafka"&&calledPage==="interview"]);
+ await ids.get("hub-detail-nav").children[2].click();
  const details=walk(body).find(n=>n.tag==="details"&&n.children[0]?.textContent.startsWith("Вопрос 1"));
  const reveal=findButton(details,"Показать критерии");const rubric=details.children.find(n=>n.className==="hub-rubric");
  await reveal.click();checks.push(["empty answer does not reveal rubric",rubric.hidden===true]);
  details.children.find(n=>n.tag==="textarea").value="synthetic answer";await reveal.click();checks.push(["nonempty answer reveals rubric",rubric.hidden===false]);
+ await ids.get("hub-close").click();
+ checks.push(["back restores catalog",!ids.get("hub-catalog").hidden&&ids.get("hub-detail").hidden]);
  ids.get("hub-search").value="postgresql";ids.get("hub-search").listeners.input();checks.push(["search filters cards",grid.children.length>0&&grid.children.length<20&&walk(grid).some(x=>x.textContent==="PostgreSQL")]);
  return checks;
 }

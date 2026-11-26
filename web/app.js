@@ -58,12 +58,34 @@ document.addEventListener("keydown",event=>{
   }
 });
 function page(id){
+  renderPage(id,true);
+}
+const runbookLinks=[...document.querySelectorAll(".deploy-index a")];
+const runbookIds=runbookLinks.map(a=>a.getAttribute("href").slice(1));
+let selectedRunbook=runbookIds[0],summaryGeneration=0;
+function writeRoute(id){
+  if(location.hash!=="#"+id)history.pushState(null,"","#"+id);
+}
+function selectRunbook(id,record=false){
+  if(!runbookIds.includes(id))return false;
+  selectedRunbook=id;
+  for(const link of runbookLinks){
+    const active=link.getAttribute("href")==="#"+id;
+    const card=document.getElementById(link.getAttribute("href").slice(1));
+    card.hidden=!active;
+    if(active)link.setAttribute("aria-current","true");
+    else link.removeAttribute("aria-current");
+  }
+  if(record)writeRoute(id);
+  return true;
+}
+function renderPage(id,record=false){
   const target=document.getElementById(id);
-  if(!target||!target.classList.contains("page"))return;
+  if(!target||!target.classList.contains("page"))return false;
   const focusWasInMenu=$("workspace-nav").contains(document.activeElement)
     &&window.matchMedia("(max-width: 800px)").matches;
   document.querySelectorAll(".page").forEach(n=>n.hidden=n!==target);
-  document.querySelectorAll("nav button").forEach(n=>{
+  document.querySelectorAll("nav button[data-page]").forEach(n=>{
     const active=n.dataset.page===id;
     n.classList.toggle("active",active);
     if(active){
@@ -73,15 +95,61 @@ function page(id){
       text("workspace-current",n.textContent.trim());
     }else n.removeAttribute("aria-current");
   });
+  const selected=document.querySelector("nav button.active")?.closest("details");
+  document.querySelectorAll("nav details[data-workspace]").forEach(group=>{
+    if(group!==selected)group.open=false;
+  });
   setMobileMenu(false);
   if(id==="review")renderReview();
+  if(id==="home")refreshHome();
+  if(id==="deploy")selectRunbook(selectedRunbook);
   if(focusWasInMenu){
     const heading=target.querySelector("h1");
     if(heading){heading.setAttribute("tabindex","-1");heading.focus({preventScroll:true})}
   }
+  if(record)writeRoute(id==="deploy"?selectedRunbook:id);
   window.scrollTo(0,0);
+  return true;
 }
-document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>page(b.dataset.page)));
+function applyRoute(){
+  const id=location.hash.slice(1);
+  if(runbookIds.includes(id)){
+    selectRunbook(id);
+    renderPage("deploy");
+  }else if(!renderPage(id||"home")){
+    renderPage("home");
+  }
+}
+document.querySelectorAll("nav button[data-page]").forEach(b=>b.addEventListener("click",()=>page(b.dataset.page)));
+for(const link of runbookLinks)link.addEventListener("click",event=>{
+  event.preventDefault();
+  selectRunbook(link.getAttribute("href").slice(1),true);
+  $("deploy").scrollIntoView({block:"start"});
+});
+window.addEventListener("hashchange",applyRoute);
+const HOME_FIELDS=["home-answers","home-unique","home-mocks","home-reviews"];
+async function refreshHome(){
+  const generation=++summaryGeneration;
+  $("home-refresh").disabled=true;
+  HOME_FIELDS.forEach(id=>text(id,"—"));
+  text("home-progress-status","Чтение локального журнала…");
+  try{
+    const d=await api("/api/v11/summary");
+    if(generation!==summaryGeneration)return;
+    const counts=Object.values(d.by_topic||{});
+    const valid=n=>Number.isSafeInteger(n)&&n>=0;
+    if(!valid(d.mock_sessions)||!valid(d.review_proposals)||!d.by_topic||
+       counts.some(v=>!valid(v.attempts)||!valid(v.questions)))throw Error("Invalid summary");
+    const values=[counts.reduce((n,x)=>n+x.attempts,0),counts.reduce((n,x)=>n+x.questions,0),d.mock_sessions,d.review_proposals];
+    HOME_FIELDS.forEach((id,i)=>text(id,values[i]));
+    text("home-progress-status","Локальный журнал · не подтверждённая квалификация");
+  }catch(e){
+    if(generation===summaryGeneration)text("home-progress-status","Локальные результаты недоступны. Повтори запрос.");
+  }finally{
+    if(generation===summaryGeneration)$("home-refresh").disabled=false;
+  }
+}
+$("home-refresh").addEventListener("click",refreshHome);
 async function copy(value,feedback=null){
   try{
     await navigator.clipboard.writeText(value);
@@ -100,6 +168,13 @@ function renderState(d){
   text("week",d.week+"/"+d.weeks);text("revision",d.revision);
   text("task",d.task.id+" · "+d.task.topic);text("next",d.task.status+" — "+d.next);
   text("home-task-title",d.task.id+" · "+d.task.topic);text("home-task-next",d.task.status+" — "+d.next);
+  text("home-week","Неделя "+d.week+" / "+d.weeks);
+  const steps=[["implementation","Решение"],["testing","Тесты"],["code_review","Ревью"],["examination","Защита"]];
+  $("home-flow").replaceChildren(...steps.map(([key,label])=>{
+    const completed=d.workflow[key]==="completed";
+    const node=elem("span",label+" · "+(completed?"готово":"ожидается"),"wb-flow-step"+(completed?" complete":""));
+    return node;
+  }));
   text("lab-title",d.task.id+" · "+d.task.topic);text("lab-next",d.next);
   text("commit","Control "+d.commit+" · "+new Date(d.checked_at).toLocaleString("ru-RU",{timeZone:"Europe/Moscow"})+" МСК");
   $("workflow").replaceChildren(...Object.entries(d.workflow).map(([k,v])=>elem("span",k+": "+v,"chip "+(v==="completed"?"done":""))));
@@ -111,7 +186,7 @@ function renderState(d){
 async function sync(){
   $("sync").disabled=true;
   try{const d=await api("/api/state");state=d;renderState(d);text("connection","GitHub · прочитано");$("connection").className="tag good";alertMsg("")}
-  catch(e){state=null;text("home-task-title","STATE недоступен");text("home-task-next","Не удалось прочитать каноническое состояние. Обнови STATE после проверки GitHub.");text("connection","BLOCKED / устарело");$("connection").className="tag bad";alertMsg("Синхронизация не выполнена. Старые данные не являются актуальным STATE. "+e.message)}
+  catch(e){state=null;text("home-week","Неделя —");$("home-flow").replaceChildren(elem("span","Нет актуальных данных"));text("home-task-title","STATE недоступен");text("home-task-next","Не удалось прочитать каноническое состояние. Обнови STATE после проверки GitHub.");text("connection","BLOCKED / устарело");$("connection").className="tag bad";alertMsg("Синхронизация не выполнена. Старые данные не являются актуальным STATE. "+e.message)}
   finally{$("sync").disabled=false}
 }
 $("sync").addEventListener("click",sync);
@@ -143,4 +218,4 @@ function renderReview(){
 }
 $("clear-review").addEventListener("click",()=>{if(confirm("Удалить локальные самооценки?")){records=[];persist();renderReview()}});
 $("load-handoffs").addEventListener("click",async()=>{const b=$("load-handoffs");b.disabled=true;text("handoff-info","Чтение GitHub…");$("handoff-list").replaceChildren();try{const d=await api("/api/handoffs");text("handoff-info","Тестовых: "+d.test_count+" · Групп live: "+d.items.length+" · "+d.note);for(const i of d.items){const x=elem("article",undefined,"row-card");x.append(elem("strong",i.id),elem("p",i.status));for(const n of i.numbers){if(!Number.isSafeInteger(n)||n<1)continue;const a=elem("a","#"+n+" ↗ ");a.href="https://github.com/dneprov808-sudo/devops-lead-lab/issues/"+n;a.target="_blank";a.rel="noopener noreferrer";x.append(a)}$("handoff-list").append(x)}}catch(e){text("handoff-info","BLOCKED: "+e.message+" · Проверь gh auth status.")}finally{b.disabled=false}});
-api("/api/session").then(r=>csrf=r.csrf).catch(e=>alertMsg(e.message));nextQuestion();sync();
+api("/api/session").then(r=>csrf=r.csrf).catch(e=>alertMsg(e.message));nextQuestion();selectRunbook(selectedRunbook);applyRoute();sync();
