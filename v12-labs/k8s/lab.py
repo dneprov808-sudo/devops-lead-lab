@@ -41,12 +41,16 @@ def check_rule(k,ns,rule):
     if t=="csi":
         pvc=get("pvc",rule["claim"]);pv=json.loads(call(k+["get","pv",pvc["spec"]["volumeName"],"-o","json"]).stdout)
         return bool(pv["spec"].get("csi",{}).get("driver")) and pv["spec"]["claimRef"]["namespace"]==ns
+    if t=="endpoints":
+        slices=json.loads(call(k+["-n",ns,"get","endpointslices","-l","kubernetes.io/service-name="+rule["service"],"-o","json"]).stdout)["items"]
+        ready={e.get("targetRef",{}).get("uid") for s in slices for e in s.get("endpoints",[]) if e.get("conditions",{}).get("ready") is True and e.get("targetRef",{}).get("uid")}
+        return len(ready)==rule["count"]
     if t=="helm":
         p=call(["helm","--kubeconfig",str(CFG),"--kube-context","kind-academy-v11","-n",ns,"status",rule["name"],"-o","json"])
         return json.loads(p.stdout)["info"]["status"]=="deployed"
     if t=="argo":
         app=get("applications.argoproj.io",rule["name"],"argocd")
-        return app["spec"]["destination"]["namespace"]==ns and not app["spec"].get("syncPolicy",{}).get("automated") and app["status"]["sync"]["status"]=="Synced" and app["status"]["health"]["status"]=="Healthy"
+        return app["spec"]["destination"]["namespace"]==ns and app["spec"]["source"]["path"]=="v11-labs/k8s/chart" and app["spec"]["source"]["repoURL"].rstrip("/").removesuffix(".git")=="https://github.com/dneprov808-sudo/devops-lead-lab" and "automated" not in app["spec"].get("syncPolicy",{}) and app["status"]["sync"]["status"]=="Synced" and app["status"]["health"]["status"]=="Healthy"
     if t=="etcd_health":
         prefix=k+["-n","kube-system","exec","etcd-academy-v11-control-plane","--","etcdctl","--endpoints=https://127.0.0.1:2379","--cacert=/etc/kubernetes/pki/etcd/ca.crt","--cert=/etc/kubernetes/pki/etcd/healthcheck-client.crt","--key=/etc/kubernetes/pki/etcd/healthcheck-client.key"]
         return "healthy" in call(prefix+["endpoint","health"]).stdout and bool(call(prefix+["member","list"]).stdout.strip())

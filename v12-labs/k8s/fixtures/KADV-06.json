@@ -41,7 +41,8 @@
       "subjects": [
         {
           "kind": "ServiceAccount",
-          "name": "reader"
+          "name": "reader",
+          "namespace": "academy-v12-k06"
         }
       ],
       "roleRef": {

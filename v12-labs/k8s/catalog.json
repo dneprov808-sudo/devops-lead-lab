@@ -722,6 +722,11 @@
           "availableReplicas"
         ],
         "value": 3
+      },
+      {
+        "type": "endpoints",
+        "service": "academy-v11-api",
+        "count": 3
       }
     ]
   },
