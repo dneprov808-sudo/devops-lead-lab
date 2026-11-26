@@ -1,0 +1,17 @@
+import assert from "node:assert/strict";
+import {readFileSync} from "node:fs";
+const api = new Function(readFileSync(new URL("./web/production.js", import.meta.url), "utf8") + ";return {v8Review,v8Config,v8Command,v8Backup}")();
+assert.deepEqual(api.v8Review(0,[0,3]),{found:2,total:2,extra:0});
+assert.deepEqual(api.v8Review(0,[0,0,1]),{found:1,total:2,extra:1});
+assert.throws(()=>api.v8Review(999,[]));
+assert.match(api.v8Config("{"),/Некорректный JSON/);
+assert.match(api.v8Config('{"kind":"Deployment","apiVersion":"apps/v1","spec":{"replicas":-1}}'),/неотрицательное/);
+assert.match(api.v8Config('{"kind":"Deployment","apiVersion":"apps/v1","spec":{"replicas":0}}'),/корректны/);
+assert.match(api.v8Command("kubectl describe pod worker"),/OOMKilled/);
+assert.match(api.v8Command("echo host"),/не входит/);
+assert.match(api.v8Command("toString"),/не входит/);
+const data = new Map([["academy-bookmarks-v7",'["Kafka"]'],["unrelated-secret",'"not-exported"']]);
+assert.deepEqual(api.v8Backup({getItem:k=>data.get(k)??null}),{schema:1,kind:"academy-local-review-bookmarks",data:{"academy-bookmarks-v7":["Kafka"]}});
+assert.equal(data.size,2);
+assert.throws(()=>api.v8Backup({getItem:()=>"{broken"}));
+console.log("12 v8 checks passed");
