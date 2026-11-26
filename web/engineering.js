@@ -32,3 +32,95 @@ if(typeof document!=="undefined"){
  }
  }
 }
+
+const CONFIG_LESSONS=[
+["Kubernetes","https://kubernetes.io/docs/concepts/workloads/controllers/deployment/",[["spec.replicas: 3","Желаемое число Pod. Контроллер создаёт недостающие экземпляры."],["strategy.rollingUpdate.maxSurge: 1","При обновлении разрешён один дополнительный Pod."],["strategy.rollingUpdate.maxUnavailable: 0","Плановое обновление не должно уменьшать число доступных реплик. Нужны свободные ресурсы."]]],
+["Terraform","https://developer.hashicorp.com/terraform/language/meta-arguments/lifecycle",[["lifecycle { prevent_destroy = true }","Блокирует план удаления ресурса, пока правило присутствует в конфигурации. Не заменяет резервную копию."],["create_before_destroy = true","При замене сначала создаётся новый ресурс, если провайдер и ограничения позволяют."]]],
+["Docker Compose","https://docs.docker.com/reference/compose-file/services/",[["mem_limit: 512m","Ограничивает память контейнера; превышение может привести к OOM."],["restart: unless-stopped","Политика перезапуска после завершения процесса; не лечит зависание."],["healthcheck.test","Проверяет здоровье приложения; сам по себе unhealthy не перезапускает контейнер."]]],
+["Ansible","https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_handlers.html",[["notify: Restart service","Уведомляет обработчик, если задача сообщила changed."],["handlers:","Обработчики обычно выполняются в конце соответствующей части play. Повторные уведомления объединяются."]]],
+["Kafka","https://kafka.apache.org/documentation/",[["min.insync.replicas=2","При acks=all запись требует минимум двух синхронных реплик; иначе запись отклоняется."],["acks=all","Лидер ожидает подтверждения всех текущих ISR. Это не гарантия отсутствия потерь при любых отказах."]]],
+["Patroni","https://patroni.readthedocs.io/en/latest/dynamic_configuration.html",[["ttl: 30","Срок действия лидерской блокировки DCS в секундах."],["loop_wait: 10","Пауза между циклами управления."],["retry_timeout: 10","Бюджет повторных попыток. Должно выполняться loop_wait + 2 * retry_timeout <= ttl."]]]
+];
+function configExplanation(topic,index){return CONFIG_LESSONS.find(x=>x[0]===topic)?.[2]?.[index]?.[1]??null}
+if(typeof document!=="undefined"){
+ const root=document.getElementById("engineering-models");
+ if(root){const el=(tag,t)=>{const n=document.createElement(tag);n.textContent=t;return n};
+ root.append(el("h3","Разбор параметров конфигурации"));
+ for(const [topic,url,params] of CONFIG_LESSONS){
+ const d=el("details","");d.className="hub-fold";d.append(el("summary",topic),el("p","Нажми на параметр. Это отдельные фрагменты, не готовый файл."));
+ const out=el("p","Выбери параметр.");out.setAttribute("role","status");
+ for(const [i,[key]] of params.entries()){const b=el("button",key);b.type="button";b.className="secondary";b.addEventListener("click",()=>{out.textContent=configExplanation(topic,i)});d.append(b);}
+ const a=el("a","Официальная документация");a.href=url;a.target="_blank";a.rel="noopener noreferrer";d.append(out,a);root.append(d);
+ }
+ }
+}
+
+function learningRoute(topics,history,now=Date.now()){
+ return topics.map(topic=>{
+ const r=history.find(x=>x.topic===topic&&Number.isInteger(x.score)&&x.score>=0&&x.score<=4&&Number.isFinite(Date.parse(x.due)));
+ return {topic,score:r?.score??null,due:r?Date.parse(r.due)<=now:false,priority:!r?2:Date.parse(r.due)<=now?0:r.score<=2?1:3};
+ }).sort((a,b)=>a.priority-b.priority||(a.score??5)-(b.score??5)||a.topic.localeCompare(b.topic,"ru"));
+}
+function readBookmarks(raw,topics){try{const a=JSON.parse(raw||"[]");return Array.isArray(a)?[...new Set(a.filter(x=>topics.includes(x)))]:[]}catch{return []}}
+if(typeof document!=="undefined"){
+ const root=document.getElementById("engineering-route");
+ if(root&&typeof BANK!=="undefined"){
+ const topics=BANK.map(x=>x[0]),key="academy-bookmarks-v7";
+ const el=(tag,t)=>{const n=document.createElement(tag);if(t!==undefined)n.textContent=t;return n};
+ let marks=[];try{marks=readBookmarks(localStorage.getItem(key),topics)}catch{}
+ const list=el("div"),notice=el("p");notice.setAttribute("role","status");
+ const refresh=el("button","Обновить рекомендации");refresh.type="button";
+ const only=el("input");only.type="checkbox";const label=el("label"," Только избранное");label.prepend(only);
+ function render(){
+ list.replaceChildren();
+ for(const r of learningRoute(topics,typeof records==="undefined"?[]:records).filter(r=>!only.checked||marks.includes(r.topic))){
+ const d=el("div");d.className="hub-block";
+ d.append(el("strong",r.topic),el("p",r.score===null?"Ещё нет самооценки":(r.due?"Пора повторить · ":"")+"Самооценка "+r.score+"/4"));
+ const open=el("button","Повторить тему");open.type="button";open.addEventListener("click",()=>{document.getElementById("topic").value=r.topic;nextQuestion();page("interview")});
+ const mark=el("button",marks.includes(r.topic)?"Убрать из избранного":"В избранное");mark.type="button";mark.className="secondary";mark.addEventListener("click",()=>{const next=marks.includes(r.topic)?marks.filter(x=>x!==r.topic):[...marks,r.topic];try{localStorage.setItem(key,JSON.stringify(next));marks=next;notice.textContent="Избранное сохранено."}catch{notice.textContent="Не удалось сохранить избранное."}render()});d.append(open,mark);list.append(d);
+ }
+ if(!list.children.length)list.append(el("p","Нет избранных тем."));
+ }
+ refresh.addEventListener("click",render);only.addEventListener("change",render);root.append(el("p","Рекомендации основаны на локальных самооценках, а не на подтверждённых компетенциях. Сначала просроченные темы, затем слабые и неизученные."),refresh,label,notice,list);render();
+ }
+}
+
+const INTERVIEW_MODES=[["Блиц",10,"Кратко объясни основные понятия."],["Senior DevOps",45,"Объясняй диагностику, проверку гипотез и компромиссы."],["Lead DevOps",60,"Защищай архитектуру, риски, SLO и решения команды."]];
+if(typeof document!=="undefined"){
+ const root=document.getElementById("engineering-interview");
+ if(root&&typeof BANK!=="undefined"){
+ const el=(tag,t)=>{const n=document.createElement(tag);if(t!==undefined)n.textContent=t;return n};
+ const mode=el("select"),topic=el("select");mode.setAttribute("aria-label","Режим интервью");topic.setAttribute("aria-label","Тема");
+ for(const [i,m] of INTERVIEW_MODES.entries()){const o=el("option",m[0]+" · "+m[1]+" мин");o.value=String(i);mode.append(o)}
+ for(const b of BANK){const o=el("option",b[0]);o.value=b[0];topic.append(o)}
+ const note=el("p"),start=el("button","Открыть тренажёр"),prompt=el("button","Копировать запрос независимого интервью");start.type=prompt.type="button";
+ function render(){note.textContent=INTERVIEW_MODES[Number(mode.value)][2]+" Встроенный банк используется для самопроверки; время рекомендательное."}
+ mode.addEventListener("change",render);start.addEventListener("click",()=>{document.getElementById("topic").value=topic.value;nextQuestion();page("interview")});
+ prompt.addEventListener("click",()=>{const m=INTERVIEW_MODES[Number(mode.value)];copy("Академия: проведи независимое интервью "+m[0]+" по теме "+topic.value+", ориентир "+m[1]+" минут. "+m[2]+" Задавай по одному вопросу, оценивай только фактические ответы, не меняй STATE.")});
+ root.append(mode,topic,note,start,prompt);render();
+ }
+}
+
+function troubleshootingReady(hypothesis,action,verification){return [hypothesis,action,verification].every(x=>typeof x==="string"&&x.trim().length>0)}
+if(typeof document!=="undefined"){
+ const root=document.getElementById("engineering-troubleshooting");
+ if(root){
+ const el=(tag,t)=>{const n=document.createElement(tag);if(t!==undefined)n.textContent=t;return n};
+ const button=(t,fn)=>{const b=el("button",t);b.type="button";b.addEventListener("click",fn);return b};
+ const status=el("p","Загружаем сценарии…");status.setAttribute("role","status");const select=el("select"),body=el("div");select.setAttribute("aria-label","Инцидент");root.append(status,select,body);
+ fetch("/api/incidents",{cache:"no-store"}).then(r=>{if(!r.ok)throw Error("HTTP "+r.status);return r.json()}).then(cases=>{
+ if(!Array.isArray(cases)||!cases.length)throw Error("Нет сценариев");
+ for(const c of cases){const o=el("option",c.title);o.value=c.id;select.append(o)}
+ function render(){
+ const c=cases.find(x=>x.id===select.value);if(!c)return;
+ body.replaceChildren(el("h3",c.title),el("p",c.symptoms),el("p",c.task));
+ const evidence=el("pre",c.evidence);evidence.hidden=true;
+ const hint=el("p",c.hint);hint.hidden=true;
+ const fields=["1. Предполагаемая причина","2. Действия и команды диагностики","3. Как подтвердить восстановление"].map(t=>{const l=el("label",t),a=el("textarea");a.rows=3;l.append(a);return [l,a]});
+ const feedback=el("p");feedback.setAttribute("role","status");const debrief=el("p",c.debrief);debrief.hidden=true;
+ body.append(button("Открыть диагностические данные",()=>{evidence.hidden=!evidence.hidden}),evidence,...fields.map(x=>x[0]),button("Подсказка",()=>{hint.hidden=!hint.hidden}),hint,button("Сравнить с разбором",()=>{if(!troubleshootingReady(...fields.map(x=>x[1].value))){feedback.textContent="Заполни все три этапа.";return}debrief.hidden=false;feedback.textContent="Самопроверка: сравни свои действия с разбором. Это не независимая оценка."}),feedback,debrief);
+ }
+ select.addEventListener("change",render);status.textContent=cases.length+" синтетических сценариев. Ответы не сохраняются.";render();
+ }).catch(e=>{status.textContent="Не удалось загрузить сценарии: "+e.message;select.disabled=true});
+ }
+}

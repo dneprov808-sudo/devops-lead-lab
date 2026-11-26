@@ -10,3 +10,21 @@ assert.equal(model("patroni",3,1).majority,false);
 assert.equal(model("patroni",3,2).majority,true);
 assert.equal(model("docker",4,5).overLimit,true);
 console.log("8 model checks passed");
+
+const api=new Function(readFileSync(new URL("./web/engineering.js",import.meta.url),"utf8")+";return {learningRoute,readBookmarks,configExplanation,CONFIG_LESSONS,INTERVIEW_MODES}")();
+const route=api.learningRoute(["A","B","C","D"],[{topic:"A",score:4,due:"2027-01-01"},{topic:"B",score:1,due:"2027-01-01"},{topic:"C",score:3,due:"2026-01-01"}],Date.parse("2026-11-26"));
+assert.deepEqual(route.map(x=>x.topic),["C","B","D","A"]);
+assert.deepEqual(api.readBookmarks('["A","A","X"]',["A"]),["A"]);
+assert.deepEqual(api.readBookmarks("bad",["A"]),[]);
+assert.equal(api.configExplanation("unknown",0),null);
+for(const [topic,url,params] of api.CONFIG_LESSONS)for(const [i,[key,description]] of params.entries())assert.equal(api.configExplanation(topic,i),description);
+assert.equal(api.INTERVIEW_MODES.length,3);
+
+const ready=new Function(readFileSync(new URL("./web/engineering.js",import.meta.url),"utf8")+";return troubleshootingReady")();
+assert.equal(ready("hypothesis","action","verification"),true);
+assert.equal(ready("hypothesis"," ","verification"),false);
+assert.equal(ready(null,"action","verification"),false);
+const knowledge=JSON.parse(readFileSync(new URL("./learning/knowledge.json",import.meta.url),"utf8"));
+assert.equal(knowledge.length,20);
+assert.ok(knowledge.every(x=>x.deep?.internals&&x.deep?.production));
+console.log("Configuration, route, troubleshooting and theory checks passed");
