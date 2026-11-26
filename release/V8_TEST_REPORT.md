@@ -19,3 +19,15 @@ NOT RUN: Docker Compose runtime (Docker absent), complete existing release/gate.
 Remaining: Kafka/PostgreSQL/HA integration, more failure modes and assertions, actual sandbox shell, full YAML/HCL validation, visual graph editor, independent agent journal, multiple lead scenarios, mobile/offline PWA, validated backup restore. Existing feature links are not replacements for these deliverables.
 Local commands: python3 release/gate.py; docker compose -f production/compose.yaml config; follow production/README.md. Optional locally installed Playwright/Chromium: python3 production/browser_smoke.py.
 No Codex, paid API, paid cloud or automatic merge.
+
+## Repeat review 2026-11-26
+
+Reviewed PR #20 at 1006af4ec2b5cbe1e3d9b7b28fe115b4cafb5530 against stable 65b656bfbec139fb4cfdb5ac59166c91d8082092: 16 changed files, open draft, mergeable=true (Git conflict check only). Canonical STATE blob 978cd9cd6a929c7abad3776c705d9ccca3a49800 unchanged. No open issues.
+Re-verified all seven listed Git blob hashes against local source.
+Executed again:
+- python -m unittest -v test_production test_production_status: 5/5 PASS in 4.282 s; HTTP API and actual worker process, duplicate/invalid IDs, pending 10 -> 0, accepted=processed=11; status validation and unavailable endpoint.
+- node test_production.mjs: 12/12 PASS.
+- ACADEMY_CHROMIUM=/usr/bin/chromium python production/browser_smoke.py: PASS, isolated DOM with fake network/storage.
+No full gate/Compose/scrape/portal end-to-end test: Docker unavailable, direct GitHub DNS unavailable; connector works. The browser fixture is not whole-portal integration.
+Review limitations: SQLite shared volume is single-host, worker may exit on DB errors; no restart/retry policy in this increment. The API is single-threaded, no auth/TLS, not a real trading service. Status checks API counters, not worker liveness. Export covers only review and bookmarks; restore not implemented. Terminal is a fixed-command simulation. Images are tags, not pinned digests. Do not treat mergeable as release-ready.
+Manual gate remains mandatory; see production/README.md. No merge performed.
