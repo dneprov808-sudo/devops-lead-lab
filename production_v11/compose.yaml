@@ -1,0 +1,76 @@
+name: academy-v11-production
+x-app: &app
+  build: .
+  environment:
+    PGHOST: ${PGHOST:-postgres}
+    PGPASSWORD: academy-local-only
+  mem_limit: 192m
+  security_opt: ["no-new-privileges:true"]
+services:
+  postgres:
+    image: postgres:16
+    profiles: [light]
+    environment:
+      POSTGRES_PASSWORD: academy-local-only
+    volumes: ["pg-data:/var/lib/postgresql/data"]
+    mem_limit: 512m
+  kafka:
+    image: apache/kafka:4.1.2
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      KAFKA_HEAP_OPTS: -Xms256m -Xmx512m
+    volumes: ["kafka-data:/var/lib/kafka/data"]
+    mem_limit: 1g
+  redis:
+    image: redis:7
+    command: ["redis-server","--maxmemory","32mb","--maxmemory-policy","allkeys-lru"]
+    mem_limit: 128m
+  init:
+    <<: *app
+    command: ["init"]
+  api:
+    <<: *app
+    command: ["api"]
+    depends_on:
+      init: {condition: service_completed_successfully}
+    ports: ["127.0.0.1:18111:8080"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD","python","-c","import urllib.request;urllib.request.urlopen('http://127.0.0.1:8080/health',timeout=3).close()"]
+      interval: 5s
+      timeout: 4s
+      retries: 10
+  publisher:
+    <<: *app
+    command: ["publisher"]
+    depends_on:
+      init: {condition: service_completed_successfully}
+      kafka: {condition: service_started}
+    restart: unless-stopped
+  worker:
+    <<: *app
+    command: ["worker"]
+    depends_on:
+      init: {condition: service_completed_successfully}
+      kafka: {condition: service_started}
+    restart: unless-stopped
+  prometheus:
+    image: prom/prometheus:v3.5.5
+    volumes: ["./prometheus.yml:/etc/prometheus/prometheus.yml:ro"]
+    ports: ["127.0.0.1:19111:9090"]
+    mem_limit: 256m
+volumes:
+  pg-data:
+  kafka-data:

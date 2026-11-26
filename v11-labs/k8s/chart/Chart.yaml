@@ -1,0 +1,4 @@
+apiVersion: v2
+name: academy-v11-rollout
+version: 0.1.0
+appVersion: "1.28"

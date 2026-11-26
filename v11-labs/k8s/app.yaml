@@ -1,0 +1,16 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: academy-v11-rollout
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/dneprov808-sudo/devops-lead-lab.git
+    targetRevision: academy/stable
+    path: v11-labs/k8s/chart
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: academy-v11
+  syncPolicy:
+    syncOptions: [CreateNamespace=true]
