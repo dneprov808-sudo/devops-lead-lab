@@ -23,6 +23,7 @@ function runTests(){
  t("pending replay",()=>status([row(1)],{...s,pending_ids:[e().handoff.handoff_id]})==="already_pending");
  t("closed not acceptance",()=>status([row(1,e(),"closed")])==="closed_unreconciled");
  t("stale",()=>status([row(1,e({observed_state_revision:2}))])==="stale");
+ t("stale control commit even at same revision",()=>status([row(1,e({observed_control_commit:artifact}))])==="stale");
  t("no evidence",()=>status([row(1)])==="needs_evidence");
  t("valid start proposal",()=>run([row(1)],s,proof()).proposals[0]?.to==="in_progress");
  t("proof bound to payload",()=>status([row(1,e({summary:"changed"}))],s,proof())==="needs_evidence");
