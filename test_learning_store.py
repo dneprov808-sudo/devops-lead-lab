@@ -3,6 +3,7 @@ import tempfile
 import unittest
 import uuid
 from pathlib import Path
+from unittest.mock import patch
 from learning_store import Store, now
 
 class LearningStoreTests(unittest.TestCase):
@@ -47,3 +48,23 @@ class LearningStoreTests(unittest.TestCase):
         self.store.backup(dst)
         self.assertEqual(Store(dst,self.store.bank).export(),self.store.export())
         with self.assertRaises(FileExistsError): self.store.backup(dst)
+    def test_store_size_and_rollback(self):
+        with patch("learning_store.MAX_STORE_BYTES",1):
+            with self.assertRaises(ValueError): self.store.add(self.record())
+        self.assertEqual(self.store.export()["events"],[])
+    def test_career_view_excludes_answers(self):
+        self.store.bank={"Q-001":{"topic":"Linux"}}
+        self.store.add(self.record())
+        row=self.record("vacancy",{"title":"Synthetic lead","company":"Example","source":"https://example.com/role","observed":dt.date.today().isoformat(),"salary_min":400000,"salary_max":600000,"basis":"gross","topics":["Linux"]})
+        self.store.add(row)
+        self.assertEqual([e["kind"] for e in self.store.career()["events"]],["vacancy"])
+        invalid={**row,"id":str(uuid.uuid4()),"data":{**row["data"],"salary_max":1}}
+        with self.assertRaises(ValueError): self.store.add(invalid)
+    def test_mock_review_binding(self):
+        row=self.record("mock",{"profile":"lead","minutes":90,"started_at":now(),"responses":[{"question_id":"Q-001","answer":"synthetic"}]})
+        row["created_at"]=now()
+        self.store.add(row)
+        data={"attempt_id":row["id"],"question_id":"Q-001","score":3,"reviewer":"examiner candidate","evidence":"synthetic answer","error":"","commit":None}
+        self.store.add(self.record("review_proposal",data))
+        self.assertEqual(self.store.summary()["mock_sessions"],1)
+        self.assertEqual(self.store.summary()["proposals"][0]["status"],"unverified_proposal")

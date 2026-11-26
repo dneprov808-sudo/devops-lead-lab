@@ -8,7 +8,9 @@ import redis
 TOPIC="academy-orders-v11"
 KEY=re.compile(r"[A-Za-z0-9_-]{1,64}")
 def db():
-    return psycopg.connect(host=os.environ.get("PGHOST","postgres"),dbname="postgres",
+    host=os.environ.get("PGHOST","postgres")
+    if host not in ("postgres","pg1,pg2"): raise ValueError("Only local lab database hosts allowed")
+    return psycopg.connect(host=host,dbname="postgres",
         user="postgres",password=os.environ["PGPASSWORD"],connect_timeout=3,target_session_attrs="read-write")
 def cache():
     return redis.Redis(host="redis",socket_connect_timeout=1,socket_timeout=1,decode_responses=True)

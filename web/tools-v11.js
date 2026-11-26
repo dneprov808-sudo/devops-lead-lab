@@ -32,7 +32,7 @@ if(typeof document!=="undefined"){
   button(career,"Шаблон вакансии",()=>{form.value=JSON.stringify({title:"",company:"",source:"https://",observed:new Date().toISOString().slice(0,10),salary_min:null,salary_max:null,basis:"unknown",topics:["Kubernetes"]},null,2)});
   button(career,"Шаблон подтверждения опыта",()=>{form.value=JSON.stringify({title:"",topic:"Kubernetes",impact:"",evidence:"",commit:null},null,2)});
   async function render(){
-   try{const {events}=await AcademyStudy.request("/api/v11/export");summary.replaceChildren();
+   try{const {events}=await AcademyStudy.request("/api/v11/career");summary.replaceChildren();
     add("h3","Матрица требований по введённым вакансиям",summary);
     for(const x of v11Market(events,topics))add("p",x.topic+" · "+x.mentions+"/"+x.total,summary);
     add("h3","Источники и зарплаты",summary);

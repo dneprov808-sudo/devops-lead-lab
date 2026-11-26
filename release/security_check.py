@@ -6,7 +6,7 @@ ROOT=Path(__file__).resolve().parents[1]
 
 def check():
     errors=[]
-    for path in ROOT.glob("*/compose.yaml"):
+    for path in ROOT.glob("*/compose*.yaml"):
         data=yaml.safe_load(path.read_text())
         for name,svc in data.get("services",{}).items():
             if svc.get("privileged") or svc.get("network_mode")=="host":

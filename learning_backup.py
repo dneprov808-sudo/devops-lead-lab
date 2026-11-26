@@ -1,13 +1,15 @@
 """Explicit local backup CLI. Restore is a validated merge, never overwrite."""
 import argparse, json, os
 from pathlib import Path
-from learning_store import Store
+from learning_store import Store, ROOT
 
 def main():
     p=argparse.ArgumentParser()
     p.add_argument("action",choices=["export","import","backup"])
     p.add_argument("file",type=Path)
     a=p.parse_args(); store=Store()
+    if a.action in ("backup","export") and a.file.resolve().is_relative_to(ROOT) and not a.file.resolve().is_relative_to(ROOT/".academy-data"):
+        raise ValueError("Keep private backups outside Git checkout or under .academy-data")
     if a.action=="backup": store.backup(a.file)
     elif a.action=="export":
         fd=os.open(a.file,os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o600)

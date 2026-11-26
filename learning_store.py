@@ -12,6 +12,7 @@ from urllib.parse import urlsplit
 ROOT=Path(__file__).resolve().parent
 SCHEMA=1
 MAX_EVENTS=10000
+MAX_STORE_BYTES=64*1024*1024
 MAX_BODY=2*1024*1024
 ID=re.compile(r"[A-Z][A-Z0-9-]{1,80}")
 SHA=re.compile(r"[a-f0-9]{40}")
@@ -158,7 +159,8 @@ class Store:
                     continue
                 con.execute("INSERT INTO events VALUES (?,?,?,?)",(row["id"],row["created_at"],row["kind"],text))
                 inserted+=1
-            if con.execute("SELECT count(*) FROM events").fetchone()[0]>MAX_EVENTS:
+            count,total=con.execute("SELECT count(*),coalesce(sum(length(CAST(payload AS BLOB))),0) FROM events").fetchone()
+            if count>MAX_EVENTS or total>MAX_STORE_BYTES:
                 raise ValueError("Local store limit reached")
             # A proposal must refer to a real local attempt for the same question.
             for row in rows:
@@ -176,13 +178,18 @@ class Store:
             rows=con.execute("SELECT payload FROM events ORDER BY created_at,id").fetchall()
         return {"schema_version":SCHEMA,"events":[json.loads(row[0]) for row in rows]}
 
+    def career(self):
+        with self.connect() as con:
+            rows=con.execute("SELECT payload FROM events WHERE kind IN ('vacancy','portfolio') ORDER BY created_at,id").fetchall()
+        return {"events":[json.loads(row[0]) for row in rows]}
+
     def summary(self):
         events=self.export()["events"]
         latest={}; errors=[]; proposals=0; mocks=0; by_topic={}; reviews=[]
         for e in events:
             d=e["data"]
             if e["kind"]=="attempt":
-                topic=self.bank[d["question_id"]].get("topic","unknown")
+                topic=self.bank.get(d["question_id"],{}).get("topic","unknown")
                 item=by_topic.setdefault(topic,{"attempts":0,"questions":set(),"proposals":0})
                 item["attempts"]+=1; item["questions"].add(d["question_id"])
                 if d["score"] is not None:
@@ -191,7 +198,7 @@ class Store:
                 if d["error"]: errors.append({"id":e["id"],"question_id":d["question_id"],"error":d["error"]})
             elif e["kind"]=="review_proposal":
                 proposals+=1
-                topic=self.bank[d["question_id"]].get("topic","unknown")
+                topic=self.bank.get(d["question_id"],{}).get("topic","unknown")
                 by_topic.setdefault(topic,{"attempts":0,"questions":set(),"proposals":0})["proposals"]+=1
                 reviews.append({"id":e["id"],"question_id":d["question_id"],"score":d["score"],"reviewer":d["reviewer"],"status":"unverified_proposal"})
             elif e["kind"]=="mock": mocks+=1

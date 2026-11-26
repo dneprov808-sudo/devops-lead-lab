@@ -7,7 +7,7 @@ def compose(*args):
     context=subprocess.check_output(["docker","context","show"],text=True).strip()
     endpoint=subprocess.check_output(["docker","context","inspect",context,"--format","{{.Endpoints.docker.Host}}"],text=True).strip()
     if not endpoint.startswith("unix://"): raise RuntimeError("Not a local Unix socket")
-    subprocess.run(["docker","compose","-f",str(ROOT/"compose.yaml"),"--profile","light",*args],check=True,timeout=60)
+    subprocess.run(["docker","compose","-p","academy-v11-production","-f",str(ROOT/"compose.yaml"),"--profile","light",*args],check=True,timeout=60)
 def req(path,body=None):
     raw=None if body is None else json.dumps(body).encode()
     with urllib.request.urlopen(urllib.request.Request("http://127.0.0.1:18111"+path,data=raw,headers={"Content-Type":"application/json"}),timeout=5) as r:
