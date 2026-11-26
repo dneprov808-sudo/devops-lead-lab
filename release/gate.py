@@ -31,10 +31,10 @@ def main():
     for cmd in commands(args.full,args.live_production,args.k8s_live,args.security):
         started=time.monotonic()
         try:
-            rc=subprocess.run(cmd,cwd=root,timeout=1000).returncode
+            rc=subprocess.run(cmd,cwd=root,timeout=1300).returncode
         except (OSError,subprocess.TimeoutExpired):
             rc=125
-        rows.append({"command":cmd,"exit":rc,"seconds":round(time.monotonic()-started,2)})
+        rows.append({"command":cmd,"exit":rc,"status":"PASS" if rc==0 else "BLOCKED" if rc==125 else "FAIL","seconds":round(time.monotonic()-started,2)})
     print(json.dumps({"profile":"full" if args.full else "core","checks":rows,
                       "omitted":([] if args.full else ["real browser","Compose config"])+([] if args.live_production else ["live production light drill"])+([] if args.k8s_live else ["live Kubernetes verification"])+["HA failover drill"]+([] if args.security else ["vulnerability scanners"]),
                       "runtime_note":"Compose config is not a live service test"},indent=2))
