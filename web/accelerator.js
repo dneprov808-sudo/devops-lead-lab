@@ -12,6 +12,18 @@ const ACC_QUESTIONS=[
 ["postgres","Реплика отстает, primary недоступен.","Как оценить риск failover?","WAL positions, RPO, fencing, lag, подтверждение записи"],
 ["kafka","После rebalance появились дубликаты.","Как обеспечить корректность внешней записи?","Offset commit, idempotency key, транзакция БД, повторная доставка"],
 ["cloud","Приватному сервису нужен доступ к объектному хранилищу.","Как избежать постоянных ключей?","Workload identity, least privilege, private endpoint, audit"]
+,["docker","Контейнер завершился с кодом 137. Как установить причину?","Всегда ли это OOM?","Inspect OOMKilled, cgroup events, kernel logs, SIGKILL, лимиты"],
+["ansible","Повторный запуск роли каждый раз changed.","Как проверить идемпотентность?","Декларативные модули, changed_when, handlers, повторный запуск и проверка состояния"],
+["gitops","Argo CD показывает OutOfSync после ручной правки.","Когда self-heal опасен?","Diff, desired state, ownership, исключения, согласованное изменение Git"],
+["helm","Upgrade не проходит из-за immutable поля.","Как сохранить данные?","Diff, immutable selector, миграция, PVC, rollback и проверка"],
+["redis","Cache hit rate резко упал.","Как отличить eviction от expiration?","INFO stats, evicted_keys, expired_keys, memory policy, нагрузка"],
+["rabbitmq","Очередь растет при стабильном publish rate.","Как проверить unacked?","Consumer rate, prefetch, ack, redelivery, downstream latency"],
+["patroni","DCS недоступен, primary еще работает.","Почему нельзя просто назначить новый primary?","Lease, TTL, fencing, failsafe configuration, split brain"],
+["git","В общей ветке ошибочный merge.","Почему revert предпочтительнее reset?","История, revert -m, выбор mainline, проверка diff"],
+["observability","Prometheus потребляет слишком много памяти.","Как найти источник cardinality?","TSDB status, labels, series count, ограничение динамических labels"],
+["dr","Backup завершился успешно.","Как доказать достижимость RTO и RPO?","Изолированный restore, проверка данных, время, точка восстановления"],
+["python","Автоматизация зависает при вызове внешней команды.","Как ограничить последствия?","Timeout, subprocess без shell, обработка exit code, bounded output"],
+["platform","Разработчики обходят стандартный pipeline.","Как определить причину?","Интервью, lead time, friction, golden path, исключения и adoption"]
 ];
 function accRoute(records){return ACC_QUESTIONS.map(q=>({topic:q[0],score:Object.hasOwn(records,q[0])?records[q[0]]:null})).sort((a,b)=>(a.score??-1)-(b.score??-1));}
 function accValidate(data){return data!==null&&typeof data==="object"&&!Array.isArray(data)&&Object.keys(data).every(k=>ACC_QUESTIONS.some(q=>q[0]===k)&&Number.isInteger(data[k])&&data[k]>=0&&data[k]<=4);}
