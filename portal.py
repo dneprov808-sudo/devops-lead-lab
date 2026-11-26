@@ -52,6 +52,7 @@ STATIC = {"/": ("index.html", "text/html; charset=utf-8"),
           "/interview-bank.js": ("interview-bank.js", "text/javascript; charset=utf-8"),
           "/study-v11.js": ("study-v11.js", "text/javascript; charset=utf-8"),
           "/interview-pro.js": ("interview-pro.js", "text/javascript; charset=utf-8"),
+          "/academy-v12.js": ("academy-v12.js", "text/javascript; charset=utf-8"),
           "/drafts-v12.js": ("drafts-v12.js", "text/javascript; charset=utf-8"),
           "/tools-v11.js": ("tools-v11.js", "text/javascript; charset=utf-8"),
           "/mock-v11.js": ("mock-v11.js", "text/javascript; charset=utf-8"),
@@ -212,7 +213,7 @@ class Handler(BaseHTTPRequestHandler):
         pass
     def route_label(self):
         route=self.path
-        known={"/api/v12/assessment","/api/v11/career","/api/v11/health","/api/v11/metrics","/api/v11/export","/api/v11/summary","/api/v11/event","/api/v11/import","/api/test","/api/practice-save","/api/practice-history","/api/state","/api/handoffs","/api/version","/api/session","/api/hub","/api/knowledge","/api/practice-catalog","/api/design","/api/incidents","/api/production/status"}
+        known={"/api/v12/leadership","/api/v12/labs","/api/v12/assessment","/api/v11/career","/api/v11/health","/api/v11/metrics","/api/v11/export","/api/v11/summary","/api/v11/event","/api/v11/import","/api/test","/api/practice-save","/api/practice-history","/api/state","/api/handoffs","/api/version","/api/session","/api/hub","/api/knowledge","/api/practice-catalog","/api/design","/api/incidents","/api/production/status"}
         return route if route in known else "static" if route in STATIC else "other"
     def send_data(self, status, kind, data):
         self.send_response(status)
@@ -235,6 +236,11 @@ class Handler(BaseHTTPRequestHandler):
             if self.path in STATIC:
                 name, kind = STATIC[self.path]
                 return self.send_data(200, kind, (WEB / name).read_bytes())
+            if self.path == "/api/v12/leadership":
+                return self.reply(json.loads((ROOT/"learning/leadership_v12.json").read_text(encoding="utf-8")))
+            if self.path == "/api/v12/labs":
+                labs=json.loads((ROOT/"v12-labs/k8s/catalog.json").read_text(encoding="utf-8"))
+                return self.reply({"kubernetes":[{k:v for k,v in row.items() if k!="checks"} for row in labs],"chaos":json.loads((ROOT/"learning/chaos_v12.json").read_text(encoding="utf-8"))})
             if self.path == "/api/v12/assessment":
                 return self.reply(assessment_v12.report(learning_store.Store()))
             if self.path == "/api/v11/health":

@@ -111,6 +111,12 @@ def validate(record, ids):
         for k in ("title","impact","evidence"): string(data[k],6000)
         if data["topic"] not in {q.get("topic") for q in ids.values()}: raise ValueError("Unknown topic")
         if data["commit"] is not None and (not isinstance(data["commit"],str) or not SHA.fullmatch(data["commit"])): raise ValueError("Invalid SHA")
+    elif kind=="lead_case":
+        if set(data)!={"case_id","choice","rationale"}: raise ValueError("Leadership fields")
+        cases=json.loads((ROOT/"learning/leadership_v12.json").read_text(encoding="utf-8"))
+        case=next((x for x in cases if x["id"]==data["case_id"]),None)
+        if case is None or data["choice"] not in {x["id"] for x in case["choices"]}: raise ValueError("Unknown leadership choice")
+        string(data["rationale"],6000)
     elif kind=="legacy_result":
         from migration_v12 import validate_legacy
         original=validate_legacy(data)
