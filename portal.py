@@ -20,6 +20,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import yaml
 import academy
+from release.version import version
 
 ROOT = Path(__file__).resolve().parent
 WEB = ROOT / "web"
@@ -221,7 +222,7 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == "/api/production/status":
                 return self.reply(read_status())
             if self.path == "/api/version":
-                return self.reply({"release": "Production Engineering v8", "branch": "academy/stable"})
+                return self.reply(version())
             if self.path == "/api/session":
                 return self.reply({"csrf": KEY})
             if self.path == "/api/state":
