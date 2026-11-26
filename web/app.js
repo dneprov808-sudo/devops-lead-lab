@@ -31,9 +31,37 @@ async function api(path,post=false){
   if(!r.ok)throw Error(data.error||"Request blocked");
   return data;
 }
+// Visual preferences are deliberately separate from learning and draft storage.
+const THEME_KEY="academy-ui-theme-v12";
+function setTheme(theme, remember=false){
+  const value=theme==="dark"?"dark":"light";
+  document.documentElement.dataset.theme=value;
+  const toggle=$("theme-toggle");
+  toggle.setAttribute("aria-pressed",String(value==="dark"));
+  toggle.textContent=value==="dark"?"Светлая тема":"Тёмная тема";
+  if(remember){try{localStorage.setItem(THEME_KEY,value)}catch{/* preference is session-only */}}
+}
+function setMobileMenu(open){
+  $("workspace-nav").dataset.mobileOpen=String(open);
+  $("menu-toggle").setAttribute("aria-expanded",String(open));
+}
+let savedTheme="light";
+try{savedTheme=localStorage.getItem(THEME_KEY)||"light"}catch{}
+setTheme(savedTheme);
+setMobileMenu(false);
+$("theme-toggle").addEventListener("click",()=>setTheme(document.documentElement.dataset.theme==="dark"?"light":"dark",true));
+$("menu-toggle").addEventListener("click",()=>setMobileMenu($("workspace-nav").dataset.mobileOpen!=="true"));
+document.addEventListener("keydown",event=>{
+  if(event.key==="Escape"&&$("workspace-nav").dataset.mobileOpen==="true"){
+    setMobileMenu(false);
+    if(window.matchMedia("(max-width: 800px)").matches)$("menu-toggle").focus();
+  }
+});
 function page(id){
   const target=document.getElementById(id);
   if(!target||!target.classList.contains("page"))return;
+  const focusWasInMenu=$("workspace-nav").contains(document.activeElement)
+    &&window.matchMedia("(max-width: 800px)").matches;
   document.querySelectorAll(".page").forEach(n=>n.hidden=n!==target);
   document.querySelectorAll("nav button").forEach(n=>{
     const active=n.dataset.page===id;
@@ -42,17 +70,36 @@ function page(id){
       n.setAttribute("aria-current","page");
       const group=n.closest("details");
       if(group)group.open=true;
+      text("workspace-current",n.textContent.trim());
     }else n.removeAttribute("aria-current");
   });
+  setMobileMenu(false);
   if(id==="review")renderReview();
+  if(focusWasInMenu){
+    const heading=target.querySelector("h1");
+    if(heading){heading.setAttribute("tabindex","-1");heading.focus({preventScroll:true})}
+  }
   window.scrollTo(0,0);
 }
 document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>page(b.dataset.page)));
-async function copy(value){try{await navigator.clipboard.writeText(value);alertMsg("Скопировано. Вставь в терминал или ChatGPT.")}catch{alertMsg("Копирование недоступно. Выдели вручную: "+value)}}
-document.querySelectorAll(".prompt").forEach(b=>b.addEventListener("click",()=>copy(b.dataset.prompt)));
+async function copy(value,feedback=null){
+  try{
+    await navigator.clipboard.writeText(value);
+    if(feedback)feedback.textContent="Скопировано. Вставь в терминал.";
+    else alertMsg("Скопировано. Вставь в терминал или ChatGPT.");
+  }catch{
+    if(feedback)feedback.textContent="Копирование недоступно. Выдели код выше вручную.";
+    else alertMsg("Копирование недоступно. Выдели вручную: "+value);
+  }
+}
+document.querySelectorAll(".prompt").forEach(b=>b.addEventListener("click",()=>{
+  const feedback=b.closest(".command-actions")?.querySelector(".copy-feedback")||null;
+  copy(b.dataset.prompt,feedback);
+}));
 function renderState(d){
   text("week",d.week+"/"+d.weeks);text("revision",d.revision);
   text("task",d.task.id+" · "+d.task.topic);text("next",d.task.status+" — "+d.next);
+  text("home-task-title",d.task.id+" · "+d.task.topic);text("home-task-next",d.task.status+" — "+d.next);
   text("lab-title",d.task.id+" · "+d.task.topic);text("lab-next",d.next);
   text("commit","Control "+d.commit+" · "+new Date(d.checked_at).toLocaleString("ru-RU",{timeZone:"Europe/Moscow"})+" МСК");
   $("workflow").replaceChildren(...Object.entries(d.workflow).map(([k,v])=>elem("span",k+": "+v,"chip "+(v==="completed"?"done":""))));
@@ -64,7 +111,7 @@ function renderState(d){
 async function sync(){
   $("sync").disabled=true;
   try{const d=await api("/api/state");state=d;renderState(d);text("connection","GitHub · прочитано");$("connection").className="tag good";alertMsg("")}
-  catch(e){state=null;text("connection","BLOCKED / устарело");$("connection").className="tag bad";alertMsg("Синхронизация не выполнена. Старые данные не являются актуальным STATE. "+e.message)}
+  catch(e){state=null;text("home-task-title","STATE недоступен");text("home-task-next","Не удалось прочитать каноническое состояние. Обнови STATE после проверки GitHub.");text("connection","BLOCKED / устарело");$("connection").className="tag bad";alertMsg("Синхронизация не выполнена. Старые данные не являются актуальным STATE. "+e.message)}
   finally{$("sync").disabled=false}
 }
 $("sync").addEventListener("click",sync);
