@@ -12,3 +12,5 @@ Choose other stop targets one at a time after confirming topology and baseline. 
 References: https://kafka.apache.org/41/operations/kraft/ ; https://redis.io/docs/latest/operate/oss_and_stack/management/sentinel/ .
 
 Hardening: the drill separates recovery evidence from fault-window availability; requires an actual stopped service, at least one accepted fault-window order and a fresh accepted order after restart. Default budget is zero unconfirmed requests; explicitly choose --max-unconfirmed N (0 <= N < orders) when an exercise allows temporary degradation. An unconfirmed request remains unknown, not proven lost. A cache response, mismatched ID or non-boolean completion cannot satisfy DB evidence. No continuous probe during restart, so elapsed check time is not certified RTO. Local runtime remains untested.
+
+Read-path hardening: /verify never contacts Redis, even for terminal orders. /stats reads all counts with one SQL statement, avoiding inconsistencies from separate READ COMMITTED snapshots. Stubbed tests check the API contract; runtime DB/cache isolation is not yet measured.

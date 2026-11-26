@@ -29,8 +29,9 @@ def submit(key):
     return bool(row)
 def stats():
     with db() as c:
-        accepted,processed=c.execute("SELECT count(*),count(*) FILTER(WHERE done) FROM orders").fetchone()
-        pending_publish=c.execute("SELECT count(*) FROM outbox WHERE NOT published").fetchone()[0]
+        # One SQL statement gives a coherent snapshot even at READ COMMITTED.
+        accepted,processed,pending_publish=c.execute("""SELECT count(*), count(*) FILTER(WHERE done),
+            (SELECT count(*) FROM outbox WHERE NOT published) FROM orders""").fetchone()
     return {"accepted":accepted,"processed":processed,"pending":accepted-processed,"pending_publish":pending_publish}
 def order(key,use_cache=True):
     if not KEY.fullmatch(key): raise ValueError("Invalid id")
@@ -40,7 +41,7 @@ def order(key,use_cache=True):
     except redis.RedisError: pass
     with db() as c: row=c.execute("SELECT done FROM orders WHERE id=%s",(key,)).fetchone()
     if row is None: return None
-    if row[0]:
+    if use_cache and row[0]:
         try: cache().setex("done:"+key,10,"1")
         except redis.RedisError: pass
     return {"id":key,"done":row[0],"source":"database"}
