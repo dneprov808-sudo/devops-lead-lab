@@ -100,3 +100,27 @@ if(typeof document!=="undefined"){
  root.append(mode,topic,note,start,prompt);render();
  }
 }
+
+function troubleshootingReady(hypothesis,action,verification){return [hypothesis,action,verification].every(x=>typeof x==="string"&&x.trim().length>0)}
+if(typeof document!=="undefined"){
+ const root=document.getElementById("engineering-troubleshooting");
+ if(root){
+ const el=(tag,t)=>{const n=document.createElement(tag);if(t!==undefined)n.textContent=t;return n};
+ const button=(t,fn)=>{const b=el("button",t);b.type="button";b.addEventListener("click",fn);return b};
+ const status=el("p","Загружаем сценарии…");status.setAttribute("role","status");const select=el("select"),body=el("div");select.setAttribute("aria-label","Инцидент");root.append(status,select,body);
+ fetch("/api/incidents",{cache:"no-store"}).then(r=>{if(!r.ok)throw Error("HTTP "+r.status);return r.json()}).then(cases=>{
+ if(!Array.isArray(cases)||!cases.length)throw Error("Нет сценариев");
+ for(const c of cases){const o=el("option",c.title);o.value=c.id;select.append(o)}
+ function render(){
+ const c=cases.find(x=>x.id===select.value);if(!c)return;
+ body.replaceChildren(el("h3",c.title),el("p",c.symptoms),el("p",c.task));
+ const evidence=el("pre",c.evidence);evidence.hidden=true;
+ const hint=el("p",c.hint);hint.hidden=true;
+ const fields=["1. Предполагаемая причина","2. Действия и команды диагностики","3. Как подтвердить восстановление"].map(t=>{const l=el("label",t),a=el("textarea");a.rows=3;l.append(a);return [l,a]});
+ const feedback=el("p");feedback.setAttribute("role","status");const debrief=el("p",c.debrief);debrief.hidden=true;
+ body.append(button("Открыть диагностические данные",()=>{evidence.hidden=!evidence.hidden}),evidence,...fields.map(x=>x[0]),button("Подсказка",()=>{hint.hidden=!hint.hidden}),hint,button("Сравнить с разбором",()=>{if(!troubleshootingReady(...fields.map(x=>x[1].value))){feedback.textContent="Заполни все три этапа.";return}debrief.hidden=false;feedback.textContent="Самопроверка: сравни свои действия с разбором. Это не независимая оценка."}),feedback,debrief);
+ }
+ select.addEventListener("change",render);status.textContent=cases.length+" синтетических сценариев. Ответы не сохраняются.";render();
+ }).catch(e=>{status.textContent="Не удалось загрузить сценарии: "+e.message;select.disabled=true});
+ }
+}
