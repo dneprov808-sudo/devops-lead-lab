@@ -73,6 +73,24 @@ function showTopicSection(id){
    buttons[i].setAttribute("aria-pressed",String(i===index));
  }
 }
+// Only known runbooks in the local Academy, never arbitrary commands.
+const topicEnvironments={linux:"deploy-linux",net:"deploy-linux",docker:"deploy-light",k8s:"deploy-k8s",ansible:"deploy-iac",terraform:"deploy-iac",cicd:"deploy-ci",kafka:"deploy-ha",postgres:"deploy-light",patroni:"deploy-ha",redis:"deploy-ha",sre:"deploy-ha",dr:"deploy-ha",prom:"deploy-light"};
+function updateReading(){
+ const saved=readTheoryPosition();
+ const row=rows.find(x=>x.guide?.id===saved?.guide);
+ const chapter=row?.guide?.chapters?.find(c=>c.id===saved?.chapter);
+ const resume=by("cockpit-resume"),label=by("cockpit-reading-label");
+ resume.disabled=!chapter;
+ label.textContent=chapter?row.title+" · "+chapter.title:"Открой главу в каталоге технологий; здесь появится последняя выбранная.";
+}
+window.academyUpdateReading=updateReading;
+window.academyTopicRoutes=()=>rows.map(row=>({label:row.title,group:"Технологии / "+row.group,search:row.title+" "+row.id+" "+row.group+" "+row.mark,action:()=>{page("hub");openTopic(row)}}));
+by("cockpit-resume").addEventListener("click",()=>{
+ const saved=readTheoryPosition();
+ const row=rows.find(x=>x.guide?.id===saved?.guide&&x.guide.chapters?.some(c=>c.id===saved.chapter));
+ if(!row){updateReading();return}
+ page("hub");openTopic(row);
+});
 function closeTopic(){
  by("hub-detail").hidden=true;
  by("hub-catalog").hidden=false;
@@ -88,10 +106,13 @@ function openTopic(row){
  const target=by("hub-detail-body");target.replaceChildren();
  const section=(id,title,children)=>{const d=block(title,children);d.id="hub-section-"+id;target.append(d)};
  const k=row.guide;
+ const env=topicEnvironments[row.id];
+ const routeBox=el("div",undefined,"cockpit-topic-path");
+ routeBox.append(el("strong","Следующий инженерный шаг"),el("p",env?"Изучи механизм, затем выбери локальный стенд. Наличие инструкции не означает, что стенд уже работает.":"После теории выбери связанную практику или вопрос; отдельный стенд для этой темы не назначен.","dim"),btn("Практика →",()=>showTopicSection("practice")),...(env?[btn("Инструкция среды ↗",()=>{page("deploy");selectRunbook(env,true)})]:[]));
  const lesson=k?.lesson;
  const intro=lesson?details("Проверить себя — один вопрос",(()=>{const q=lesson.quiz;const feedback=el("p","Выбери вариант ответа.","dim");feedback.setAttribute("role","status");return [el("p",q.question),...q.options.map((option,i)=>btn(option,()=>{feedback.textContent=(i===q.correct?"Верно. ":"Не совсем. ")+q.explanation;})),feedback,el("p","Это самопроверка, результат не влияет на оценку компетенции.","dim")];})()):null;
  section("theory","01 · Теория и команды",k?[
-   el("p",k.level,"dim"),el("h3",k.title),theoryChapters(k,el,btn,link,copy),...(lesson?[el("h4","Как это работает"),el("p",lesson.intro),el("h4","Пример из работы"),el("p",lesson.example),intro]:[]),details("Подробнее: техническая теория",[el("p",k.concept)]),...(k.deep?[details("Под капотом и в production",[el("h4","Внутреннее устройство"),el("p",k.deep.internals),el("h4","Эксплуатация"),el("p",k.deep.production)])]:[]),el("h4","Диагностические команды"),el("pre",k.commands),btn("Копировать команды",()=>copy(k.commands)),el("h4","Порядок диагностики"),el("p",k.diagnosis),el("h4","Типичные ошибки"),el("p",k.pitfalls),el("h4","Вопрос уровня Lead"),el("p",k.question),link("Официальная документация ↗",k.source)
+   el("p",k.level,"dim"),el("h3",k.title),theoryChapters(k,el,btn,link,copy),routeBox,...(lesson?[el("h4","Как это работает"),el("p",lesson.intro),el("h4","Пример из работы"),el("p",lesson.example),intro]:[]),details("Подробнее: техническая теория",[el("p",k.concept)]),...(k.deep?[details("Под капотом и в production",[el("h4","Внутреннее устройство"),el("p",k.deep.internals),el("h4","Эксплуатация"),el("p",k.deep.production)])]:[]),el("h4","Диагностические команды"),el("pre",k.commands),btn("Копировать команды",()=>copy(k.commands)),el("h4","Порядок диагностики"),el("p",k.diagnosis),el("h4","Типичные ошибки"),el("p",k.pitfalls),el("h4","Вопрос уровня Lead"),el("p",k.question),link("Официальная документация ↗",k.source)
  ]:[el("p","Справочник не загружен.")]);
  section("practice","02 · Практические задания ("+row.labs.length+")",row.labs.length?row.labs.map(m=>details(m.id+" · "+m.title,[
    el("p",m.level+" · "+m.minutes+" мин","dim"),el("h4","Локальный запуск (проверь Docker context)"),el("pre",m.command),btn("Копировать запуск",()=>copy(m.command)),el("pre",m.enter),el("h4","Задание"),list(m.tasks,"ol"),el("h4","Критерии результата"),list(m.evidence),link("Документация ↗",m.docs),
@@ -119,6 +140,7 @@ function openTopic(row){
    btn("Копировать запрос архитектурной защиты",()=>copy("Академия: проведи архитектурную защиту "+d.id+" по learning/design.json ветки academy/stable. Не раскрывай готовый ответ, задавай по одному вопросу, не меняй STATE."))
  ])):[el("p","Архитектурных упражнений пока нет.","dim")]);
  showTopicSection("theory");
+ if(k?.chapters?.length){const saved=readTheoryPosition();if(saved?.guide!==k.id||!k.chapters.some(c=>c.id===saved.chapter))saveTheoryPosition(k,k.chapters[0]);}
  by("hub-detail").scrollIntoView({behavior:"auto",block:"start"});
 }
 async function fetchArray(path){const r=await fetch(path,{cache:"no-store"});if(!r.ok)throw Error("HTTP "+r.status);const data=await r.json();if(!Array.isArray(data))throw Error("Invalid catalog");return data}
@@ -140,7 +162,8 @@ async function load(){
    const c=hubCounts(rows),missing=results.flatMap((r,i)=>r.status==="rejected"?[urls[i]]:[]);
    by("hub-status").textContent=(missing.length?"Частичная загрузка · отсутствует "+missing.join(", ")+" · ":"Готово · ")+c.topics+" технологий · "+c.chapters+" глав · "+c.guides+" справочников · "+c.labs+" практик · "+(c.proQuestions?c.proQuestions+" вопросов Pro + "+c.questions+" legacy":c.questions+" уникальных вопросов")+" · "+c.cases+" инцидентов · "+c.designs+" архитектурных кейсов";
    if(chosen)closeTopic();
- }catch(e){rows=[];by("hub-grid").replaceChildren();closeTopic();by("hub-status").textContent="BLOCKED: "+e.message+" Проверь /api/version и перезапусти python3 portal.py."}
+   updateReading();
+ }catch(e){rows=[];by("hub-grid").replaceChildren();closeTopic();updateReading();by("hub-status").textContent="BLOCKED: "+e.message+" Проверь /api/version и перезапусти python3 portal.py."}
  finally{if(generation===loadGeneration)by("hub-reload").disabled=false}
 }
 by("hub-search").addEventListener("input",updateGrid);

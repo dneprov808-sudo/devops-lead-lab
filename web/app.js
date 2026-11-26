@@ -219,3 +219,92 @@ function renderReview(){
 $("clear-review").addEventListener("click",()=>{if(confirm("Удалить локальные самооценки?")){records=[];persist();renderReview()}});
 $("load-handoffs").addEventListener("click",async()=>{const b=$("load-handoffs");b.disabled=true;text("handoff-info","Чтение GitHub…");$("handoff-list").replaceChildren();try{const d=await api("/api/handoffs");text("handoff-info","Тестовых: "+d.test_count+" · Групп live: "+d.items.length+" · "+d.note);for(const i of d.items){const x=elem("article",undefined,"row-card");x.append(elem("strong",i.id),elem("p",i.status));for(const n of i.numbers){if(!Number.isSafeInteger(n)||n<1)continue;const a=elem("a","#"+n+" ↗ ");a.href="https://github.com/dneprov808-sudo/devops-lead-lab/issues/"+n;a.target="_blank";a.rel="noopener noreferrer";x.append(a)}$("handoff-list").append(x)}}catch(e){text("handoff-info","BLOCKED: "+e.message+" · Проверь gh auth status.")}finally{b.disabled=false}});
 api("/api/session").then(r=>csrf=r.csrf).catch(e=>alertMsg(e.message));nextQuestion();selectRunbook(selectedRunbook);applyRoute();sync();
+
+
+// Cockpit enhancements: local navigation only; no execution or status mutation.
+function cockpitMatch(items,query){
+  const words=query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
+  return items.filter(item=>words.every(word=>item.search.toLocaleLowerCase().includes(word)));
+}
+function cockpitStepIndex(index,count){
+  if(!Number.isInteger(index)||!Number.isInteger(count)||count<1)return 0;
+  return Math.max(0,Math.min(index,count-1));
+}
+(function initCockpit(){
+  const skip=document.querySelector(".cockpit-skip");
+  skip.addEventListener("click",event=>{
+    event.preventDefault();const main=$("workspace-main");
+    main.setAttribute("tabindex","-1");main.focus();main.scrollIntoView({block:"start"});
+  });
+  const dialog=$("cockpit-search"),input=$("cockpit-search-input"),results=$("cockpit-search-results"),trigger=$("cockpit-search-open");
+  const routes=()=>[
+    ...[...document.querySelectorAll("nav button[data-page]")].map(b=>{
+      const group=b.closest("details")?.querySelector("summary")?.textContent.trim()||"Раздел";
+      return {label:b.textContent.trim(),group,search:group+" "+b.textContent+" "+b.dataset.page,action:()=>page(b.dataset.page)};
+    }),
+    ...runbookLinks.map(a=>{
+      const id=a.getAttribute("href").slice(1);
+      return {label:a.textContent.trim(),group:"Среды / Runbook",search:a.textContent+" "+id,action:()=>{page("deploy");selectRunbook(id,true)}};
+    }),
+    ...(window.academyTopicRoutes?.()||[])
+  ];
+  function renderSearch(){
+    const matches=cockpitMatch(routes(),input.value);
+    results.replaceChildren(...matches.map(item=>{
+      const b=elem("button",undefined,"secondary cockpit-result");b.type="button";
+      b.append(elem("strong",item.label),elem("small",item.group),elem("span","↗","cockpit-result-arrow"));
+      b.addEventListener("click",()=>{
+        dialog.close();item.action();
+        const heading=document.querySelector(".page:not([hidden]) h1");
+        if(heading){heading.setAttribute("tabindex","-1");heading.focus({preventScroll:true})}
+      });
+      return b;
+    }));
+    text("cockpit-search-status",matches.length?"Найдено: "+matches.length:"Ничего не найдено. Попробуй другое название.");
+  }
+  function openSearch(){
+    if(dialog.open)return;
+    input.value="";renderSearch();dialog.showModal();input.focus();
+  }
+  trigger.addEventListener("click",openSearch);
+  $("cockpit-search-close").addEventListener("click",()=>dialog.close());
+  input.addEventListener("input",renderSearch);
+  input.addEventListener("keydown",event=>{
+    if(event.key==="ArrowDown"){event.preventDefault();results.querySelector("button")?.focus()}
+    if(event.key==="Enter"){event.preventDefault();results.querySelector("button")?.click()}
+  });
+  dialog.addEventListener("close",()=>{if(dialog.contains(document.activeElement)||document.activeElement===document.body)trigger.focus()});
+  document.addEventListener("keydown",event=>{
+    if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==="k"){event.preventDefault();openSearch()}
+  });
+  // Keep original command nodes, labels, copy actions and safety/result blocks intact.
+  for(const card of document.querySelectorAll(".deploy-card")){
+    const commands=[...card.querySelectorAll(".deploy-command")];
+    if(!commands.length)continue;
+    const bar=elem("div",undefined,"cockpit-runbook-bar"),steps=elem("div",undefined,"cockpit-steps");
+    const status=elem("p","Состояние стенда не проверено · команды выполняются вручную","cockpit-runbook-note");
+    const controls=elem("div",undefined,"cockpit-step-controls"),counter=elem("span",undefined,"reader-position");
+    let index=0,all=false;
+    const make=(label,fn)=>{const b=elem("button",label,"secondary");b.type="button";b.addEventListener("click",fn);return b};
+    const labels=commands.map(c=>c.querySelector("h4").textContent);
+    const buttons=labels.map((label,i)=>make(String(i+1).padStart(2,"0")+" · "+label,()=>{all=false;index=i;render()}));
+    const previous=make("← Назад",()=>{index--;render()});
+    const next=make("Далее →",()=>{index++;render()});
+    const toggle=make("Все команды",()=>{all=!all;render()});
+    function render(){
+      index=cockpitStepIndex(index,commands.length);
+      commands.forEach((c,i)=>c.hidden=!all&&i!==index);
+      buttons.forEach((b,i)=>b.setAttribute("aria-pressed",String(!all&&i===index)));
+      counter.textContent=all?"Все этапы":(index+1)+" / "+commands.length;
+      toggle.textContent=all?"Пошаговый режим":"Все команды";
+      toggle.setAttribute("aria-pressed",String(all));
+      previous.disabled=all||index===0;next.disabled=all||index===commands.length-1;
+    }
+    steps.append(...buttons);
+    bar.append(status,steps,toggle);
+    controls.append(previous,counter,next);
+    card.insertBefore(bar,commands[0]);
+    commands[commands.length-1].after(controls);
+    render();
+  }
+})();
