@@ -1,0 +1,31 @@
+pipeline {
+  agent { label 'academy-local' }
+  options { skipDefaultCheckout(); disableConcurrentBuilds() }
+  stages {
+    stage('Checkout') { steps { checkout scm } }
+    stage('Build') {
+      steps { sh 'python3 v12-labs/cicd/pipeline.py build v12-labs/cicd/source.json bundle'; stash name: 'bundle', includes: 'bundle/**' }
+    }
+    stage('Test') {
+      steps { sh 'python3 -m unittest test_pipeline_v12 -v'; sh 'python3 v12-labs/cicd/pipeline.py verify bundle' }
+    }
+    stage('Security') {
+      steps { sh 'python3 release/security_v12.py'; sh 'python3 v12-labs/cicd/pipeline.py verify bundle' }
+    }
+    stage('Approve digest') {
+      steps {
+        script { env.REVIEWED_SHA256 = input message: 'Approve exact synthetic artifact digest', parameters: [string(name: 'SHA256', defaultValue: '', description: 'Copy reviewed digest from build log')] }
+      }
+    }
+    stage('Promote') {
+      steps {
+        dir('promotion-work') {
+          unstash 'bundle'
+          sh 'python3 ../v12-labs/cicd/pipeline.py promote bundle release "$REVIEWED_SHA256"'
+        }
+        archiveArtifacts artifacts: 'promotion-work/release/**', fingerprint: true
+      }
+    }
+  }
+  post { always { cleanWs() } }
+}
