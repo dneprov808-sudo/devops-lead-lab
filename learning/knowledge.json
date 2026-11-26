@@ -27,7 +27,42 @@
     "deep": {
       "internals": "Ядро планирует выполнение потоков, управляет виртуальной памятью и файловым кешем. Высокий load average может означать не только CPU, но и ожидание I/O.",
       "production": "Сравни vmstat 1, ps и iostat -xz 1; сначала установи, какой ресурс ограничивает приложение."
-    }
+    },
+    "chapters": [
+      {
+        "id": "linux-01",
+        "title": "Процессы, планировщик и состояния",
+        "level": "foundation",
+        "explanation": "Процесс — контейнер ресурсов, поток — единица выполнения планировщика. PID идентифицирует процесс в конкретном namespace. Системные вызовы переводят выполнение в ядро; переключение контекста сохраняет состояние потока. Состояние R означает готовность или выполнение, S — прерываемый сон, D — непрерываемое ожидание, Z — завершившийся процесс, чей статус ещё не забрал родитель.",
+        "production": "Load average не измеряет процент загрузки CPU: Linux учитывает runnable и D-state задачи. PSI показывает время, когда задачи ждут ресурс. Сравнивай признаки с нормальной нагрузкой, а не с универсальным порогом.",
+        "example": "На 8 vCPU load 20 при низком user CPU: сначала проверь D-state, iowait и диски, затем зависимость от удалённого хранилища.",
+        "commands": "uptime; vmstat 1 5; ps -eo pid,ppid,stat,wchan:24,comm; cat /proc/pressure/io",
+        "question": "Почему высокий load не всегда лечится добавлением CPU?",
+        "source": "https://docs.kernel.org/accounting/psi.html"
+      },
+      {
+        "id": "linux-02",
+        "title": "Виртуальная память, OOM и cgroups v2",
+        "level": "senior",
+        "explanation": "Виртуальные адреса отображаются в физические страницы через таблицы страниц. Anonymous memory обычно хранит heap и stack, file-backed страницы могут быть вытеснены и перечитаны. Page cache ускоряет файловый I/O; MemAvailable лучше характеризует запас, чем free. RSS не показывает уникальное владение разделяемыми страницами.",
+        "production": "Контейнер ограничивается cgroup, а не объёмом RAM хоста. memory.max задаёт жёсткую границу, memory.high вызывает reclaim/throttling; OOM возможен внутри cgroup при свободной памяти всей машины. CPU quota ограничивает время CPU и может повышать latency даже при невысоком среднем utilisation.",
+        "example": "Приложение внезапно завершилось с кодом 137. Это признак SIGKILL, но не доказательство OOM: сверь memory.events, журнал ядра и состояние runtime.",
+        "commands": "free -h; cat /proc/pressure/memory; cat /sys/fs/cgroup/memory.events; cat /sys/fs/cgroup/cpu.stat",
+        "question": "Как отличить cgroup OOM от общей нехватки памяти и внешнего SIGKILL?",
+        "source": "https://docs.kernel.org/admin-guide/cgroup-v2.html"
+      },
+      {
+        "id": "linux-03",
+        "title": "Файловые дескрипторы, диски, systemd и Bash",
+        "level": "lead",
+        "explanation": "Файловый дескриптор — ссылка процесса на открытый объект ядра. Удаление имени файла не освобождает блоки, пока открыта последняя ссылка. df показывает занятость файловой системы, du — видимые файлы; inode могут закончиться раньше байтов. Сервис systemd имеет собственный lifecycle, окружение, ограничения и журнал.",
+        "production": "Для скриптов важны контракт exit code, quoting, ограниченные таймауты, обработка сигналов и явная проверка ошибок. set -e имеет исключения, pipefail меняет статус конвейера, а trap полезен для очистки только принадлежащих скрипту ресурсов. Автоматизация не должна скрывать причину аварии перезапуском.",
+        "example": "df показывает заполнение, du не находит большие файлы. Сопоставь удалённые открытые файлы с владельцем, затем согласуй безопасное переоткрытие логов.",
+        "commands": "df -h; df -i; lsof +L1; systemctl status; journalctl -u SERVICE --since '-15 min'",
+        "question": "Как спроектировать эксплуатационный скрипт, чтобы он не сообщал ложный успех при сбое команды?",
+        "source": "https://www.gnu.org/software/bash/manual/"
+      }
+    ]
   },
   {
     "id": "net",
@@ -57,7 +92,42 @@
     "deep": {
       "internals": "TCP поддерживает состояние соединения, повторную передачу и управление перегрузкой. TLS работает поверх транспорта и проверяет идентичность узла.",
       "production": "Разделяй DNS, маршрут, TCP и TLS; успешный ping не доказывает доступность приложения."
-    }
+    },
+    "chapters": [
+      {
+        "id": "net-01",
+        "title": "Маршрутизация, ARP и путь пакета",
+        "level": "foundation",
+        "explanation": "Приложение передаёт данные сокету, ядро выбирает маршрут, интерфейс и исходный адрес. Для следующего IPv4 hop на локальном сегменте ARP определяет MAC; IPv6 использует Neighbor Discovery. Маршрутизация выбирает наиболее специфичный префикс в таблице, а policy routing может сначала выбрать таблицу по правилам.",
+        "production": "Путь туда и обратно может различаться. NAT, фильтрация и rp_filter способны нарушать соединение при асимметрии. ICMP ping не доказывает доступность TCP-порта, а отсутствие ответа не доказывает недоступность приложения.",
+        "example": "На сервере два интерфейса, запрос уходит с неверного IP. Проверь route get с нужным source, ip rule, захват на обоих интерфейсах и обратный маршрут.",
+        "commands": "ip -br addr; ip rule show; ip route get 192.0.2.10; ip neigh show",
+        "question": "Почему корректный default route не гарантирует правильный source IP?",
+        "source": "https://man7.org/linux/man-pages/man8/ip-route.8.html"
+      },
+      {
+        "id": "net-02",
+        "title": "TCP, UDP, сокеты и таймауты",
+        "level": "senior",
+        "explanation": "TCP устанавливает соединение, ведёт последовательность байтов, подтверждает доставку и управляет потоком и перегрузкой. SYN без SYN-ACK может означать фильтрацию или отсутствие маршрута; RST часто указывает на отказ соединения, но может быть создан промежуточным устройством. UDP не имеет транспортного handshake и не гарантирует доставку или порядок.",
+        "production": "У TCP существуют отдельные connect, read и application deadlines. Потеря пакетов приводит к retransmit, заполнение receive window ограничивает отправку, а backlog и лимит FD могут ограничить приём соединений. Для UDP нужен прикладной запрос и наблюдение на обеих сторонах.",
+        "example": "TCP соединяется, но HTTP отвечает поздно: сравни время connect и time to first byte, проверь retransmits, очереди сокетов и downstream.",
+        "commands": "ss -s; ss -tin; curl -w '%{time_connect} %{time_starttransfer}\\n' -o /dev/null -sS http://127.0.0.1:8080/",
+        "question": "Чем connection refused отличается от connect timeout и application timeout?",
+        "source": "https://man7.org/linux/man-pages/man7/tcp.7.html"
+      },
+      {
+        "id": "net-03",
+        "title": "DNS, TLS и проверка цепочки доверия",
+        "level": "lead",
+        "explanation": "DNS resolver ищет запись через кеш и рекурсивный сервер; TTL задаёт время кеширования, NXDOMAIN может кешироваться отдельно. Split DNS даёт разные ответы в разных сетях. TLS подтверждает подлинность сервера проверкой доверенной цепочки, имени и срока действия; SNI помогает выбрать сертификат для виртуального хоста.",
+        "production": "TCP connect не означает успешный TLS handshake, а успешный handshake не гарантирует здоровый HTTP endpoint. Не отключай проверку сертификата ради исправления. Для диагностики разделяй DNS, маршрут, TCP, TLS и HTTP, проверяя каждый уровень с конкретного клиента.",
+        "example": "После ротации сертификата часть клиентов получает ошибку: сравни hostname/SAN, цепочку intermediate, trust store и часы клиентов; проверь разные балансировщики.",
+        "commands": "getent hosts api.academy.test; dig api.academy.test; openssl s_client -connect 127.0.0.1:443 -servername api.academy.test -verify_hostname api.academy.test -verify_return_error",
+        "question": "Почему наличие сертификата на сервере не доказывает, что клиент ему доверяет?",
+        "source": "https://www.rfc-editor.org/rfc/rfc8446"
+      }
+    ]
   },
   {
     "id": "git",
@@ -87,7 +157,42 @@
     "deep": {
       "internals": "Коммит ссылается на дерево файлов и родителей. Ветки — изменяемые ссылки, а SHA идентифицирует конкретный объект.",
       "production": "При релизе фиксируй SHA и digest артефакта; не полагайся на изменяемый тег."
-    }
+    },
+    "chapters": [
+      {
+        "id": "git-01",
+        "title": "Git: объекты, индекс и ветки",
+        "level": "foundation",
+        "explanation": "Git хранит снимки через blob, tree и commit; commit содержит ссылки на дерево и родителей. Ветка — перемещаемая ссылка на commit, HEAD определяет текущий checkout. Working tree — файлы, index — подготовленный снимок, commit — записанный снимок истории.",
+        "production": "git add меняет index, commit фиксирует его, fetch обновляет сведения о remote refs без изменения рабочих файлов. Merge объединяет линии истории, rebase пересоздаёт commits с новыми родителями и SHA. Переписывать общую опубликованную историю без согласования опасно.",
+        "example": "В diff пусто, но commit содержит неожиданный файл: проверь git diff --cached, потому что обычный diff сравнивает рабочее дерево с index.",
+        "commands": "git status --short; git diff; git diff --cached; git log --graph --oneline --all -15",
+        "question": "Почему rebase изменяет SHA даже при одинаковом содержимом файла?",
+        "source": "https://git-scm.com/book/en/v2/Git-Tools-Reset-Demystified"
+      },
+      {
+        "id": "git-02",
+        "title": "Ревью, revert и неизменяемый релиз",
+        "level": "senior",
+        "explanation": "Ревью должно относиться к точному SHA и проверяемому diff. Revert создаёт новый commit, отменяющий изменения, и сохраняет историю. Reset перемещает ссылку и в зависимости от режима может затронуть index и working tree. Reflog помогает локальному восстановлению ссылок, но не заменяет резервную копию.",
+        "production": "В delivery связывай исходный commit, digest образа, результаты тестов и deploy record. Тег может быть перемещён; digest фиксирует содержимое. Защита ветки и обязательные проверки должны ограничивать право обхода, а не полагаться на устную договорённость.",
+        "example": "Релиз оказался неисправным: возврат Git commit сам по себе не возвращает уже развёрнутый бинарник и не откатывает миграцию БД. Нужен проверенный предыдущий артефакт.",
+        "commands": "git show --stat HEAD; git log --oneline -10; git diff HEAD~1 HEAD",
+        "question": "Когда лучше revert, а когда откат deployment на предыдущий digest?",
+        "source": "https://git-scm.com/docs/git-revert"
+      },
+      {
+        "id": "git-03",
+        "title": "GitOps: reconciliation и drift",
+        "level": "lead",
+        "explanation": "GitOps описывает желаемое состояние декларативно, версионирует его и использует агента для получения и согласования состояния. Controller сравнивает desired и observed state; drift — различие. GitOps не равен push-деплою из CI: reconciliation происходит регулярно и независимо от разового pipeline.",
+        "production": "Контроллер не знает намерений оператора: auto-sync может отменить ручной hotfix, prune удалить ресурс. Политики, разделение окружений, окно изменений и план восстановления определяют blast radius. Секреты не хранят открытым текстом в Git.",
+        "example": "Инженер вручную меняет replicas, GitOps возвращает значение. Сначала выясни владельца ресурса и diff, затем внеси согласованное изменение в desired state.",
+        "commands": "git diff; git log --oneline -5; kubectl --context kind-academy-v11 get deployments -n academy-v11",
+        "question": "Как совместить автоматическое reconciliation и безопасный emergency hotfix?",
+        "source": "https://opengitops.dev/"
+      }
+    ]
   },
   {
     "id": "docker",
@@ -117,7 +222,42 @@
     "deep": {
       "internals": "Namespaces изолируют представление ресурсов, cgroups учитывают и ограничивают их использование. Слои образа объединяются с записываемым слоем контейнера.",
       "production": "При OOM проверь состояние контейнера, лимит и метрики памяти; не повышай лимит без анализа потребления."
-    }
+    },
+    "chapters": [
+      {
+        "id": "docker-01",
+        "title": "Образ, контейнер, runtime и namespaces",
+        "level": "foundation",
+        "explanation": "Docker image — набор слоёв файловой системы и метаданные запуска. Контейнер создаёт writable layer над образом и запускает процесс через runtime. Docker Engine управляет жизненным циклом, containerd и OCI runtime участвуют в запуске. Контейнеры обычно разделяют ядро Linux; это не отдельная виртуальная машина.",
+        "production": "Namespaces ограничивают видимость PID, сети и mount, cgroups учитывают ресурсы. PID 1 внутри контейнера должен корректно обрабатывать сигналы и завершение дочерних процессов. exec запускает дополнительный процесс в существующем контейнере, а run создаёт новый.",
+        "example": "Контейнер исчезает после завершения основного процесса: изучи exit code, логи, entrypoint и сигнал, а не ищи внутри отдельную полноценную ОС.",
+        "commands": "docker ps -a; docker inspect CONTAINER; docker logs --tail 100 CONTAINER; docker top CONTAINER",
+        "question": "Почему наличие процесса в контейнере не доказывает готовность приложения?",
+        "source": "https://docs.docker.com/engine/"
+      },
+      {
+        "id": "docker-02",
+        "title": "Dockerfile, BuildKit, кеш и supply chain",
+        "level": "senior",
+        "explanation": "Сборка выполняет инструкции Dockerfile и использует build context. Кеш зависит от инструкции, её входных файлов и предыдущих стадий; изменение COPY может инвалидировать следующие шаги. Разделяй редко меняющиеся зависимости и код. Multi-stage build переносит нужный артефакт из builder в минимальный runtime.",
+        "production": "Фиксируй версии и digest при необходимости строгой воспроизводимости, используй .dockerignore, непривилегированного пользователя и временные build secrets вместо ARG/ENV для секретов. SBOM описывает состав; сканер и подпись решают разные задачи. Не считай маленький образ автоматически безопасным.",
+        "example": "Каждый commit скачивает все зависимости заново. Посмотри порядок COPY и установки, размер context и причины cache miss, не удаляй кеш вслепую.",
+        "commands": "docker image inspect IMAGE; docker history IMAGE; docker buildx version",
+        "question": "Как совместить быстрый build, воспроизводимость и своевременное обновление базового образа?",
+        "source": "https://docs.docker.com/build/building/best-practices/"
+      },
+      {
+        "id": "docker-03",
+        "title": "Сеть, тома, Compose и production lifecycle",
+        "level": "lead",
+        "explanation": "Bridge-сеть даёт контейнерам отдельные сетевые интерфейсы и DNS-имена сервисов в Compose; localhost внутри контейнера означает сам контейнер. Публикация порта связывает host и container, EXPOSE сам не публикует порт. Named volume переживает пересоздание контейнера; bind mount связывает конкретный host path.",
+        "production": "Compose описывает зависимости, но порядок запуска не гарантирует readiness без соответствующих условий и устойчивости приложения. Планируй health checks, graceful shutdown, ограничения ресурсов, backup/restore данных и отдельные окружения. Не удаляй volumes при обычном обновлении.",
+        "example": "После обновления БД пуста: сравни имя Compose project, mount destination и volume identity. Не запускай инициализацию поверх неизвестных данных.",
+        "commands": "docker compose config; docker compose ps -a; docker network ls; docker volume ls; docker stats --no-stream",
+        "question": "Почему rollback образа базы данных может быть невозможен без совместимой схемы и проверенного восстановления?",
+        "source": "https://docs.docker.com/engine/storage/"
+      }
+    ]
   },
   {
     "id": "ansible",
@@ -147,7 +287,42 @@
     "deep": {
       "internals": "Контроллер вычисляет переменные и выполняет модули на целевых узлах. Модули сообщают changed, что влияет на handlers.",
       "production": "Используй serial для ограниченного rollout, проверяй повторный запуск и не считай check mode полной гарантией."
-    }
+    },
+    "chapters": [
+      {
+        "id": "ansible-01",
+        "title": "Inventory, play, task и модуль",
+        "level": "foundation",
+        "explanation": "Control node читает inventory, определяет целевые hosts и выполняет plays с последовательностью tasks. Обычно соединение с Linux по SSH, Windows через поддерживаемый transport WinRM/PSRP. Модуль получает аргументы, взаимодействует с целевой системой и возвращает структурированный результат, включая changed.",
+        "production": "Inventory группирует хосты, group_vars и host_vars задают данные; role организует tasks, defaults, handlers, templates. Jinja рендерит шаблон на основе контекста переменных. Роль должна отличать параметры окружения от логики и не содержать реальных секретов.",
+        "example": "Шаблон не видит переменную в prod. Проверь фактический inventory, принадлежность хоста к группам и имя переменной, а не копируй переменные во все файлы.",
+        "commands": "ansible-inventory -i inventories/dev/hosts --graph; ansible-playbook -i inventories/dev/hosts play.yml --syntax-check",
+        "question": "Что происходит от ansible-playbook до результата changed на удалённом хосте?",
+        "source": "https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_intro.html"
+      },
+      {
+        "id": "ansible-02",
+        "title": "Идемпотентность, handlers и check mode",
+        "level": "senior",
+        "explanation": "Идемпотентная задача приводит объект к желаемому состоянию: повторный запуск без изменений не должен менять объект. Модули package, template и service выражают состояние; command/shell требуют дополнительных условий или корректного changed_when. Handler вызывается после notify от изменившейся задачи, обычно в предусмотренных точках play.",
+        "production": "Check mode моделирует только поддерживаемые задачи, не доказывает успешный реальный запуск и может не иметь зарегистрированных результатов. Diff может содержать секреты. Проверяй реальные два прогона в отдельном стенде, валидируй конфиг до reload и отделяй ошибки от ожидаемых статусов.",
+        "example": "Шаблон меняется при каждом прогоне из-за timestamp, handler перезапускает сервис. Убери недетерминированность и проверь changed=0 на втором прогоне.",
+        "commands": "ansible-playbook -i inventories/dev/hosts play.yml --check --diff --limit lab",
+        "question": "Чем отсутствие changed в check mode отличается от доказанной идемпотентности?",
+        "source": "https://docs.ansible.com/projects/ansible/latest/playbook_guide/playbooks_handlers.html"
+      },
+      {
+        "id": "ansible-03",
+        "title": "Приоритет переменных и rolling deployment",
+        "level": "lead",
+        "explanation": "Ansible различает config settings, command-line options, playbook keywords и variables; extra vars имеют высокий приоритет среди переменных. Точный источник значения зависит от scope и типа. Проверяй inventory и фактическую версию ansible-core, не переносишь правила 2.16 автоматически на 2.9.",
+        "production": "Для rolling release используй ограничение batch через serial, проверку readiness и остановку при нарушении порогов. forks управляет параллельностью, strategy — последовательностью выполнения хостов. Ошибка одного узла не должна приводить к необратимому обновлению остальных; rollback зависит от приложения и состояния данных.",
+        "example": "При rollout на десяти шлюзах первый batch перестал отвечать. Останови дальнейшие изменения, собери факты, проверь предыдущий артефакт и только затем восстанавливай.",
+        "commands": "ansible --version; ansible-config dump --only-changed; ansible-playbook -i inventories/dev/hosts play.yml --list-hosts",
+        "question": "Как проектировать роль для безопасного обновления критичного сервиса без единой точки отказа?",
+        "source": "https://docs.ansible.com/projects/ansible/latest/reference_appendices/general_precedence.html"
+      }
+    ]
   },
   {
     "id": "cicd",
@@ -177,7 +352,42 @@
     "deep": {
       "internals": "Pipeline связывает сборку, тестирование и продвижение неизменяемого артефакта. Разделяй полномочия сборки и деплоя.",
       "production": "Rollback приложения может быть невозможен после несовместимой миграции; проектируй expand-contract."
-    }
+    },
+    "chapters": [
+      {
+        "id": "cicd-01",
+        "title": "Pipeline, runner, job, artifact и cache",
+        "level": "foundation",
+        "explanation": "CI автоматически собирает и проверяет изменения, CD обеспечивает воспроизводимую доставку. Pipeline — граф jobs; runner исполняет их в своей среде. Stage задаёт упорядоченность, DAG позволяет независимым работам начинаться раньше. Artifact передаёт результат сборки, cache ускоряет повторные операции и не является источником истины.",
+        "production": "Shell runner исполняет код с правами пользователя runner, контейнерный executor обеспечивает другую границу изоляции, но не гарантирует безопасность. Jenkins controller планирует задачи, agent исполняет; выделяй доверенные deploy runners отдельно от непроверенных PR.",
+        "example": "Pipeline зелёный, но в deploy попал старый бинарник из cache. Привяжи релиз к artifact digest и проверенному commit SHA.",
+        "commands": "git rev-parse HEAD; sha256sum ARTIFACT; git status --short",
+        "question": "Почему cache нельзя использовать как гарантированное хранилище релизов?",
+        "source": "https://docs.gitlab.com/ci/pipelines/"
+      },
+      {
+        "id": "cicd-02",
+        "title": "Build once, promote и стратегии релиза",
+        "level": "senior",
+        "explanation": "Собирай один проверенный неизменяемый артефакт и продвигай его между средами. Подписанный digest и provenance связывают artifact с исходниками и build. Rolling обновляет часть реплик, blue-green переключает трафик между двумя средами, canary ограничивает долю нового релиза и наблюдает SLI.",
+        "production": "Каждая стратегия требует readiness, наблюдаемого критерия остановки и проверенного возврата. Изменения БД должны быть совместимы с обеими версиями во время перехода; expand-contract помогает отделить добавление схемы от удаления старой. Rollback бинарника не гарантирует rollback данных.",
+        "example": "Canary даёт 2% ошибок против 0.1% у старой версии. Приостанови promotion, сравни по версии и трафику, верни маршрутизацию и проверь SLI.",
+        "commands": "git show --stat HEAD; sha256sum ARTIFACT",
+        "question": "Какие данные нужны, чтобы автоматически остановить canary, не реагируя на шум?",
+        "source": "https://docs.gitlab.com/ci/jobs/job_artifacts/"
+      },
+      {
+        "id": "cicd-03",
+        "title": "Безопасность pipeline и управление поставкой",
+        "level": "lead",
+        "explanation": "Pipeline исполняет код и поэтому является границей доверия. Непроверенная ветка не должна получать deploy credentials. Используй минимальные права, короткоживущие токены, изоляцию runner и approval для критичных сред. Сканирование зависимостей, образов и секретов даёт разные сигналы; исключения должны иметь владельца и срок.",
+        "production": "Два pipeline могут конкурировать за одно окружение: сериализуй deploy и предотвращай устаревший релиз. Измеряй lead time, частоту релизов, долю неудачных изменений и время восстановления, не поощряя обход проверок ради цифр.",
+        "example": "Ручной deploy старого pipeline выполнен после нового. Сверь deployment history, digest и блокировку окружения; защити от out-of-order release.",
+        "commands": "git log --oneline -10; git diff HEAD~1 HEAD -- .gitlab-ci.yml Jenkinsfile",
+        "question": "Как организовать независимый approval и быстрый аварийный релиз без выдачи широких прав?",
+        "source": "https://docs.gitlab.com/ci/environments/deployment_safety/"
+      }
+    ]
   },
   {
     "id": "terraform",
@@ -207,7 +417,42 @@
     "deep": {
       "internals": "State связывает адреса ресурсов с объектами провайдера. Граф зависимостей определяет порядок операций.",
       "production": "Проверяй destructive changes, блокировку state при поддержке backend и доступ к секретам в state."
-    }
+    },
+    "chapters": [
+      {
+        "id": "terraform-01",
+        "title": "Init, plan, apply и граф зависимостей",
+        "level": "foundation",
+        "explanation": "Terraform читает HCL-конфигурацию, загружает providers/modules при init и строит граф зависимостей по ссылкам между ресурсами. Provider преобразует декларацию в вызовы API. Plan сравнивает конфигурацию, state и актуально прочитанное состояние, показывает действия create/update/replace/destroy.",
+        "production": "Apply выполняет граф действий и обновляет state. Это не транзакция на всю инфраструктуру: часть ресурсов может успешно измениться до ошибки. Saved plan позволяет исполнить ранее рассмотренный набор действий, но содержит чувствительные данные и требует совместимого окружения.",
+        "example": "Изменение имени ресурса приводит к replace. Проверь plan и identity ресурса; для рефакторинга адреса могут применяться moved blocks после ревью.",
+        "commands": "terraform init; terraform validate; terraform plan -out=review.tfplan; terraform show review.tfplan",
+        "question": "Что именно происходит при init, plan и apply и почему успешный plan не гарантирует apply?",
+        "source": "https://developer.hashicorp.com/terraform/cli/commands/plan"
+      },
+      {
+        "id": "terraform-02",
+        "title": "State, locking, import и drift",
+        "level": "senior",
+        "explanation": "State связывает адрес Terraform с удалённым объектом и хранит атрибуты. Backend определяет хранение и возможности блокировки; не все backend поддерживают locking. Совместный доступ требует разделения полномочий, защищённого транспорта и истории версий. State и plan могут содержать секреты даже при sensitive outputs.",
+        "production": "Drift возникает при изменении объектов вне Terraform. Import связывает существующий объект с адресом, но сам по себе не гарантирует корректную конфигурацию. Refresh-only обновляет представление state, не исправляя конфигурацию. Нельзя вручную редактировать state как обычный JSON ради скрытия diff.",
+        "example": "После ручного изменения security group plan предлагает вернуть правило. Сначала установи, было ли изменение согласованным, затем обнови desired state или восстанови объект через reviewed plan.",
+        "commands": "terraform state list; terraform plan -detailed-exitcode; terraform show",
+        "question": "Почему потеря state отличается от потери самой инфраструктуры?",
+        "source": "https://developer.hashicorp.com/terraform/language/state"
+      },
+      {
+        "id": "terraform-03",
+        "title": "Модули, lifecycle и безопасные изменения",
+        "level": "lead",
+        "explanation": "Модуль — набор ресурсов с входами и outputs. Маленькие модули с ясными контрактами проще тестировать и версионировать. Разделяй root modules по границам владения и blast radius; workspaces не являются самостоятельной security boundary. Provider lock фиксирует версии и checksums, но версии модулей задаются отдельно.",
+        "production": "create_before_destroy меняет порядок замены при возможности существования двух объектов. prevent_destroy защищает от некоторых запланированных удалений, но не является абсолютной гарантией. ignore_changes может быть полезен при совместном владении и опасен как способ игнорировать drift.",
+        "example": "Замена критичной базы в plan: останови delivery, проверь причину replace, возможность параллельного ресурса, backup/restore и миграцию, не применяй target без анализа.",
+        "commands": "terraform providers; terraform validate; terraform plan -out=review.tfplan; terraform show -json review.tfplan",
+        "question": "Как разделить state между командами и избежать общей точки отказа при изменениях?",
+        "source": "https://developer.hashicorp.com/terraform/language/meta-arguments/lifecycle"
+      }
+    ]
   },
   {
     "id": "k8s",
@@ -237,7 +482,42 @@
     "deep": {
       "internals": "API server хранит желаемое состояние через etcd; контроллеры согласуют его, scheduler назначает Pod, kubelet запускает контейнеры.",
       "production": "При недоступности Service проверь EndpointSlice, readiness и сетевой путь до Pod."
-    }
+    },
+    "chapters": [
+      {
+        "id": "k8s-01",
+        "title": "Control plane, API и reconciliation",
+        "level": "foundation",
+        "explanation": "API server принимает запрос, проверяет identity, authorization и admission, затем сохраняет состояние объектов в etcd. Controllers наблюдают API и согласуют observed с desired state. Scheduler выбирает node для Pod, kubelet на node запускает его через CRI runtime и сообщает статус. Deployment управляет ReplicaSet, ReplicaSet поддерживает число Pods.",
+        "production": "Pod — минимальная единица размещения; контейнеры внутри Pod обычно разделяют сеть и могут использовать общие volumes. Service предоставляет стабильную точку доступа к выбранным Pods; EndpointSlice отражает endpoints. IP Pod может измениться при пересоздании.",
+        "example": "Deployment принят API, но Pod Pending: проверь events, requests, taints, affinity и PVC. Не начинай с логов контейнера, который ещё не запущен.",
+        "commands": "kubectl --context kind-academy-v11 get pods -A; kubectl --context kind-academy-v11 get events -A --sort-by=.lastTimestamp",
+        "question": "Что происходит от kubectl apply Deployment до первого HTTP-ответа?",
+        "source": "https://kubernetes.io/docs/concepts/architecture/"
+      },
+      {
+        "id": "k8s-02",
+        "title": "Сеть, probes и rollout",
+        "level": "senior",
+        "explanation": "Service выбирает Pod по labels; endpoints с readiness определяют доступные backend. CNI реализует сетевое подключение, NetworkPolicy работает только при поддержке enforcement. DNS для Service обычно обслуживается CoreDNS. Ingress/Gateway требует соответствующего controller, одного объекта недостаточно.",
+        "production": "Readiness отвечает за готовность принимать трафик, liveness может перезапустить контейнер, startup probe даёт медленному старту время до liveness/readiness. RollingUpdate учитывает maxSurge/maxUnavailable; PDB ограничивает добровольные disruptions, но не является гарантией непрерывной доступности при аварии node.",
+        "example": "Pod Running, Service возвращает ошибку. Сверь selectors, EndpointSlice, readiness, port/targetPort и сетевые политики; затем ingress и upstream.",
+        "commands": "kubectl --context kind-academy-v11 get svc,endpointslices -A; kubectl --context kind-academy-v11 get pods -A -o wide",
+        "question": "Как настроить probes, чтобы отказ внешней БД не вызвал массовый restart приложений?",
+        "source": "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/"
+      },
+      {
+        "id": "k8s-03",
+        "title": "Ресурсы, storage, Helm и управление кластером",
+        "level": "lead",
+        "explanation": "Scheduler ориентируется на requests; limits применяются runtime через механизмы ядра. CPU limit вызывает throttling, memory limit может привести к OOM. HPA масштабирует по наблюдаемым метрикам, зависит от корректных requests и источника метрик. StatefulSet даёт стабильные идентификаторы и привязку PVC, но не реализует репликацию приложения.",
+        "production": "PV описывает хранилище, PVC — запрос, StorageClass — параметры динамического provisioning. CSI driver выполняет операции хранения. Helm рендерит chart с values и ведёт историю releases; rollback манифеста не возвращает данные тома. GitOps добавляет reconciliation поверх желаемого состояния.",
+        "example": "HPA не добавляет реплики, latency растёт. Проверь метрики и requests, maxReplicas, доступную ёмкость nodes, Pending Pods и bottleneck downstream.",
+        "commands": "kubectl --context kind-academy-v11 get hpa,pvc -A; kubectl --context kind-academy-v11 describe nodes; helm list --kube-context kind-academy-v11 -A",
+        "question": "Какие failure domains, ресурсы и проверки нужны для реального HA приложения на Kubernetes?",
+        "source": "https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/"
+      }
+    ]
   },
   {
     "id": "kafka",
@@ -267,7 +547,42 @@
     "deep": {
       "internals": "Лидер раздела принимает записи, реплики копируют журнал. ISR — набор синхронных реплик; offsets группы отражают позицию чтения.",
       "production": "При росте lag сравни скорость поступления и обработки по разделам, ошибки и rebalance. Не сбрасывай offsets вслепую."
-    }
+    },
+    "chapters": [
+      {
+        "id": "kafka-01",
+        "title": "Topic, partition, offset и consumer group",
+        "level": "foundation",
+        "explanation": "Kafka хранит записи в append-only log, разделённом на partitions. Offset — позиция внутри partition, не глобальный ID сообщения. Key влияет на выбор partition; порядок гарантируется внутри partition, не между ними. Consumer group распределяет partitions между участниками; одна partition назначается одному consumer данной группы в обычной модели consumer groups.",
+        "production": "Retention управляет сроком/объёмом хранения независимо от факта чтения; compaction сохраняет последнее значение по key с оговорками очистки. Consumer читает с позиции и фиксирует offset для восстановления. Число partitions ограничивает полезный параллелизм группы.",
+        "example": "У группы 12 consumers и 6 partitions: часть простаивает. Добавление consumers не поможет без изменения разбиения или обработки.",
+        "commands": "kafka-topics.sh --bootstrap-server localhost:9092 --describe; kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group academy",
+        "question": "Почему увеличение числа consumers не всегда повышает throughput?",
+        "source": "https://kafka.apache.org/documentation/"
+      },
+      {
+        "id": "kafka-02",
+        "title": "Репликация, ISR, acks и KRaft",
+        "level": "senior",
+        "explanation": "У partition есть leader и followers, репликация передаёт записи followers. ISR — набор реплик, удовлетворяющих требованиям синхронизации. acks=all ожидает подтверждение всех текущих ISR, а min.insync.replicas определяет минимальное число ISR для успешной записи при acks=all. Replication factor — число назначенных реплик, не число доступных ISR.",
+        "production": "KRaft хранит метаданные в controller quorum; majority quorum не равен ISR конкретного topic. При RF=3/minISR=2 запись с acks=all может продолжаться при одном недоступном брокере, если остаётся две ISR и работает control plane. Unclean leader election рискует потерей данных.",
+        "example": "Один брокер упал, produce получает NotEnoughReplicas: проверь ISR по partitions, состояние лидеров, диски и задержку follower, не снижай minISR без решения по риску.",
+        "commands": "kafka-topics.sh --bootstrap-server localhost:9092 --describe; kafka-metadata-quorum.sh --bootstrap-server localhost:9092 describe --status",
+        "question": "Чем отказ controller quorum отличается от потери ISR у отдельной partition?",
+        "source": "https://kafka.apache.org/documentation/#design_replicatedlog"
+      },
+      {
+        "id": "kafka-03",
+        "title": "Delivery semantics, lag и transactional outbox",
+        "level": "lead",
+        "explanation": "At-most-once допускает потерю без повторной доставки; at-least-once допускает повтор, если обработка завершилась, а offset не зафиксирован. Idempotent producer предотвращает часть дублей при retries в Kafka. Transactions могут атомарно объединить Kafka записи и offsets при корректной настройке consumer isolation, но не превращают внешний HTTP или SQL в общую транзакцию.",
+        "production": "Для внешней БД применяют уникальный business ID, idempotent consumer, transactional outbox и reconciliation. Lag показывает отставание offsets, а не обязательно время задержки. При входе 800 событий/с и обработке 1200/с backlog 100000 уменьшается примерно за 250 секунд при неизменных скоростях.",
+        "example": "Consumer сохранил заказ в БД и упал до commit offset. Повторная доставка ожидаема, итог не должен создать второй заказ.",
+        "commands": "kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group academy",
+        "question": "Как доказать отсутствие двойного бизнес-эффекта при повторной доставке?",
+        "source": "https://kafka.apache.org/documentation/#semantics"
+      }
+    ]
   },
   {
     "id": "postgres",
@@ -297,7 +612,42 @@
     "deep": {
       "internals": "MVCC позволяет транзакциям видеть подходящие версии строк. WAL записывает изменения для восстановления; vacuum освобождает место для повторного использования.",
       "production": "Долгая транзакция может удерживать старые версии; replication slot может удерживать WAL. Это разные причины роста диска."
-    }
+    },
+    "chapters": [
+      {
+        "id": "postgres-01",
+        "title": "MVCC, транзакции и vacuum",
+        "level": "foundation",
+        "explanation": "MVCC позволяет транзакциям видеть подходящую версию строки согласно snapshot. UPDATE создаёт новую версию tuple, старые версии остаются до возможности очистки. Read Committed получает snapshot на statement, Repeatable Read сохраняет snapshot транзакции, Serializable может завершиться ошибкой сериализации с необходимостью повтора.",
+        "production": "VACUUM очищает пригодные к повторному использованию версии, ANALYZE обновляет статистику planner. Долгая транзакция может удерживать старые версии, мешать vacuum и увеличивать bloat. Обычный VACUUM не обязан уменьшать файл на диске; VACUUM FULL переписывает таблицу и требует существенной блокировки.",
+        "example": "Таблица растёт несмотря на DELETE. Проверь long-running transactions, dead tuples и autovacuum, не запускай VACUUM FULL без оценки влияния.",
+        "commands": "SELECT pid, state, xact_start, wait_event_type FROM pg_stat_activity; SELECT relname,n_dead_tup,last_autovacuum FROM pg_stat_user_tables;",
+        "question": "Почему удаление миллиона строк не обязательно освобождает место в файловой системе?",
+        "source": "https://www.postgresql.org/docs/current/mvcc.html"
+      },
+      {
+        "id": "postgres-02",
+        "title": "Planner, индексы и блокировки",
+        "level": "senior",
+        "explanation": "Planner оценивает планы по статистике, стоимости I/O и CPU. B-tree подходит для многих равенств и диапазонов, GIN — для определённых многозначных типов, BRIN — для физически коррелированных больших таблиц. Индексы ускоряют чтение, но добавляют стоимость записи и обслуживания. Seq Scan может быть оптимальным при чтении большой доли таблицы.",
+        "production": "EXPLAIN показывает оценку, EXPLAIN ANALYZE реально исполняет запрос, включая эффекты изменяющих statements. Блокировки возникают даже при MVCC; long transaction или DDL могут задерживать другие запросы. Сначала находи blocker и цепочку ожидания, не убивай случайный PID.",
+        "example": "Приложение ждёт запрос, CPU БД низкий: изучи wait_event и pg_blocking_pids; сопоставь с транзакцией и согласованным изменением.",
+        "commands": "SELECT pid, pg_blocking_pids(pid), wait_event_type, wait_event FROM pg_stat_activity;",
+        "question": "Как отличить медленный план от ожидания lock и когда индекс ухудшит нагрузку?",
+        "source": "https://www.postgresql.org/docs/current/explicit-locking.html"
+      },
+      {
+        "id": "postgres-03",
+        "title": "WAL, streaming replication и PITR",
+        "level": "lead",
+        "explanation": "WAL записывает сведения об изменениях до сброса соответствующих data pages; recovery воспроизводит журнал после сбоя. Streaming replication передаёт WAL standby, который получает и воспроизводит записи. Асинхронный standby может отставать и потерять подтверждённые primary транзакции при failover. Синхронный commit имеет разные уровни ожидания.",
+        "production": "Replication slots удерживают нужный WAL, но при отставании могут заполнить диск. Backup base + непрерывный архив WAL позволяют PITR в пределах доступной цепочки; replica не заменяет backup, потому что ошибочный DELETE реплицируется. Проверяй restore отдельно и фактический RPO/RTO.",
+        "example": "Standby отстал на часы, pg_wal растёт. Сверь replication slot, LSN, скорость записи, сеть и replay; не удаляй WAL вручную.",
+        "commands": "SELECT application_name,state,sync_state,write_lsn,flush_lsn,replay_lsn FROM pg_stat_replication; SELECT slot_name,active,restart_lsn FROM pg_replication_slots;",
+        "question": "Почему наличие реплики не подтверждает возможность восстановления на вчерашний момент?",
+        "source": "https://www.postgresql.org/docs/current/continuous-archiving.html"
+      }
+    ]
   },
   {
     "id": "patroni",
