@@ -1,0 +1,2 @@
+# Interview Pro — Helm
+25 new questions, total 592/738. All 567 previous entries preserved. 67 JS assertions before commit with read/assert adapters. Official Helm 3/4 upgrade, install and hooks docs consulted. Other study links not individually checked. Helm 3 baseline explicitly stated for atomic, CRD and release storage behavior. Native Node, full gate, browser, semantic review and actual Helm runtime pending.
