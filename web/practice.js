@@ -60,9 +60,9 @@ function open(m){
     }));
     by("practice-score").value=draft.payload.score===null?"":String(draft.payload.score);
     by("practice-docs").href=m.docs;
-    by("practice-detail").hidden=false;txt("practice-status","");display();
+    by("practice-catalog").hidden=true;by("practice-detail").hidden=false;txt("practice-status","");display();
     by("practice-detail").scrollIntoView({behavior:"smooth",block:"start"});
-  }catch(e){txt("practice-status","BLOCKED: "+e.message);by("practice-detail").hidden=false;by("practice-save").disabled=true}
+  }catch(e){txt("practice-status","BLOCKED: "+e.message);by("practice-catalog").hidden=true;by("practice-detail").hidden=false;by("practice-save").disabled=true}
 }
 async function post(data){
   const session=await fetch("/api/session",{cache:"no-store"}).then(r=>{if(!r.ok)throw Error("Нет локальной сессии");return r.json()});
@@ -72,6 +72,11 @@ async function post(data){
   if(!["saved","already_saved"].includes(result.status)||!/^[a-f0-9]{40}$/.test(result.commit)||!/^practice-results\/[A-Z0-9-]+\/[a-f0-9-]+\.json$/.test(result.path))throw Error("Ответ не подтверждает доставку");
   return result;
 }
+by("practice-back").addEventListener("click",()=>{
+  if(busy){txt("practice-status","Дождись завершения сохранения.");return;}
+  by("practice-detail").hidden=true;by("practice-catalog").hidden=false;
+  by("practice-search").focus();
+});
 by("practice-score").addEventListener("change",update);
 by("copy-practice").addEventListener("click",()=>copy(by("practice-command").textContent));
 by("practice-new").addEventListener("click",()=>{
