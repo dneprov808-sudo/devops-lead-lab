@@ -1,3 +1,7 @@
+# Academy — начало работы
+
+Для кандидата Academy v11-dev: [локальный запуск и проверка](release/V11_START.md), [delivery ledger](release/V11_DELIVERY.md). До ручного merge v11 остаётся кандидатом.
+
 # Academy Unified — начало работы
 
 Постоянная ветка для обучения: academy/stable. Кандидат v5: academy/unified-v5. До ручного merge PR в stable версия v5 не считается опубликованной.
