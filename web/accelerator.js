@@ -1,0 +1,18 @@
+"use strict";
+const ACC_QUESTIONS=[
+["k8s","Pod Running, но запросы получают 503. Что проверишь?","Как отличить readiness от ошибки маршрутизации?","EndpointSlice, selector, readiness, запрос изнутри кластера, ingress logs"],
+["terraform","Plan показывает замену базы данных. Как действовать?","Как проверить причину ForceNew и миграцию адреса?","Остановить apply, проверить diff, state, moved, резервную копию и согласование"],
+["cicd","Деплой завершился успешно, но p99 вырос втрое.","Когда откатывать, если схема БД изменилась?","SLI, canary, сравнение версий, совместимость схемы, mitigation"],
+["linux","Load average высокий, CPU почти свободен.","Как проверить D-state?","ps, vmstat, iostat, PSI, ожидание I/O"],
+["network","TCP соединение есть, TLS handshake падает.","Как проверить SNI и цепочку доверия?","openssl s_client, hostname, CA, срок, часы, протокол"],
+["security","Токен CI оказался в публичном логе.","Достаточно ли удалить лог?","Отзыв, ротация, аудит использования, ограничение прав, предотвращение повторения"],
+["sre","SLO 99.9%, бюджет ошибок исчерпан.","Какие изменения допустимы?","Политика error budget, приоритет надежности, исключения по риску"],
+["lead","Команда систематически срывает сроки.","Как отличить перегрузку от проблемы компетенций?","Ограничение WIP, причины блокировок, обратная связь, измеримые договоренности"],
+["design","Поток 10000 событий/с, потребители обрабатывают 8000.","Как оценить backlog за 10 минут?","1.2 млн событий при постоянных скоростях, capacity, backpressure, recovery"],
+["postgres","Реплика отстает, primary недоступен.","Как оценить риск failover?","WAL positions, RPO, fencing, lag, подтверждение записи"],
+["kafka","После rebalance появились дубликаты.","Как обеспечить корректность внешней записи?","Offset commit, idempotency key, транзакция БД, повторная доставка"],
+["cloud","Приватному сервису нужен доступ к объектному хранилищу.","Как избежать постоянных ключей?","Workload identity, least privilege, private endpoint, audit"]
+];
+function accRoute(records){return ACC_QUESTIONS.map(q=>({topic:q[0],score:Object.hasOwn(records,q[0])?records[q[0]]:null})).sort((a,b)=>(a.score??-1)-(b.score??-1));}
+function accValidate(data){return data!==null&&typeof data==="object"&&!Array.isArray(data)&&Object.keys(data).every(k=>ACC_QUESTIONS.some(q=>q[0]===k)&&Number.isInteger(data[k])&&data[k]>=0&&data[k]<=4);}
+if(typeof document!=="undefined"){const root=document.getElementById("accelerator-center");if(root){let records={};try{const saved=JSON.parse(localStorage.getItem("academy-v9-diagnostic")||"{}");if(accValidate(saved))records=saved;}catch{}let i=0;const add=(tag,t,parent=root)=>{const e=document.createElement(tag);e.textContent=t;parent.append(e);return e;};const status=add("p","Самопроверка, не независимый экзамен.");status.setAttribute("role","status");const panel=add("article","");const route=add("p","");const render=()=>{panel.replaceChildren();const q=ACC_QUESTIONS[i];add("h2",q[1],panel);add("p",q[2],panel);const answer=add("textarea","",panel);answer.setAttribute("aria-label","Ответ");const reveal=add("button","Сравнить с критериями",panel);reveal.onclick=()=>{if(!answer.value.trim()){status.textContent="Сначала сформулируй ответ.";return;}reveal.disabled=true;add("p",q[3],panel);for(let n=0;n<=4;n++){const b=add("button",String(n),panel);b.onclick=()=>{records[q[0]]=n;try{localStorage.setItem("academy-v9-diagnostic",JSON.stringify(records));status.textContent="Самооценка сохранена локально.";}catch{status.textContent="Хранилище недоступно; результат только в памяти.";}i=(i+1)%ACC_QUESTIONS.length;render();};}};route.textContent="Приоритет повторения: "+accRoute(records).map(x=>x.topic+" ("+(x.score??"не оценено")+")").join(", ");};render();}}
