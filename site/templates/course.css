@@ -4,3 +4,5 @@ html[data-theme=light]{color-scheme:light}html[data-theme=light] #lesson,html[da
 @media(max-width:850px){.course-layout{grid-template-columns:1fr}.course-shell{padding:14px}#course-route{position:static;max-height:270px}.course-hero{grid-template-columns:1fr;padding:20px;gap:12px}.course-summary{padding:14px}.course-large{font-size:27px}#lesson{padding:18px}.course-section p{font-size:15px}}
 @media(max-width:480px){.course-tabs{grid-template-columns:1fr}.course-model-grid{grid-template-columns:1fr}.course-tag{display:none}.course-actions button{flex:1 1 auto}.course-shell{padding:10px}#course-nav span{order:3;flex-basis:100%}.course-model{padding:14px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.course-meter>div{transition:none}}
+
+.course-walkthrough{margin:26px 0}.course-walk-step{border-left:2px solid #35645f;padding:3px 0 14px 19px;margin:0 0 2px}.course-walk-step p{margin:6px 0 0;font-size:16px;line-height:1.85;max-width:80ch;overflow-wrap:anywhere}.course-walk-step:last-child{padding-bottom:2px}html[data-theme=light] .course-walk-step{border-color:#80b5ab}@media(max-width:850px){.course-walk-step p{font-size:15px}}
