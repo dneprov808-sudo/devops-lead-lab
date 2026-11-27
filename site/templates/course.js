@@ -123,6 +123,10 @@ function courseInit(){
   function renderIntro(root,s){
     root.append(E("span","01 / ПОНИМАНИЕ","course-eyebrow"),E("h2",s.guide.topic+": с чего начать"));
     section(root,"Сначала пойми картину целиком",s.topic.overview);
+    const walk=E("section",undefined,"course-walkthrough");
+    walk.append(E("h3","Разберём на конкретном примере — по шагам"));
+    s.topic.walkthrough.forEach((text,index)=>{const part=E("section",undefined,"course-walk-step");part.append(E("span","ШАГ "+(index+1),"course-eyebrow"),E("p",text));walk.append(part)});
+    root.append(walk);
     section(root,"Что нужно получить на выходе",s.module.goal);
     model(root,s.topic);
     section(root,"Как будем изучать",["Сначала базовые главы, затем Senior и Lead. Открывай примеры и диагностические команды; не выполняй их автоматически. После чтения тебя ждёт ситуационная проверка и конкретный следующий шаг практики."]);
@@ -135,7 +139,7 @@ function courseInit(){
     function draw(){
       tabs.replaceChildren(...names.map((name,i)=>{const b=B((i+1)+" · "+name,()=>{chapterPart=i;draw()});b.setAttribute("aria-pressed",String(i===chapterPart));return b}));
       body.replaceChildren();
-      if(chapterPart===0){section(body,"Как это работает",c.explanation);section(body,"Связь с темой",s.topic.overview[0]);}
+      if(chapterPart===0){section(body,"Как это работает",c.explanation);}
       if(chapterPart===1){section(body,"Что происходит в production",c.production);section(body,"Разбери пример",c.example);if(c.snippet){code(body,c.snippet.code,c.snippet.language.toUpperCase());section(body,"Что делает конфигурация",c.snippet.notes)}}
       if(chapterPart===2){notice(body,"Команды — диагностический пример, не скрипт для запуска целиком. Проверь локальный стенд, версии, права и контекст.");code(body,c.commands,"ДИАГНОСТИКА");section(body,"Объясни без подсказки",c.question);body.append(A("Официальная документация ↗",c.source));}
       const controls=E("div",undefined,"course-actions");
@@ -160,6 +164,13 @@ function courseInit(){
     root.append(E("span","04 / ПРАКТИКА И EVIDENCE","course-eyebrow"),E("h2","Что делать руками"));
     section(root,"Задача",s.topic.practice.task);
     section(root,"Как проверить результат",s.topic.practice.evidence);
+    if(s.topic.id==="linux"){
+      const active=E("section",undefined,"course-runbook");
+      active.append(E("h3","Основная лаборатория: проверь STATE"),E("p","Если в каноническом STATE назначена LAB-001, начни с её исходной спецификации, а не с общего сетевого sandbox. Реализация остаётся самостоятельной."),A("Проверить актуальную задачу ↗","https://github.com/dneprov808-sudo/devops-lead-lab/blob/academy/orchestration-v1/orchestration/STATE.yaml"),E("p","Спецификация, требования и оригинальные тесты:"),A("LAB-001 · README ↗","https://github.com/dneprov808-sudo/devops-lead-lab/blob/training/lead-cohort-01/labs/01-http-probe/README.md"));
+      const main=data.runbooks.find(r=>r.id==="deploy-main-lab");
+      if(main){const d=E("details");d.append(E("summary","Порядок запуска LAB-001"),E("p",main.intro));for(const step of main.steps){d.append(E("h4",step.title));code(d,step.code,"КОМАНДЫ · WSL")}section(d,"Критерий результата",main.result);active.append(d)}
+      root.append(active);
+    }
     const rb=data.runbooks.find(r=>r.id===s.topic.practice.runbook);
     if(rb){
       const panel=E("section",undefined,"course-runbook");panel.append(E("h3",rb.title),E("p",rb.intro));
