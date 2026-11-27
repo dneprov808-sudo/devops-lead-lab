@@ -48,6 +48,14 @@ function courseScenario(scenario,index){
   if(!Number.isInteger(index)||index<0||index>=scenario.choices.length)return null;
   return {correct:index===scenario.correct,feedback:scenario.feedback[index]};
 }
+function courseSearch(route,query){
+  const terms=String(query||"").trim().toLocaleLowerCase("ru-RU").split(/\s+/).filter(Boolean);
+  if(!terms.length)return [];
+  return route.filter(s=>s.kind==="intro"||s.kind==="chapter").filter(s=>{
+    const hay=[s.guide.topic,s.guide.id,s.chapter?.title,s.chapter?.id,s.module.title].join(" ").toLocaleLowerCase("ru-RU");
+    return terms.every(term=>hay.includes(term));
+  }).slice(0,12);
+}
 function courseInit(){
   const $=id=>document.getElementById(id);
   const data=JSON.parse($("dataset").textContent);
@@ -63,7 +71,7 @@ function courseInit(){
   }
   function go(index,focus=true){
     if(!Number.isInteger(index)||index<0||index>=route.length)return;
-    current=index;chapterPart=0;persist();render();
+    current=index;chapterPart=0;$("course-search").value="";$("course-search-results").replaceChildren();persist();render();
     if(focus){$("lesson").focus({preventScroll:true});$("lesson").scrollIntoView({block:"start"})}
   }
   function section(parent,title,text){
@@ -90,7 +98,7 @@ function courseInit(){
     box.append(E("span","ПОПРОБУЙ САМ · УПРОЩЁННАЯ МОДЕЛЬ","course-eyebrow"));
     if(topic.id==="k8s"){
       box.append(E("h3","Readiness: куда Service отправит трафик?"),E("p","Нажми на Pod, чтобы изменить его readiness. Все три Pod Running; модель показывает только доступность для обычного трафика."));
-      const pods=[true,true,true],grid=E("div",undefined,"course-model-grid"),result=E("p",undefined,"course-model-result");
+      const pods=[true,true,true],grid=E("div",undefined,"course-model-grid"),result=E("p",undefined,"course-model-result");result.setAttribute("role","status");
       const buttons=pods.map((_,i)=>B("",()=>{pods[i]=!pods[i];draw()}));
       function draw(){
         buttons.forEach((b,i)=>{b.textContent="Pod "+(i+1)+" · "+(pods[i]?"Ready":"Not Ready");b.setAttribute("aria-pressed",String(pods[i]))});
@@ -133,7 +141,7 @@ function courseInit(){
   }
   function renderChapter(root,s){
     const c=s.chapter,level={foundation:"Основы",senior:"Senior",lead:"Lead"}[c.level]||c.level;
-    root.append(E("span","02 / ТЕОРИЯ · "+level,"course-eyebrow"),E("h2",c.title));
+    root.append(E("span","02 / ТЕОРИЯ · "+level,"course-eyebrow"),E("h2",c.title),E("p","Три части урока · механизм, пример и самостоятельное объяснение","course-lesson-meta"));
     const tabs=E("div",undefined,"course-tabs"),body=E("div",undefined,"course-chapter-body");
     const names=["Механизм","Production и пример","Команды и самопроверка"];
     function draw(){
@@ -155,7 +163,7 @@ function courseInit(){
     root.append(E("span","03 / САМОПРОВЕРКА","course-eyebrow"),E("h2","Прими инженерное решение"));
     section(root,"Ситуация",q.prompt);
     const options=E("div",undefined,"course-options"),status=E("div",undefined,"course-feedback");status.setAttribute("role","status");
-    const buttons=q.choices.map((choice,i)=>B(choice,()=>{const result=courseScenario(q,i);buttons.forEach((b,j)=>b.setAttribute("aria-pressed",String(i===j)));status.replaceChildren(E("strong",result.correct?"Обоснованный выбор":"Попробуй ещё раз"),E("p",result.feedback));if(result.correct)solved.add(s.id);else solved.delete(s.id);next.disabled=!solved.has(s.id)}));
+    const buttons=q.choices.map((choice,i)=>B(choice,()=>{const result=courseScenario(q,i);buttons.forEach((b,j)=>{b.setAttribute("aria-pressed",String(i===j));b.setAttribute("data-result",i===j?(result.correct?"correct":"incorrect"):"")});status.setAttribute("data-result",result.correct?"correct":"incorrect");status.replaceChildren(E("strong",result.correct?"Обоснованный выбор":"Попробуй ещё раз"),E("p",result.feedback));if(result.correct)solved.add(s.id);else solved.delete(s.id);next.disabled=!solved.has(s.id)}));
     const next=B("К практике →",()=>go(current+1),"primary");next.disabled=!solved.has(s.id);
     options.append(...buttons);root.append(options,status,next);
     notice(root,"Это учебный кейс с разбором, не независимый экзамен. Можно вернуться к теории или пропустить проверку через общую навигацию.");
@@ -204,12 +212,35 @@ function courseInit(){
           for(const x of r){const label=x.kind==="intro"?"Введение":x.kind==="scenario"?"Самопроверка":x.kind==="practice"?"Практика":(reading.seen.includes(x.chapter.id)?"✓ ":"")+x.chapter.title;const step=B(label,()=>go(route.indexOf(x)));step.setAttribute("aria-current",String(s.id===x.id));list.append(step)}d.append(list)}
       }weeks.append(d);
     }
-    const context=$("course-context");context.replaceChildren(E("div","НЕДЕЛЯ "+s.module.week+" / "+data.course.modules.length+" · "+s.guide.topic,"course-eyebrow"),E("p","Шаг "+(current+1)+" из "+route.length+" · "+s.module.title,"muted"));
+    const topicSteps=route.filter(x=>x.topic.id===s.topic.id);
+    const kindLabels={intro:"Введение",chapter:"Теория",scenario:"Самопроверка",practice:"Практика"};
+    $("course-current-title").textContent="Сейчас: неделя "+s.module.week+" · "+s.guide.topic+" · "+(s.chapter?.title||kindLabels[s.kind]);
+    const context=$("course-context");
+    const stages=E("div",undefined,"course-stagebar");
+    stages.setAttribute("aria-label","Этапы текущей темы");
+    for(const kind of ["intro","chapter","scenario","practice"]){
+      const first=topicSteps.find(x=>x.kind===kind);
+      const stage=B(kindLabels[kind],()=>go(route.indexOf(first)));
+      if(s.kind===kind)stage.setAttribute("aria-current","step");
+      stages.append(stage);
+    }
+    context.replaceChildren(E("div","НЕДЕЛЯ "+s.module.week+" / "+data.course.modules.length+" · "+s.guide.topic,"course-eyebrow"),E("p","Шаг "+(current+1)+" из "+route.length+" · "+s.module.title,"muted"),stages);
     const root=$("course-content");root.replaceChildren();
     ({intro:renderIntro,chapter:renderChapter,scenario:renderScenario,practice:renderPractice})[s.kind](root,s);
     const nav=$("course-nav"),prev=B("← Предыдущий шаг",()=>go(current-1)),next=B(current===route.length-1?"Маршрут завершён":"Следующий шаг →",()=>go(current+1));
     prev.disabled=current===0;next.disabled=current===route.length-1;nav.replaceChildren(prev,E("span","Можно пропустить; отметка не ставится автоматически.","muted"),next);
   }
+  $("course-search").addEventListener("input",()=>{
+    const query=$("course-search").value,results=$("course-search-results");
+    results.replaceChildren();
+    if(!query.trim())return;
+    const found=courseSearch(route,query);
+    if(!found.length){results.append(E("p","Совпадений нет. Попробуй другое название."));return}
+    for(const step of found){
+      const label=step.chapter?step.guide.topic+" · "+step.chapter.title:step.guide.topic+" · Введение";
+      results.append(B(label,()=>go(route.indexOf(step))));
+    }
+  });
   $("course-resume").addEventListener("click",()=>go(current));
   const toggle=$("course-route-toggle"),rail=$("course-route");
   toggle.addEventListener("click",()=>{rail.hidden=!rail.hidden;toggle.setAttribute("aria-expanded",String(!rail.hidden))});
