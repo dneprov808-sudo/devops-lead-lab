@@ -111,7 +111,7 @@ def main():
                 page.locator("#interview-pro-center textarea").fill("Synthetic E2E answer")
                 page.get_by_role("button",name="Показать разбор",exact=True).click()
                 expect(page.get_by_text("Подробный ответ",exact=True)).to_be_visible()
-                page.get_by_label("Самооценка").select_option("2")
+                page.locator("#interview-pro-center").get_by_label("Самооценка",exact=True).select_option("2")
                 page.get_by_label("Ошибка",exact=True).fill("synthetic gap")
                 page.get_by_role("button",name="Сохранить попытку локально").click()
                 expect(page.get_by_text("Сохранено ·",exact=False)).to_be_visible()
