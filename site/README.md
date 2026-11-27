@@ -15,7 +15,7 @@ python3 -m http.server 8090 --bind 127.0.0.1 --directory "site-dist/$(git rev-pa
 
 Открой http://127.0.0.1:8090/. Остановка — Ctrl+C. Сборка не запускает исходный Python-портал и не требует Docker. Порт 8090 — отдельный от 8080. Если 8090 занят, выбери другой свободный локальный порт, учитывая, что хранилище браузера зависит от origin.
 
-Для проверки PR до merge используй отдельный checkout ветки `academy/static-learning-site` и не выполняй pull из stable в feature branch.
+Для проверки PR до merge используй отдельный checkout ветки `academy/guided-course` и не выполняй pull из stable в feature branch.
 
 ## Как проходить курс
 
@@ -29,7 +29,7 @@ python3 -m http.server 8090 --bind 127.0.0.1 --directory "site-dist/$(git rev-pa
 
 ## Содержимое релиза
 
-`site-dist/<commit SHA>/` содержит index.html (теория, практики, инциденты, System Design, среды), interview.html (банк вопросов), architecture.html (архитектура и агентский контракт), site.css, progress.js, manifest.json. Каждый HTML содержит только необходимый JSON payload и интерфейс, отдельная база данных не нужна.
+`site-dist/<commit SHA>/` содержит index.html (пошаговый курс), library.html (полная теория, практики, инциденты, System Design и среды), interview.html (банк вопросов), architecture.html (архитектура и агентский контракт), site.css, progress.js, course.css, course.js, manifest.json. Каждый HTML содержит только необходимый JSON payload и интерфейс, отдельная база данных не нужна.
 
 Сборка использует один immutable commit для шаблонов и всех источников, не обращается к сети. Валидирует обязательные поля, уникальные IDs и соответствие каталога теории, не исполняет содержимое банка вопросов, сравнивает исходные команды с копируемыми. Manifest связывает commit, количество материалов и SHA-256 входов и выходов. При повторной сборке идентичный каталог используется повторно; изменившийся существующий каталог не перезаписывается. Не копируй весь checkout на веб-сервер.
 
@@ -65,6 +65,7 @@ ChatGPT Space использует отдельный агентский имп�
 | practice/catalog.json | задания, команды и evidence |
 | learning/incidents.json | симптомы, факты, подсказки и debrief |
 | learning/design.json | требования, deliverables, rubric |
+| learning/course.json | Маршрут: недели, темы, introduction, walkthrough, scenario и practice |
 | web/index.html | runbook: deploy-card / deploy-command / h4 / pre / data-prompt / deploy-result |
 
 Перед изменением: AGENTS.md, canonical STATE на academy/orchestration-v1, ROADMAP, SKILL_MATRIX, задачи/PR. Добавляй материалы в соответствующий файл, сохраняй уникальные стабильные IDs, не дублируй главы и вопросы, проверяй технические утверждения по официальной документации. Новая глава: id, title, level (foundation/senior/lead), explanation, production, example, commands, question, source (HTTPS), optional snippet {language, code, notes}. Не включай токены, персональные данные, боевые логи или решение активной LAB-001. Не меняй canonical STATE. Дизайн меняется в site/templates, а не копированием базы знаний в HTML.
@@ -74,6 +75,7 @@ ChatGPT Space использует отдельный агентский имп�
 ```bash
 python3 -m unittest -v test_static_site
 node test_static_site_progress.mjs
+node test_guided_course.mjs
 python3 site/build.py
 python3 release/gate.py
 ```
