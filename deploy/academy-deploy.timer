@@ -1,0 +1,11 @@
+[Unit]
+Description=Poll for verified Academy stable releases
+
+[Timer]
+OnBootSec=2min
+OnUnitInactiveSec=5min
+AccuracySec=30s
+Unit=academy-deploy.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,32 @@
+[Unit]
+Description=Academy verified stable static release pull
+Wants=network-online.target
+After=network-online.target
+ConditionPathIsDirectory=/srv/academy
+
+[Service]
+Type=oneshot
+User=academy-deploy
+Group=academy-deploy
+ExecStart=/usr/bin/python3 /usr/local/libexec/academy-pull-deploy.py
+Environment=HOME=/var/lib/academy-deploy
+Environment=PYTHONDONTWRITEBYTECODE=1
+UMask=0077
+TimeoutStartSec=10min
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/srv/academy
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+MemoryMax=512M
+TasksMax=64
