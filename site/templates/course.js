@@ -48,6 +48,14 @@ function courseScenario(scenario,index){
   if(!Number.isInteger(index)||index<0||index>=scenario.choices.length)return null;
   return {correct:index===scenario.correct,feedback:scenario.feedback[index]};
 }
+function courseSearch(route,query){
+  const terms=String(query||"").trim().toLocaleLowerCase("ru-RU").split(/\s+/).filter(Boolean);
+  if(!terms.length)return [];
+  return route.filter(s=>s.kind==="intro"||s.kind==="chapter").filter(s=>{
+    const hay=[s.guide.topic,s.guide.id,s.chapter?.title,s.chapter?.id,s.module.title].join(" ").toLocaleLowerCase("ru-RU");
+    return terms.every(term=>hay.includes(term));
+  }).slice(0,12);
+}
 function courseInit(){
   const $=id=>document.getElementById(id);
   const data=JSON.parse($("dataset").textContent);
@@ -58,13 +66,27 @@ function courseInit(){
   let reading=courseReading(null),saved=null,stored=false;
   try{reading=courseReading(localStorage.getItem(COURSE_READING));saved=localStorage.getItem(COURSE_POSITION);stored=true}catch{}
   let current=courseStart(route,reading,saved),solved=new Set(),chapterPart=0;
+  const narrow=()=>typeof matchMedia==="function"&&matchMedia("(max-width: 900px)").matches;
+  const motion=()=>typeof matchMedia==="function"&&!matchMedia("(prefers-reduced-motion: reduce)").matches?"smooth":"auto";
+  const focusKey="academy-site-focus-v1";
+  function setRail(hidden,remember=false){
+    $("course-route").hidden=hidden;
+    $("course-route-toggle").setAttribute("aria-expanded",String(!hidden));
+    $("course-route-toggle").textContent=hidden?"Показать маршрут":"Скрыть маршрут";
+    $("course-focus").setAttribute("aria-pressed",String(hidden));
+    $("course-focus").textContent=hidden?"Выйти из режима чтения":"Режим чтения";
+    if(remember)try{localStorage.setItem(focusKey,hidden?"1":"0")}catch{}
+  }
   function persist(){
     try{localStorage.setItem(COURSE_READING,JSON.stringify(reading));localStorage.setItem(COURSE_POSITION,route[current].id);stored=true}catch{stored=false}
   }
   function go(index,focus=true){
     if(!Number.isInteger(index)||index<0||index>=route.length)return;
-    current=index;chapterPart=0;persist();render();
-    if(focus){$("lesson").focus({preventScroll:true});$("lesson").scrollIntoView({block:"start"})}
+    current=index;chapterPart=0;$("course-search").value="";$("course-search-results").replaceChildren();persist();render();
+    if(focus){
+      if(narrow())setRail(true);
+      $("lesson").focus({preventScroll:true});$("lesson").scrollIntoView({block:"start",behavior:motion()});
+    }
   }
   function section(parent,title,text){
     const box=E("section",undefined,"course-section");
@@ -85,37 +107,54 @@ function courseInit(){
     wrap.append(top,out,input);parent.append(wrap);
     input.addEventListener("input",()=>{out.textContent=input.value;change(Number(input.value))});return input;
   }
+  function metric(label,value){
+    const card=E("div",undefined,"course-model-metric"),out=E("strong",value);
+    card.append(E("small",label),out);return {card,out};
+  }
   function model(parent,topic){
     const box=E("section",undefined,"course-model");
     box.append(E("span","ПОПРОБУЙ САМ · УПРОЩЁННАЯ МОДЕЛЬ","course-eyebrow"));
     if(topic.id==="k8s"){
       box.append(E("h3","Readiness: куда Service отправит трафик?"),E("p","Нажми на Pod, чтобы изменить его readiness. Все три Pod Running; модель показывает только доступность для обычного трафика."));
-      const pods=[true,true,true],grid=E("div",undefined,"course-model-grid"),result=E("p",undefined,"course-model-result");
+      const pods=[true,true,true],grid=E("div",undefined,"course-model-grid"),result=E("p",undefined,"course-model-result");result.setAttribute("role","status");
       const buttons=pods.map((_,i)=>B("",()=>{pods[i]=!pods[i];draw()}));
       function draw(){
         buttons.forEach((b,i)=>{b.textContent="Pod "+(i+1)+" · "+(pods[i]?"Ready":"Not Ready");b.setAttribute("aria-pressed",String(pods[i]))});
         result.textContent="Готовых конечных точек: "+courseReadiness(pods)+"/3. "+(courseReadiness(pods)===0?"Нет готовых backend для обычного трафика.":"Service может направлять обычный трафик в готовые Pod.");
       }
-      grid.append(...buttons);box.append(E("div","Client → Service → EndpointSlice","course-flowline"),grid,result);draw();
+      const flow=E("div",undefined,"course-flowline");
+      for(const [i,label] of ["Client","Service","EndpointSlice"].entries()){
+        if(i)flow.append(E("b","→"));flow.append(E("span",label));
+      }
+      grid.append(...buttons);box.append(flow,grid,result);draw();
     }else if(topic.id==="kafka"){
       box.append(E("h3","Почему растёт consumer lag?"),E("p","Начальный lag = 0. Постоянные скорости, одна условная очередь, без rebalance и retries. Меняй скорость producer и consumer."));
       let incoming=800,outgoing=620,minutes=5;
       const result=E("p",undefined,"course-model-result"),meter=E("div",undefined,"course-meter"),fill=E("div");meter.append(fill);
-      const draw=()=>{const lag=courseLag(incoming,outgoing,minutes);result.textContent="Накопленный lag: "+lag.toLocaleString("ru-RU")+" сообщений за "+minutes+" мин. "+(incoming>outgoing?"Вход быстрее обработки.":"Очередь не растёт при нулевом начальном lag.");fill.style.width=Math.min(100,lag/3000)+"%"};
+      const metrics=E("div",undefined,"course-model-metrics"),inputRate=metric("Вход · msg/s",incoming),outputRate=metric("Обработка · msg/s",outgoing),backlog=metric("Lag · сообщений",0);
+      metrics.append(inputRate.card,outputRate.card,backlog.card);box.append(metrics);
+      const draw=()=>{const lag=courseLag(incoming,outgoing,minutes);inputRate.out.textContent=incoming;outputRate.out.textContent=outgoing;backlog.out.textContent=lag.toLocaleString("ru-RU");backlog.card.setAttribute("data-state",lag?"warning":"normal");result.textContent="Накопленный lag: "+lag.toLocaleString("ru-RU")+" сообщений за "+minutes+" мин. "+(incoming>outgoing?"Вход быстрее обработки.":"Очередь не растёт при нулевом начальном lag.");fill.style.width=Math.min(100,lag/(1500*60*minutes)*100)+"%"};
+      meter.setAttribute("aria-hidden","true");
       slider(box,"Producer · сообщений/с",0,1500,10,incoming,v=>{incoming=v;draw()});
       slider(box,"Consumer · сообщений/с",0,1500,10,outgoing,v=>{outgoing=v;draw()});
       slider(box,"Интервал · минуты",1,15,1,minutes,v=>{minutes=v;draw()});
-      box.append(meter,result);draw();
+      box.append(E("small","Шкала: доля от максимального lag при 1500 msg/s и нулевой обработке."),meter,result);draw();
     }else if(topic.id==="sre"){
       box.append(E("h3","Как расходуется error budget"),E("p","100 000 запросов в одном окне; SLO 99,9%. Сдвинь число плохих событий."));
       const result=E("p",undefined,"course-model-result"),meter=E("div",undefined,"course-meter"),fill=E("div");meter.append(fill);
-      const draw=bad=>{const s=courseBudget(100000,bad,99.9);result.textContent="Допустимо: "+s.allowed+" плохих. Израсходовано "+s.spent+"%. SLI "+s.success.toFixed(3)+"%. "+(s.spent>100?"SLO нарушен в этом окне.":"Бюджет не превышен.");fill.style.width=Math.min(100,s.spent)+"%"};
+      const metrics=E("div",undefined,"course-model-metrics"),limit=metric("Бюджет ошибок",100),spent=metric("Потрачено","75%"),sli=metric("Фактический SLI","99.925%");
+      metrics.append(limit.card,spent.card,sli.card);box.append(metrics);
+      const draw=bad=>{const s=courseBudget(100000,bad,99.9);limit.out.textContent=s.allowed;spent.out.textContent=s.spent+"%";sli.out.textContent=s.success.toFixed(3)+"%";spent.card.setAttribute("data-state",s.spent>100?"warning":"normal");result.textContent="Допустимо: "+s.allowed+" плохих. Израсходовано "+s.spent+"%. SLI "+s.success.toFixed(3)+"%. "+(s.spent>100?"SLO нарушен в этом окне.":"Бюджет не превышен.");fill.style.width=Math.min(100,s.spent)+"%"};
+      meter.setAttribute("aria-hidden","true");
       slider(box,"Плохие события",0,300,1,75,draw);box.append(meter,result);draw(75);
     }else if(topic.id==="terraform"){
       box.append(E("h3","Configuration → plan → apply"),E("p","Учебная модель: управляемый объект имеет условный параметр capacity, обновляемый без replacement. Это не настоящий Terraform provider."));
       let actual=2,desired=2,planned=null;
       const state=E("p",undefined,"course-model-result"),plan=B("Рассчитать plan",()=>{planned=desired;draw()}),apply=B("Применить сохранённый plan",()=>{if(planned!==null){actual=planned;planned=null;draw()}});
-      const draw=()=>{state.textContent="Факт: "+actual+" · Желаемое: "+desired+" · "+(planned===null?"Plan ещё не рассчитан.":planned===actual?"Plan: no changes.":"Plan: update "+actual+" → "+planned);apply.disabled=planned===null};
+      const metrics=E("div",undefined,"course-model-metrics"),config=metric("Configuration",desired),planMetric=metric("Plan","—"),resource=metric("Реальный ресурс",actual);
+      metrics.append(config.card,planMetric.card,resource.card);box.append(metrics);
+      state.setAttribute("role","status");
+      const draw=()=>{config.out.textContent=desired;resource.out.textContent=actual;planMetric.out.textContent=planned===null?"—":planned===actual?"Без изменений":actual+" → "+planned;state.textContent="Факт: "+actual+" · Желаемое: "+desired+" · "+(planned===null?"Plan ещё не рассчитан.":planned===actual?"Plan: no changes.":"Plan: update "+actual+" → "+planned);apply.disabled=planned===null};
       slider(box,"Желаемая capacity",1,8,1,desired,v=>{desired=v;planned=null;draw()});box.append(plan,apply,state);draw();
     }else return;
     parent.append(box);
@@ -133,7 +172,7 @@ function courseInit(){
   }
   function renderChapter(root,s){
     const c=s.chapter,level={foundation:"Основы",senior:"Senior",lead:"Lead"}[c.level]||c.level;
-    root.append(E("span","02 / ТЕОРИЯ · "+level,"course-eyebrow"),E("h2",c.title));
+    root.append(E("span","02 / ТЕОРИЯ · "+level,"course-eyebrow"),E("h2",c.title),E("p","Три части урока · механизм, пример и самостоятельное объяснение","course-lesson-meta"));
     const tabs=E("div",undefined,"course-tabs"),body=E("div",undefined,"course-chapter-body");
     const names=["Механизм","Production и пример","Команды и самопроверка"];
     function draw(){
@@ -155,7 +194,7 @@ function courseInit(){
     root.append(E("span","03 / САМОПРОВЕРКА","course-eyebrow"),E("h2","Прими инженерное решение"));
     section(root,"Ситуация",q.prompt);
     const options=E("div",undefined,"course-options"),status=E("div",undefined,"course-feedback");status.setAttribute("role","status");
-    const buttons=q.choices.map((choice,i)=>B(choice,()=>{const result=courseScenario(q,i);buttons.forEach((b,j)=>b.setAttribute("aria-pressed",String(i===j)));status.replaceChildren(E("strong",result.correct?"Обоснованный выбор":"Попробуй ещё раз"),E("p",result.feedback));if(result.correct)solved.add(s.id);else solved.delete(s.id);next.disabled=!solved.has(s.id)}));
+    const buttons=q.choices.map((choice,i)=>B(choice,()=>{const result=courseScenario(q,i);buttons.forEach((b,j)=>{b.setAttribute("aria-pressed",String(i===j));b.setAttribute("data-result",i===j?(result.correct?"correct":"incorrect"):"")});status.setAttribute("data-result",result.correct?"correct":"incorrect");status.replaceChildren(E("strong",result.correct?"Обоснованный выбор":"Попробуй ещё раз"),E("p",result.feedback));if(result.correct)solved.add(s.id);else solved.delete(s.id);next.disabled=!solved.has(s.id)}));
     const next=B("К практике →",()=>go(current+1),"primary");next.disabled=!solved.has(s.id);
     options.append(...buttons);root.append(options,status,next);
     notice(root,"Это учебный кейс с разбором, не независимый экзамен. Можно вернуться к теории или пропустить проверку через общую навигацию.");
@@ -190,13 +229,17 @@ function courseInit(){
   function render(){
     const s=route[current],stats=courseStats(route,reading),percent=stats.total?Math.round(stats.done/stats.total*100):0;
     $("course-count").textContent=stats.done+" / "+stats.total;
+    $("course-percent").textContent=percent+"%";
     $("course-meter").style.width=percent+"%";$("course-meter").parentNode.setAttribute("aria-valuenow",String(percent));
     $("course-storage").textContent=stored?"Отметки в этом браузере · не подтверждение квалификации":"Хранилище недоступно · текущая сессия";
     $("course-resume").textContent=stats.done?"Продолжить с текущего шага →":"Начать / продолжить →";
     const weeks=$("course-weeks");weeks.replaceChildren();
     for(const m of data.course.modules){
       const steps=route.filter(x=>x.module.id===m.id),stat=courseStats(steps,reading),open=m.id===s.module.id,d=E("details",undefined,"course-week");d.open=open;
-      d.append(E("summary","Неделя "+m.week+" · "+m.title+" ("+stat.done+"/"+stat.total+")"));
+      const summary=E("summary"),weekTitle=E("span",undefined,"course-week-title"),weekMeter=E("span",undefined,"course-week-meter"),weekFill=E("span");
+      weekFill.style.width=(stat.total?stat.done/stat.total*100:0)+"%";weekMeter.append(weekFill);weekMeter.setAttribute("aria-hidden","true");
+      weekTitle.append(E("span",m.title),E("small",stat.done+" / "+stat.total+" глав"),weekMeter);
+      summary.append(E("span",String(m.week).padStart(2,"0"),"course-week-number"),weekTitle);summary.setAttribute("aria-label","Неделя "+m.week+" · "+m.title+", "+stat.done+" из "+stat.total+" глав");d.append(summary);
       for(const t of m.topics){
         const r=route.filter(x=>x.topic.id===t.id),active=t.id===s.topic.id,b=B(r[0].guide.topic,()=>go(route.indexOf(r[0])));
         b.setAttribute("aria-current",String(active));d.append(b);
@@ -204,15 +247,51 @@ function courseInit(){
           for(const x of r){const label=x.kind==="intro"?"Введение":x.kind==="scenario"?"Самопроверка":x.kind==="practice"?"Практика":(reading.seen.includes(x.chapter.id)?"✓ ":"")+x.chapter.title;const step=B(label,()=>go(route.indexOf(x)));step.setAttribute("aria-current",String(s.id===x.id));list.append(step)}d.append(list)}
       }weeks.append(d);
     }
-    const context=$("course-context");context.replaceChildren(E("div","НЕДЕЛЯ "+s.module.week+" / "+data.course.modules.length+" · "+s.guide.topic,"course-eyebrow"),E("p","Шаг "+(current+1)+" из "+route.length+" · "+s.module.title,"muted"));
+    const topicSteps=route.filter(x=>x.topic.id===s.topic.id);
+    const kindLabels={intro:"Введение",chapter:"Теория",scenario:"Самопроверка",practice:"Практика"};
+    $("course-current-title").textContent="Сейчас: неделя "+s.module.week+" · "+s.guide.topic+" · "+(s.chapter?.title||kindLabels[s.kind]);
+    const context=$("course-context");
+    const stages=E("div",undefined,"course-stagebar");
+    stages.setAttribute("aria-label","Этапы текущей темы");
+    for(const kind of ["intro","chapter","scenario","practice"]){
+      const first=topicSteps.find(x=>x.kind===kind);
+      const stage=B(kindLabels[kind],()=>go(route.indexOf(first)));
+      if(s.kind===kind)stage.setAttribute("aria-current","step");
+      stages.append(stage);
+    }
+    context.replaceChildren(E("div","НЕДЕЛЯ "+s.module.week+" / "+data.course.modules.length+" · "+s.guide.topic,"course-eyebrow"),E("p","Шаг "+(current+1)+" из "+route.length+" · "+s.module.title,"muted"),stages);
     const root=$("course-content");root.replaceChildren();
     ({intro:renderIntro,chapter:renderChapter,scenario:renderScenario,practice:renderPractice})[s.kind](root,s);
+    const following=route[current+1];
+    if(following)root.append(E("p","Далее: "+following.guide.topic+" · "+(following.chapter?.title||kindLabels[following.kind]),"course-next-preview"));
     const nav=$("course-nav"),prev=B("← Предыдущий шаг",()=>go(current-1)),next=B(current===route.length-1?"Маршрут завершён":"Следующий шаг →",()=>go(current+1));
     prev.disabled=current===0;next.disabled=current===route.length-1;nav.replaceChildren(prev,E("span","Можно пропустить; отметка не ставится автоматически.","muted"),next);
   }
+  $("course-search").addEventListener("input",()=>{
+    const query=$("course-search").value,results=$("course-search-results");
+    results.replaceChildren();
+    if(!query.trim())return;
+    const found=courseSearch(route,query);
+    if(!found.length){results.append(E("p","Совпадений нет. Попробуй другое название."));return}
+    for(const step of found){
+      const label=step.chapter?step.guide.topic+" · "+step.chapter.title:step.guide.topic+" · Введение";
+      results.append(B(label,()=>go(route.indexOf(step))));
+    }
+  });
   $("course-resume").addEventListener("click",()=>go(current));
   const toggle=$("course-route-toggle"),rail=$("course-route");
-  toggle.addEventListener("click",()=>{rail.hidden=!rail.hidden;toggle.setAttribute("aria-expanded",String(!rail.hidden))});
+  const toggleRail=()=>setRail(!rail.hidden,true);
+  toggle.addEventListener("click",toggleRail);$("course-focus").addEventListener("click",toggleRail);
+  let initialHidden=narrow();try{const pref=localStorage.getItem(focusKey);if(pref!==null&&!narrow())initialHidden=pref==="1"}catch{}
+  setRail(initialHidden);
+  document.addEventListener?.("keydown",event=>{
+    if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==="k"&&!event.altKey){
+      event.preventDefault();setRail(false);$("course-search").focus();
+    }
+  });
+  $("course-search").addEventListener("keydown",event=>{
+    if(event.key==="Escape"){$("course-search").value="";$("course-search-results").replaceChildren();event.preventDefault()}
+  });
   render();
 }
 if(typeof document!=="undefined")courseInit();
