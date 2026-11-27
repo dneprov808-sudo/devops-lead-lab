@@ -116,6 +116,7 @@ def publish(root, sha, candidate):
     releases = root / "releases"
     releases.mkdir(exist_ok=True)
     require(releases.is_dir() and not releases.is_symlink(), "Unsafe releases path")
+    releases.chmod(0o755)
     dest = releases / sha
     if dest.exists() or dest.is_symlink():
         require(validate_release(dest, sha) == validate_release(candidate, sha),
@@ -124,15 +125,15 @@ def publish(root, sha, candidate):
         require(len(list(releases.iterdir())) < MAX_RELEASES,
                 "Release retention limit reached; owner must review old releases")
         # Only static files with manifest; never expose the checkout or credentials.
-        dest.mkdir(mode=0o755)
-        try:
+        with tempfile.TemporaryDirectory(prefix=".stage-", dir=root) as tmp:
+            stage = Path(tmp) / "release"
+            stage.mkdir()
             for name in FILES | {"manifest.json"}:
-                shutil.copyfile(candidate / name, dest / name)
-                (dest / name).chmod(0o644)
-            validate_release(dest, sha)
-        except Exception:
-            shutil.rmtree(dest)
-            raise
+                shutil.copyfile(candidate / name, stage / name)
+                (stage / name).chmod(0o644)
+            validate_release(stage, sha)
+            stage.chmod(0o755)
+            stage.rename(dest)
     dest.chmod(0o755)
     current = root / "current"
     require(not current.exists() or current.is_symlink(), "current must be a symlink")
