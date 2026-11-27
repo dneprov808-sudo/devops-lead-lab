@@ -9,7 +9,7 @@ const labs=JSON.parse(read("./practice/catalog.json"));
 const html=read("./site/templates/course.html");
 const runbooks=[...read("./web/index.html").matchAll(/<article class="deploy-card" id="([^"]+)">([\s\S]*?)<\/article>/g)].map(([,id,markup])=>({id,title:id,intro:"Synthetic DOM test",result:"Synthetic result",steps:[...markup.matchAll(/<div class="deploy-command"><h4>([^<]*)<\/h4><pre>([\s\S]*?)<\/pre>/g)].map(([,title,code])=>({title,code}))}));
 const data={course,guides,manifest,labs,runbooks};
-const api=new Function(source+"\nreturn {courseRoute,courseReading,courseStart,courseMark,courseStats,courseLag,courseBudget,courseReadiness,courseScenario};")();
+const api=new Function(source+"\nreturn {courseRoute,courseReading,courseStart,courseMark,courseStats,courseLag,courseBudget,courseReadiness,courseScenario,courseSearch};")();
 const route=api.courseRoute(data),topics=course.modules.flatMap(m=>m.topics),n=guides.flatMap(g=>g.chapters).length;
 assert.equal(course.modules.length,10);
 assert.equal(new Set(topics.map(t=>t.id)).size,guides.length);
@@ -47,6 +47,12 @@ assert.equal(api.courseLag(100,200,10),0);
 assert.deepEqual(api.courseBudget(100000,150,99.9),{allowed:100,spent:150,success:99.85});
 assert.equal(api.courseReadiness([true,false,true]),2);
 assert.equal(api.courseReadiness([false,false,false]),0);
+assert.equal(api.courseSearch(route,"   ").length,0);
+assert.equal(api.courseSearch(route,"no-matching-topic-123").length,0);
+assert.ok(api.courseSearch(route,"DOCKER").some(s=>s.id==="intro:docker"));
+assert.ok(api.courseSearch(route,"docker").length<=12);
+assert.ok(api.courseSearch(route,"linux").every(s=>["intro","chapter"].includes(s.kind)));
+
 
 // Run the actual UI source with a minimal DOM double. No browser APIs or shell execution.
 class Node {
@@ -81,6 +87,19 @@ let ui=init(),root=ui["course-content"],weeks=ui["course-weeks"];
 assert.ok(root.textContent.includes("Linux / Bash"));
 assert.equal(walk(root).filter(x=>x.className==="course-walk-step").length,3);
 assert.equal(ui["course-count"].textContent,"0 / "+n);
+assert.ok(ui["course-current-title"].textContent.includes("Linux"));
+const search=ui["course-search"],results=ui["course-search-results"];
+search.value="DOCKER";search.listeners.input();
+assert.ok(results.children.length>0&&results.children.length<=12);
+results.children[0].click();
+assert.ok(ui["course-current-title"].textContent.includes("Docker"));
+assert.equal(search.value,"");
+assert.equal(results.children.length,0);
+button(weeks,guides.find(g=>g.id==="linux").topic).click();
+const stagebar=classNode(ui["course-context"],"course-stagebar");
+assert.equal(stagebar.children.length,4);
+assert.equal(stagebar.children[0].attributes["aria-current"],"step");
+
 button(ui["course-nav"],"Следующий шаг →").click();
 assert.ok(root.textContent.includes(first.chapter.explanation));
 button(root,"Следующая часть →").click();
