@@ -50,6 +50,30 @@ def main():
                     expect(page.locator(".site-navigation a[aria-current=page]")).to_have_text("Курс")
                     expect(page.locator(".course-stagebar button")).to_have_count(4)
                     expect(page.locator(".course-stagebar [aria-current=step]")).to_have_text("Введение")
+                    expect(page.locator("#course-percent")).to_have_text("0%")
+                    expect(page.locator(".course-week-meter")).to_have_count(10)
+                    page.locator(".site-tools summary").click()
+                    expect(page.locator("#site-export")).to_be_visible()
+                    expect(page.locator("#site-import")).to_be_visible()
+                    page.locator(".site-tools summary").click()
+                    expect(page.locator("#site-export")).to_be_hidden()
+                    page.locator("#course-focus").click()
+                    expect(page.locator("#course-route")).to_be_hidden()
+                    expect(page.locator("#course-focus")).to_have_attribute("aria-pressed", "true")
+                    page.reload(wait_until="domcontentloaded")
+                    expect(page.locator("#course-route")).to_be_hidden()
+                    page.keyboard.press("Control+k")
+                    expect(page.locator("#course-route")).to_be_visible()
+                    expect(page.locator("#course-search")).to_be_focused()
+                    page.locator("#course-search").fill("Docker")
+                    expect(page.locator("#course-search-results button").first).to_be_visible()
+                    page.locator("#course-search").press("Escape")
+                    expect(page.locator("#course-search")).to_have_value("")
+                    expect(page.locator("#course-search-results button")).to_have_count(0)
+                    page.locator("#course-focus").click()
+                    page.locator("#course-focus").click()
+                    expect(page.locator("#course-route")).to_be_visible()
+
                     page.locator("#course-search").fill("DOCKER")
                     expect(page.locator("#course-search-results button").first).to_be_visible()
                     page.locator("#course-search-results button").first.click()
@@ -95,6 +119,18 @@ def main():
                     expect(page.locator("html")).to_have_attribute("data-theme", "light")
                     page.set_viewport_size({"width": 390, "height": 844})
                     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth"), "Horizontal overflow on mobile"
+                    # Exercise all four pages at desktop, tablet and phone widths in both themes.
+                    for theme in ("dark", "light"):
+                        page.evaluate("(theme) => localStorage.setItem('academy-site-theme-v1', theme)", theme)
+                        for width in (390, 768, 1280):
+                            page.set_viewport_size({"width": width, "height": 900})
+                            for route in ("index.html", "library.html", "interview.html", "architecture.html"):
+                                page.goto(origin + "/" + route, wait_until="domcontentloaded")
+                                expect(page.locator("html")).to_have_attribute("data-theme", theme)
+                                assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth"), (route, theme, width)
+                    page.emulate_media(reduced_motion="reduce")
+                    page.goto(origin + "/index.html", wait_until="domcontentloaded")
+                    assert page.locator("#course-content > h2").evaluate("(node) => getComputedStyle(node).animationName") == "none"
                     assert not errors, errors
                     assert not external, external
                     context.close()
