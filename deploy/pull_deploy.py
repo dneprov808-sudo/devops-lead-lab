@@ -19,6 +19,11 @@ BRANCH = "academy/stable"
 REF = "refs/heads/" + BRANCH
 WORKFLOW = "academy-release.yml"
 JOB = "academy-release-gate"
+# Owner-reviewed Git blob IDs: control-plane changes require an installer update.
+TRUSTED_BLOBS = {
+    "site/build.py": "37cfa226eba77fa3bb5d45e7e5e8b345a32d2230",
+    ".github/workflows/academy-release.yml": "393f2dd9a435f271a3afb44b261fa90517bff1b8",
+}
 ROOT = Path("/srv/academy")
 SHA = re.compile(r"[0-9a-f]{40}\Z")
 FILES = {"index.html", "library.html", "interview.html", "architecture.html",
@@ -66,7 +71,7 @@ def choose_run(payload, sha):
     matching = [r for r in runs if
                 r.get("head_sha") == sha and r.get("head_branch") == BRANCH
                 and r.get("event") == "push"
-                and r.get("head_repository", {}).get("full_name") == REPO
+                and (r.get("head_repository") or {}).get("full_name") == REPO
                 and r.get("path", "").split("@", 1)[0] == ".github/workflows/" + WORKFLOW]
     if not matching:
         return None
@@ -165,8 +170,13 @@ def deploy(root=ROOT):
         git("fetch", "--no-tags", "--depth=1", REMOTE, sha, cwd=checkout)
         git("checkout", "--detach", "FETCH_HEAD", cwd=checkout)
         require(git("rev-parse", "HEAD", cwd=checkout) == sha, "Checkout revision mismatch")
+        for path, blob in TRUSTED_BLOBS.items():
+            require(git("rev-parse", "HEAD:" + path, cwd=checkout) == blob,
+                    "Unapproved control-plane change: " + path)
         subprocess.run([sys.executable, "site/build.py"], cwd=checkout, check=True,
-                       timeout=180, env=dict(os.environ, PYTHONDONTWRITEBYTECODE="1"))
+                       timeout=180, env=dict(os.environ, PYTHONDONTWRITEBYTECODE="1",
+                                             GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL="/dev/null",
+                                             GIT_TERMINAL_PROMPT="0"))
         candidate = checkout / "site-dist" / sha
         validate_release(candidate, sha)
         require(stable_sha() == sha, "Stable advanced during build; retry next tick")
