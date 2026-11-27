@@ -8,3 +8,7 @@ __pycache__/
 *.sqlite3-wal
 *.sqlite3-shm
 .venv/
+
+# Generated static releases and private learning backups
+site-dist/
+academy-progress.json

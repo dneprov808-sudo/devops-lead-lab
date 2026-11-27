@@ -1,0 +1,73 @@
+# DevOps Lead Academy · Portable Web
+
+Самостоятельная статическая версия интерфейса ChatGPT Space. Данные берутся из GitHub; Python-портал, агентские инструменты и настоящие лаборатории остаются отдельными. Без npm, CDN, платных API и внешнего runtime.
+
+## Запуск в WSL
+
+Работай в checkout с нужной версией Academy; не запускай команды на production.
+
+```bash
+git status --short
+git pull --ff-only origin academy/stable
+python3 site/build.py
+python3 -m http.server 8090 --bind 127.0.0.1 --directory "site-dist/$(git rev-parse HEAD)"
+```
+
+Открой http://127.0.0.1:8090/. Остановка — Ctrl+C. Сборка не запускает исходный Python-портал и не требует Docker. Порт 8090 — отдельный от 8080. Если 8090 занят, выбери другой свободный локальный порт, учитывая, что хранилище браузера зависит от origin.
+
+Для проверки PR до merge используй отдельный checkout ветки `academy/static-learning-site` и не выполняй pull из stable в feature branch.
+
+## Содержимое релиза
+
+`site-dist/<commit SHA>/` содержит index.html (теория, практики, инциденты, System Design, среды), interview.html (банк вопросов), architecture.html (архитектура и агентский контракт), site.css, progress.js, manifest.json. Каждый HTML содержит только необходимый JSON payload и интерфейс, отдельная база данных не нужна.
+
+Сборка использует один immutable commit для шаблонов и всех источников, не обращается к сети. Валидирует обязательные поля, уникальные IDs и соответствие каталога теории, не исполняет содержимое банка вопросов, сравнивает исходные команды с копируемыми. Manifest связывает commit, количество материалов и SHA-256 входов и выходов. При повторной сборке идентичный каталог используется повторно; изменившийся существующий каталог не перезаписывается. Не копируй весь checkout на веб-сервер.
+
+## Обновление и публикация
+
+```text
+Content Engineer → feature branch → checks → PR → согласованный merge
+                                          ↓
+                 academy/stable (один commit SHA)
+                                          ↓
+              site/build.py → immutable static release
+                                          ↓
+             private authenticated static host (optional)
+                                          ↓
+                  browser: reading / interview
+```
+
+После merge: останови локальный сервер, обнови stable через fast-forward, пересобери и запусти сервер на прежнем адресе и порту. На отдельном приватном хостинге публикуй только шесть файлов релиза после валидации, сохраняя предыдущий release для rollback. Хостинг, DNS, TLS и доступ не настраиваются автоматически. Не включай публичный GitHub Pages для приватного учебного контента без отдельного согласования. Статический сайт не является системой аутентификации: хост должен проверять доступ **к каждому ресурсу**, включая HTML, manifest, CSS, JS. Содержимое вопросов и ответы находятся в HTML; интерфейс скрывает ответы для самопроверки, а не криптографически.
+
+ChatGPT Space использует отдельный агентский импорт тех же исходных файлов; этот PR не меняет automation и не создаёт второго писателя Space. Публикация сайта в OpenAI Sites/другой сервис в рамках этого PR не выполняется.
+
+## Прогресс
+
+Чтение, выбранная глава по стабильному ID, черновики и самооценки интервью хранятся в двух отдельных ключах localStorage, не зависящих от commit. Обновление на том же origin сохраняет доступ к ним. JSON export/import объединяет отметки и непересекающиеся черновики; при конфликте сохраняет текущий локальный вариант. Храни резервную копию приватно, в ней могут находиться твои ответы. Не коммить её в GitHub. Отметки чтения и самооценка не являются результатами независимого экзамена. Нет live sync между устройствами, SQLite, WSL и Space; при переносе с этих платформ понадобится отдельная миграция.
+
+## Контракт Content Engineer
+
+| Файл | Назначение |
+|---|---|
+| learning/knowledge.json | guides и главы |
+| learning/hub.json | каталог и связи профилей |
+| web/interview-bank.js | строго JSON-совместимый массив INTERVIEW_PRO_BANK |
+| practice/catalog.json | задания, команды и evidence |
+| learning/incidents.json | симптомы, факты, подсказки и debrief |
+| learning/design.json | требования, deliverables, rubric |
+| web/index.html | runbook: deploy-card / deploy-command / h4 / pre / data-prompt / deploy-result |
+
+Перед изменением: AGENTS.md, canonical STATE на academy/orchestration-v1, ROADMAP, SKILL_MATRIX, задачи/PR. Добавляй материалы в соответствующий файл, сохраняй уникальные стабильные IDs, не дублируй главы и вопросы, проверяй технические утверждения по официальной документации. Новая глава: id, title, level (foundation/senior/lead), explanation, production, example, commands, question, source (HTTPS), optional snippet {language, code, notes}. Не включай токены, персональные данные, боевые логи или решение активной LAB-001. Не меняй canonical STATE. Дизайн меняется в site/templates, а не копированием базы знаний в HTML.
+
+## Проверки
+
+```bash
+python3 -m unittest -v test_static_site
+node test_static_site_progress.mjs
+python3 site/build.py
+python3 release/gate.py
+```
+
+Сборка читает committed HEAD, не uncommitted файлы. Для browser acceptance открой главную, проверь каталог и смену главы, отметку чтения, переход в Interview Arena, непустой ответ → эталон, фильтры, копирование команд, переход в архитектуру, светлую/тёмную тему, экспорт и импорт прогресса, reload после обновления. Проверь viewport 390 и 1280 px. До прохождения браузерной проверки не считать готовым к боевой публикации.
+
+Handoff: ACADEMY-SITE-01, Frontend / Release Engineer → Code Reviewer. Не изменяет STATE, оценки или контракты лабораторий.
