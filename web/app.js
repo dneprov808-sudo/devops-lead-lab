@@ -273,6 +273,11 @@ function cockpitStepIndex(index,count){
     if(event.key==="ArrowDown"){event.preventDefault();results.querySelector("button")?.focus()}
     if(event.key==="Enter"){event.preventDefault();results.querySelector("button")?.click()}
   });
+  // Search fields may consume the first Escape natively (clear search text).
+  // Handle it at the modal boundary before the native control default action.
+  dialog.addEventListener("keydown",event=>{
+    if(event.key==="Escape"&&dialog.open){event.preventDefault();event.stopPropagation();dialog.close();trigger.focus()}
+  },true);
   dialog.addEventListener("close",()=>{if(dialog.contains(document.activeElement)||document.activeElement===document.body)trigger.focus()});
   document.addEventListener("keydown",event=>{
     if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==="k"){event.preventDefault();openSearch()}
