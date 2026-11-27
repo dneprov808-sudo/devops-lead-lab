@@ -195,6 +195,8 @@ def validate_course(course, data):
             assigned.add(tid)
             string_list(topic, "overview")
             require(len(topic["overview"]) >= 3, f"{tid}: overview too short")
+            string_list(topic, "walkthrough")
+            require(len(topic["walkthrough"]) >= 3, f"{tid}: walkthrough too short")
             scenario = topic.get("scenario")
             text_fields(scenario, ("prompt",), tid)
             require(isinstance(scenario.get("choices"), list) and len(scenario["choices"]) >= 2
