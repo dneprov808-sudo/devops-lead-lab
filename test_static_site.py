@@ -18,12 +18,12 @@ class StaticSiteTests(unittest.TestCase):
         cls.files, cls.manifest = builder.build_files(ROOT, cls.sha)
 
     def test_all_outputs_and_hashes(self):
-        self.assertEqual(set(self.files), {"index.html", "interview.html", "architecture.html",
-                                           "site.css", "progress.js", "manifest.json"})
+        self.assertEqual(set(self.files), {"index.html", "library.html", "interview.html", "architecture.html",
+                                           "site.css", "progress.js", "course.css", "course.js", "manifest.json"})
         self.assertEqual(self.manifest["commit"], self.sha)
         for path, digest in self.manifest["outputs"].items():
             self.assertEqual(builder.sha256(self.files[path]), digest)
-        self.assertEqual(len(self.manifest["inputs"]), 7)
+        self.assertEqual(len(self.manifest["inputs"]), 8)
 
     def test_deterministic_build(self):
         files, manifest = builder.build_files(ROOT, self.sha)
@@ -41,7 +41,7 @@ class StaticSiteTests(unittest.TestCase):
                               .split("</script>", 1)[0])
 
     def test_no_content_loss(self):
-        data = self.extract("index.html")
+        data = self.extract("library.html")
         for name, path in builder.CONTENT.items():
             self.assertEqual(data[name], json.loads(builder.load(ROOT, self.sha, path)))
         self.assertEqual(data["runbooks"], builder.parse_runbooks(
@@ -49,6 +49,30 @@ class StaticSiteTests(unittest.TestCase):
         self.assertEqual(self.extract("interview.html"), builder.parse_bank(
             builder.load(ROOT, self.sha, "web/interview-bank.js")))
         self.assertEqual(self.extract("architecture.html")["counts"], self.manifest["counts"])
+        course = self.extract("index.html")
+        self.assertEqual(course["guides"], data["guides"])
+        self.assertEqual(course["runbooks"], data["runbooks"])
+        self.assertEqual(course["manifest"], data["manifest"])
+        self.assertEqual(course["labs"], data["labs"])
+        self.assertEqual(course["course"], json.loads(builder.load(ROOT, self.sha, "learning/course.json")))
+        builder.validate_course(course["course"], data)
+
+    def test_course_rejects_duplicate_unknown_and_bad_scenario(self):
+        data = self.extract("library.html")
+        import copy
+        course = self.extract("index.html")["course"]
+        changed = copy.deepcopy(course)
+        changed["modules"][1]["topics"].append(changed["modules"][0]["topics"][0])
+        with self.assertRaises(ValueError):
+            builder.validate_course(changed, data)
+        changed = copy.deepcopy(course)
+        changed["modules"][0]["topics"][0]["practice"]["runbook"] = "missing"
+        with self.assertRaises(ValueError):
+            builder.validate_course(changed, data)
+        changed = copy.deepcopy(course)
+        changed["modules"][0]["topics"][0]["scenario"]["correct"] = 999
+        with self.assertRaises(ValueError):
+            builder.validate_course(changed, data)
 
     def test_json_is_inert(self):
         data = {"text": "</script><script>alert(1)</script>", "literal": "@@ACADEMY_SHA@@"}

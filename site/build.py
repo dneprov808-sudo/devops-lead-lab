@@ -176,6 +176,44 @@ def sha256(payload):
     return hashlib.sha256(payload).hexdigest()
 
 
+def validate_course(course, data):
+    require(isinstance(course, dict) and course.get("schema_version") == 1,
+            "Invalid course schema")
+    modules = course.get("modules")
+    unique_rows(modules, "course modules")
+    require([m.get("week") for m in modules] == list(range(1, len(modules) + 1)),
+            "Course weeks must be contiguous")
+    guides = {g["id"] for g in data["guides"]}
+    runbooks = {r["id"] for r in data["runbooks"]}
+    assigned = set()
+    for module in modules:
+        text_fields(module, ("title", "goal"), module["id"])
+        unique_rows(module.get("topics"), module["id"])
+        for topic in module["topics"]:
+            tid = topic["id"]
+            require(tid in guides and tid not in assigned, f"Invalid/repeated course topic: {tid}")
+            assigned.add(tid)
+            string_list(topic, "overview")
+            require(len(topic["overview"]) >= 3, f"{tid}: overview too short")
+            string_list(topic, "walkthrough")
+            require(len(topic["walkthrough"]) >= 3, f"{tid}: walkthrough too short")
+            scenario = topic.get("scenario")
+            text_fields(scenario, ("prompt",), tid)
+            require(isinstance(scenario.get("choices"), list) and len(scenario["choices"]) >= 2
+                    and all(isinstance(x, str) and x.strip() for x in scenario["choices"])
+                    and len(set(scenario["choices"])) == len(scenario["choices"]), f"{tid}: choices")
+            require(isinstance(scenario.get("feedback"), list)
+                    and len(scenario["feedback"]) == len(scenario["choices"])
+                    and all(isinstance(x, str) and x.strip() for x in scenario["feedback"]), f"{tid}: feedback")
+            require(type(scenario.get("correct")) is int and 0 <= scenario["correct"] < len(scenario["choices"]),
+                    f"{tid}: correct answer")
+            practice = topic.get("practice")
+            text_fields(practice, ("task", "evidence"), tid)
+            require(practice.get("runbook") is None or practice["runbook"] in runbooks,
+                    f"{tid}: unknown runbook")
+    require(assigned == guides, "Every guide must appear exactly once in the course")
+
+
 def build_files(root, sha):
     sources = {name: load(root, sha, path) for name, path in CONTENT.items()}
     bank_source = load(root, sha, "web/interview-bank.js")
@@ -184,19 +222,29 @@ def build_files(root, sha):
     data["runbooks"] = parse_runbooks(runbook_source)
     bank = parse_bank(bank_source)
     validate(data, bank)
+    course_source = load(root, sha, "learning/course.json")
+    course = json.loads(course_source)
+    validate_course(course, data)
     counts = {"topics": len(data["guides"]), "chapters": sum(len(g["chapters"]) for g in data["guides"]),
               "questions": len(bank), "labs": len(data["labs"]), "incidents": len(data["incidents"]),
               "designs": len(data["designs"]), "runbooks": len(data["runbooks"]),
               "command_blocks": sum(len(r["steps"]) for r in data["runbooks"])}
     files = {}
-    for name, payload in (("index.html", data), ("interview.html", bank),
-                          ("architecture.html", {"counts": counts, "commit": sha})):
-        files[name] = render(load(root, sha, "site/templates/" + name), payload, sha).encode("utf-8")
-    for name in ("site.css", "progress.js"):
+    counts.update({"weeks": len(course["modules"]), "scenarios": sum(len(m["topics"]) for m in course["modules"])})
+    course_data = {"course": course, "guides": data["guides"], "runbooks": data["runbooks"],
+                   "manifest": data["manifest"], "labs": data["labs"]}
+    for name, template, payload in (
+            ("index.html", "course.html", course_data),
+            ("library.html", "index.html", data),
+            ("interview.html", "interview.html", bank),
+            ("architecture.html", "architecture.html", {"counts": counts, "commit": sha})):
+        files[name] = render(load(root, sha, "site/templates/" + template), payload, sha).encode("utf-8")
+    for name in ("site.css", "progress.js", "course.css", "course.js"):
         files[name] = load(root, sha, "site/templates/" + name).encode("utf-8")
     inputs = {CONTENT[name]: sha256(value.encode("utf-8")) for name, value in sources.items()}
     inputs.update({"web/interview-bank.js": sha256(bank_source.encode("utf-8")),
-                   "web/index.html": sha256(runbook_source.encode("utf-8"))})
+                   "web/index.html": sha256(runbook_source.encode("utf-8")),
+                   "learning/course.json": sha256(course_source.encode("utf-8"))})
     manifest = {"schema_version": 1, "commit": sha, "counts": counts, "inputs": inputs,
                 "outputs": {name: sha256(value) for name, value in sorted(files.items())}}
     files["manifest.json"] = (json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode("utf-8")
